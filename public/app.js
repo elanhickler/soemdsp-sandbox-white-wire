@@ -2294,6 +2294,12 @@ function updateParameterTimelinePlayhead(region) {
   marker.style.left = `${railLeft + ratio * railWidth}px`;
 }
 
+function updateParameterTimelinePreview(region) {
+  for (const segment of document.querySelectorAll(".parameter-segment")) {
+    segment.classList.toggle("preview", segment.dataset.phaseName === region?.name);
+  }
+}
+
 function updateParameterTimelineProbeMarker() {
   const timeline = document.getElementById("parameterTimeline");
   const marker = document.getElementById("parameterTimelineProbeMarker");
@@ -2325,6 +2331,7 @@ function renderParameterTimelineProbe() {
   const waveform = state.waveform;
   if (!waveform || state.waveformProbeFrame === null) {
     probe.textContent = "probe";
+    updateParameterTimelinePreview(null);
     updateParameterTimelineProbeMarker();
     return;
   }
@@ -2338,6 +2345,7 @@ function renderParameterTimelineProbe() {
   } / freq ${frequency === null ? "missing" : `${formatCompactNumber(frequency)} Hz`} / amp ${
     amplitude === null ? "missing" : formatCompactNumber(amplitude)
   }`;
+  updateParameterTimelinePreview(region);
   updateParameterTimelineProbeMarker();
 }
 

@@ -319,6 +319,10 @@ audio {
   background: rgba(127, 199, 217, 0.16);
 }
 
+.parameter-segment.preview {
+  background: rgba(255, 211, 119, 0.12);
+}
+
 .parameter-segment span {
   color: var(--muted);
   font-size: 0.72rem;
