@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import socket
 import subprocess
 import sys
 import tempfile
@@ -80,11 +81,32 @@ def request(url: str, method: str = "GET") -> Response:
             headers={key.lower(): value for key, value in error.headers.items()},
             body=error.read(),
         )
+    except urllib.error.URLError as error:
+        return Response(
+            status=0,
+            reason=str(error.reason),
+            headers={},
+            body=b"",
+        )
 
 
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
+
+
+def find_free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.bind(("127.0.0.1", 0))
+        return int(server.getsockname()[1])
+
+
+def require_port_available(port: int) -> None:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+            server.bind(("127.0.0.1", port))
+    except OSError as error:
+        raise RuntimeError(f"port {port} is not available: {error}") from error
 
 
 def run_step(label: str, action: Callable[[], None]) -> None:
@@ -353,13 +375,21 @@ def require_primary_audio_wav(base_url: str, payload: dict[str, object]) -> None
         raise AssertionError(f"primary audio WAV parse failed: {error}") from error
 
 
-def wait_for_server(base_url: str) -> None:
+def wait_for_server(base_url: str, process: subprocess.Popen[bytes]) -> None:
     deadline = time.monotonic() + 5
     last_status = ""
     while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(
+                f"sandbox server exited before becoming ready: {process.returncode}",
+            )
         response = request(f"{base_url}/public/index.html", method="HEAD")
         last_status = f"{response.status} {response.reason}"
         if response.status == 200:
+            if process.poll() is not None:
+                raise RuntimeError(
+                    f"sandbox server exited during readiness check: {process.returncode}",
+                )
             require_no_store(response, "public index")
             return
         time.sleep(0.1)
@@ -367,7 +397,8 @@ def wait_for_server(base_url: str) -> None:
 
 
 def start_server(port: int, manifest: Path) -> subprocess.Popen[bytes]:
-    return subprocess.Popen(
+    require_port_available(port)
+    process = subprocess.Popen(
         [
             sys.executable,
             str(ROOT / "server.py"),
@@ -380,6 +411,10 @@ def start_server(port: int, manifest: Path) -> subprocess.Popen[bytes]:
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+    time.sleep(0.05)
+    if process.poll() is not None:
+        raise RuntimeError(f"sandbox server exited immediately: {process.returncode}")
+    return process
 
 
 def stop_server(process: subprocess.Popen[bytes]) -> None:
@@ -396,7 +431,7 @@ def run_valid_manifest_smoke(port: int, manifest: Path) -> None:
     process = start_server(port, manifest)
 
     try:
-        wait_for_server(base_url)
+        wait_for_server(base_url, process)
 
         root_response = request(f"{base_url}/", method="HEAD")
         require(root_response.status == 200, "root shell did not return 200")
@@ -488,11 +523,11 @@ def run_manifest_error_smoke(port: int) -> None:
         ]
 
         for index, (path, status, error, detail) in enumerate(cases):
-            case_port = port + index
+            case_port = find_free_port() if port == 0 else port + index
             base_url = f"http://127.0.0.1:{case_port}"
             process = start_server(case_port, path)
             try:
-                wait_for_server(base_url)
+                wait_for_server(base_url, process)
                 response = request(f"{base_url}/api/manifest")
                 require(response.status == status, f"{error} status mismatch")
                 require_no_store(response, error)
@@ -511,19 +546,26 @@ def run_manifest_error_smoke(port: int) -> None:
 
 
 def run_smoke(port: int, manifest: Path) -> None:
+    valid_manifest_port = find_free_port() if port == 0 else port
+    error_manifest_port = 0 if port == 0 else port + 1
     run_step(
         "valid manifest packet",
-        lambda: run_valid_manifest_smoke(port, manifest),
+        lambda: run_valid_manifest_smoke(valid_manifest_port, manifest),
     )
     run_step(
         "manifest error responses",
-        lambda: run_manifest_error_smoke(port + 1),
+        lambda: run_manifest_error_smoke(error_manifest_port),
     )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", default=18765, type=int)
+    parser.add_argument(
+        "--port",
+        default=0,
+        type=int,
+        help="Port for the first smoke server. Defaults to 0 for automatic ports.",
+    )
     parser.add_argument("--manifest", default=str(DEFAULT_MANIFEST))
     args = parser.parse_args()
 
