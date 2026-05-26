@@ -3,6 +3,7 @@ const state = {
   waveform: null,
   playheadFrame: 0,
   waveformProbeFrame: null,
+  waveformProbeSource: null,
   waveformPointerActive: false,
   phaseJumpPreviewIndex: null,
   followAudio: true,
@@ -727,6 +728,7 @@ function probePhaseAudioStats(event) {
   }
 
   state.waveformProbeFrame = clampFrame(Math.round(startFrame + (endFrame - startFrame) / 2), waveform);
+  state.waveformProbeSource = "phase audio stats";
   state.signalPlotProbe = signalPlotProbeAtFrame(state.waveformProbeFrame);
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -744,6 +746,7 @@ function clearPhaseAudioStatsProbe() {
   }
 
   state.waveformProbeFrame = null;
+  state.waveformProbeSource = null;
   state.signalPlotProbe = null;
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -1206,6 +1209,7 @@ function probeSignalPlot(event) {
 
   state.signalPlotProbe = signalPlotProbeAtClientPoint(event.clientX, event.clientY);
   state.waveformProbeFrame = state.signalPlotProbe.nearest?.frame ?? null;
+  state.waveformProbeSource = state.waveformProbeFrame === null ? null : "signal plot";
   drawSignalPlot();
   renderSignalPlotProbe();
   drawWaveform();
@@ -1217,6 +1221,7 @@ function probeSignalPlot(event) {
 function clearSignalPlotProbe() {
   state.signalPlotProbe = null;
   state.waveformProbeFrame = null;
+  state.waveformProbeSource = null;
   drawSignalPlot();
   renderSignalPlotProbe();
   drawWaveform();
@@ -1489,13 +1494,14 @@ function renderWaveformPhaseControls() {
   }
 }
 
-function setSharedProbeFrame(frame) {
+function setSharedProbeFrame(frame, source = "probe") {
   const waveform = state.waveform;
   if (!waveform) {
     return;
   }
 
   state.waveformProbeFrame = clampFrame(frame, waveform);
+  state.waveformProbeSource = source;
   state.signalPlotProbe = signalPlotProbeAtFrame(state.waveformProbeFrame);
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -1510,6 +1516,7 @@ function setSharedProbeFrame(frame) {
 
 function clearSharedProbeFrame() {
   state.waveformProbeFrame = null;
+  state.waveformProbeSource = null;
   state.signalPlotProbe = null;
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -1530,7 +1537,7 @@ function probePhaseButton(index) {
 
   state.phaseJumpPreviewIndex = index;
   updateActivePhaseButtons(activeWaveformRegion());
-  setSharedProbeFrame(region.startFrame);
+  setSharedProbeFrame(region.startFrame, "phase jump");
 }
 
 function clearPhaseButtonProbe() {
@@ -1640,6 +1647,7 @@ async function renderWaveform(path) {
 
     state.waveform = parsePcm16Wav(await response.arrayBuffer());
     state.waveformProbeFrame = null;
+    state.waveformProbeSource = null;
     state.signalPlotProbe = null;
     state.waveform.stats = analyzeWaveform(state.waveform.samples);
     state.waveform.envelope = buildLevelEnvelope(state.waveform);
@@ -1676,6 +1684,7 @@ async function renderWaveform(path) {
   } catch (error) {
     state.waveform = null;
     state.waveformProbeFrame = null;
+    state.waveformProbeSource = null;
     state.signalPlotProbe = null;
     state.playheadFrame = 0;
     meta.replaceChildren();
@@ -1776,6 +1785,7 @@ function renderInspectionCursor() {
       ["transport frame", "0"],
       ["transport time", "0.000s"],
       ["transport phase", "phase"],
+      ["hover source", "none"],
       ["hover frame", "none"],
       ["hover signal", "none"],
     ]);
@@ -1806,6 +1816,7 @@ function renderInspectionCursor() {
     ["transport time", formatSeconds(transportFrame / waveform.sampleRate)],
     ["transport phase", transportRegion?.name || "phase"],
     ["transport sample", formatCompactNumber(transportSample)],
+    ["hover source", hoverFrame === null ? "none" : state.waveformProbeSource || "probe"],
     ["hover frame", hoverFrame === null ? "none" : String(hoverFrame)],
     [
       "hover time",
@@ -1930,6 +1941,7 @@ function probeWaveformAtClientX(clientX) {
   }
 
   state.waveformProbeFrame = waveformFrameAtClientX(clientX);
+  state.waveformProbeSource = "waveform";
   state.signalPlotProbe = signalPlotProbeAtFrame(state.waveformProbeFrame);
   renderWaveformProbe();
   drawSignalPlot();
@@ -1943,6 +1955,7 @@ function probeLevelEnvelopeAtClientX(clientX) {
   }
 
   state.waveformProbeFrame = waveformFrameAtClientXForCanvas(clientX, "levelEnvelopeCanvas");
+  state.waveformProbeSource = "level envelope";
   state.signalPlotProbe = signalPlotProbeAtFrame(state.waveformProbeFrame);
   renderWaveformProbe();
   drawWaveform();
@@ -1988,6 +2001,7 @@ function clearWaveformProbe() {
   }
 
   state.waveformProbeFrame = null;
+  state.waveformProbeSource = null;
   state.signalPlotProbe = null;
   renderWaveformProbe();
   drawSignalPlot();
@@ -2002,6 +2016,7 @@ function clearLevelEnvelopeProbe() {
   }
 
   state.waveformProbeFrame = null;
+  state.waveformProbeSource = null;
   state.signalPlotProbe = null;
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -2326,6 +2341,7 @@ function probeParameterTimelineSegment(event) {
   const rect = event.currentTarget.getBoundingClientRect();
   const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
   state.waveformProbeFrame = clampFrame(Math.round(startFrame + (endFrame - startFrame) * ratio), waveform);
+  state.waveformProbeSource = "parameter timeline";
   state.signalPlotProbe = signalPlotProbeAtFrame(state.waveformProbeFrame);
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -2342,6 +2358,7 @@ function clearParameterTimelineProbe() {
   }
 
   state.waveformProbeFrame = null;
+  state.waveformProbeSource = null;
   state.signalPlotProbe = null;
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -2949,6 +2966,7 @@ function probePhaseList(event) {
   }
 
   state.waveformProbeFrame = clampFrame(Math.round(startFrame + (endFrame - startFrame) / 2), waveform);
+  state.waveformProbeSource = "phase list";
   state.signalPlotProbe = signalPlotProbeAtFrame(state.waveformProbeFrame);
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -2967,6 +2985,7 @@ function clearPhaseListProbe() {
   }
 
   state.waveformProbeFrame = null;
+  state.waveformProbeSource = null;
   state.signalPlotProbe = null;
   renderWaveformProbe();
   renderLevelEnvelopeProbe();
@@ -3320,6 +3339,7 @@ function renderError(message, details = {}) {
   state.waveform = null;
   state.playheadFrame = 0;
   state.waveformProbeFrame = null;
+  state.waveformProbeSource = null;
   state.signalPlotProbe = null;
   state.reports = [];
   state.activeReportIndex = 0;
