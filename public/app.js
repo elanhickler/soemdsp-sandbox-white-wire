@@ -1877,6 +1877,9 @@ function renderInspectionCursor() {
       ["last seek source", "none"],
       ["last seek frame", "none"],
       ["last seek time", "none"],
+      ["last seek phase", "none"],
+      ["last seek hover match", "none"],
+      ["last seek hover delta", "none"],
       ["hover source", "none"],
       ["hover frame", "none"],
       ["hover signal", "none"],
@@ -1907,6 +1910,14 @@ function renderInspectionCursor() {
     state.lastSeekFrame === null ? null : clampFrame(state.lastSeekFrame, waveform);
   const lastSeekRegion =
     lastSeekFrame === null ? null : waveformRegionAtFrame(lastSeekFrame);
+  const lastSeekHoverDeltaFrame =
+    lastSeekFrame === null || hoverFrame === null ? null : hoverFrame - lastSeekFrame;
+  const lastSeekHoverMatch =
+    lastSeekHoverDeltaFrame === null
+      ? "none"
+      : lastSeekHoverDeltaFrame === 0
+        ? "aligned"
+        : "diverged";
 
   setStatus("inspectionCursorStatus", hoverFrame === null ? "Transport" : "Hover", true);
   setInspectionCursorSource(hoverSource, hoverFrame === null ? "transport" : "hover");
@@ -1928,6 +1939,11 @@ function renderInspectionCursor() {
       lastSeekFrame === null ? "none" : formatSeconds(lastSeekFrame / waveform.sampleRate),
     ],
     ["last seek phase", lastSeekRegion?.name || "none"],
+    ["last seek hover match", lastSeekHoverMatch],
+    [
+      "last seek hover delta",
+      formatInspectionDelta(lastSeekHoverDeltaFrame, waveform.sampleRate),
+    ],
     ["hover source", hoverFrame === null ? "none" : hoverSource],
     ["hover frame", hoverFrame === null ? "none" : String(hoverFrame)],
     [
