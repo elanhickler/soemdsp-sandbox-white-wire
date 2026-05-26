@@ -663,6 +663,16 @@ def require_phase_audio_measurements(
     amplitude = resync.get("amplitude")
     require(isinstance(frequency, dict), "phase measurement frequency missing")
     require(isinstance(amplitude, dict), "phase measurement amplitude missing")
+    producer_measurements = manifest.get("phaseAudioMeasurements")
+    require(
+        isinstance(producer_measurements, list),
+        "producer phase measurements missing",
+    )
+    producer_measurements_by_name = {
+        measurement.get("name"): measurement
+        for measurement in producer_measurements
+        if isinstance(measurement, dict)
+    }
 
     for index, phase in enumerate(phases):
         require(isinstance(phase, dict), f"phase measurement {index} not object")
@@ -691,9 +701,30 @@ def require_phase_audio_measurements(
 
         phase_samples = samples[start_frame:end_frame]
         peak = max(abs(sample) for sample in phase_samples)
+        rms = (sum(sample * sample for sample in phase_samples) / len(phase_samples)) ** 0.5
         require(
             abs(peak - target_amplitude) < 0.001,
             f"{name} peak {peak} did not match target amplitude {target_amplitude}",
+        )
+        producer_measurement = producer_measurements_by_name.get(name)
+        require(
+            isinstance(producer_measurement, dict),
+            f"{name} producer measurement missing",
+        )
+        producer_frequency = float(producer_measurement.get("measuredFrequency", 0))
+        producer_peak = float(producer_measurement.get("peak", 0))
+        producer_rms = float(producer_measurement.get("rms", 0))
+        require(
+            abs(producer_frequency - measured_frequency) < 0.5,
+            f"{name} producer frequency {producer_frequency} did not match decoded {measured_frequency}",
+        )
+        require(
+            abs(producer_peak - peak) < 0.001,
+            f"{name} producer peak {producer_peak} did not match decoded {peak}",
+        )
+        require(
+            abs(producer_rms - rms) < 0.001,
+            f"{name} producer rms {producer_rms} did not match decoded {rms}",
         )
 
 
