@@ -2025,7 +2025,7 @@ function renderAudioPosition() {
   const position = document.getElementById("audioPosition");
   const time = Number(audio.currentTime);
   const duration = Number(audio.duration);
-  position.textContent = `audio ${formatSeconds(Number.isFinite(time) ? time : 0)}`;
+  position.textContent = `audio ${formatSeconds(Number.isFinite(time) ? time : 0)} / ${formatAudioDuration(duration)}`;
   setInspectionCursorAudio(time, duration);
   setInspectionCursorPlayback(audio);
 }

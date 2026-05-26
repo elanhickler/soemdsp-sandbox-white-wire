@@ -1266,6 +1266,7 @@ def require_waveform_seek_source_contract() -> None:
         "function formatAudioDuration(duration)",
         "function setInspectionCursorAudio(time, duration)",
         "formatAudioDuration(duration)",
+        "position.textContent = `audio ${formatSeconds(Number.isFinite(time) ? time : 0)} / ${formatAudioDuration(duration)}`",
         "setInspectionCursorAudio(time, duration)",
         "setInspectionCursorAudio(0, Number.NaN)",
         "function setInspectionCursorPlayback(audio)",
