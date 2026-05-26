@@ -236,6 +236,41 @@ function analyzeWaveform(samples) {
   };
 }
 
+function analyzeSampleRange(samples, startFrame, endFrame) {
+  const start = Math.max(0, Math.min(samples.length, startFrame));
+  const end = Math.max(start, Math.min(samples.length, endFrame));
+  if (end <= start) {
+    return {
+      dcOffset: 0,
+      max: 0,
+      min: 0,
+      peak: 0,
+      rms: 0,
+    };
+  }
+
+  let max = -Infinity;
+  let min = Infinity;
+  let sum = 0;
+  let squareSum = 0;
+  for (let frame = start; frame < end; frame += 1) {
+    const sample = samples[frame] || 0;
+    max = Math.max(max, sample);
+    min = Math.min(min, sample);
+    sum += sample;
+    squareSum += sample * sample;
+  }
+
+  const frames = end - start;
+  return {
+    dcOffset: sum / frames,
+    max,
+    min,
+    peak: Math.max(Math.abs(min), Math.abs(max)),
+    rms: Math.sqrt(squareSum / frames),
+  };
+}
+
 function buildLevelEnvelope(waveform) {
   const windowFrames = Math.max(1, Math.round(waveform.sampleRate * 0.01));
   const windows = [];
@@ -545,6 +580,61 @@ function renderLevelEnvelope() {
   drawLevelEnvelope();
   status.textContent = "Drawn";
   status.className = "pill good";
+}
+
+function updatePhaseAudioStatsActive(region) {
+  for (const item of document.querySelectorAll(".phase-stat")) {
+    item.classList.toggle("active", item.dataset.phaseName === region?.name);
+  }
+}
+
+function renderPhaseAudioStats() {
+  const status = document.getElementById("phaseAudioStatsStatus");
+  const list = document.getElementById("phaseAudioStats");
+  list.replaceChildren();
+
+  const waveform = state.waveform;
+  const regions = waveform?.regions || [];
+  if (!waveform || !regions.length) {
+    status.textContent = "Check";
+    status.className = "pill warn";
+    return;
+  }
+
+  for (const region of regions) {
+    const stats = analyzeSampleRange(
+      waveform.samples,
+      region.startFrame,
+      region.endFrame,
+    );
+    const frequencyValue = activeParameterValue("frequency", region);
+    const amplitudeValue = activeParameterValue("amplitude", region);
+    const item = document.createElement("div");
+    item.className = "phase-stat";
+    item.dataset.phaseName = region.name;
+
+    const name = document.createElement("h3");
+    name.textContent = region.name;
+
+    const body = document.createElement("dl");
+    body.className = "kv compact";
+    renderKeyValue(body, [
+      ["target freq", frequencyValue === null ? "missing" : `${formatCompactNumber(frequencyValue)} Hz`],
+      ["target amp", amplitudeValue === null ? "missing" : formatCompactNumber(amplitudeValue)],
+      ["peak", formatCompactNumber(stats.peak)],
+      ["rms", formatCompactNumber(stats.rms)],
+      ["min", formatCompactNumber(stats.min)],
+      ["max", formatCompactNumber(stats.max)],
+      ["dc offset", formatCompactNumber(stats.dcOffset)],
+    ]);
+
+    item.append(name, body);
+    list.append(item);
+  }
+
+  status.textContent = `${regions.length} phases`;
+  status.className = "pill good";
+  updatePhaseAudioStatsActive(activeWaveformRegion());
 }
 
 function signalPlotLagFrames(waveform) {
@@ -1110,6 +1200,7 @@ async function renderWaveform(path) {
     setPlayheadFrame(0);
     drawWaveform();
     renderLevelEnvelope();
+    renderPhaseAudioStats();
     renderSignalPlot();
     renderWaveformPhaseControls();
     const wav = state.response?.manifest?.wav || {};
@@ -1137,6 +1228,7 @@ async function renderWaveform(path) {
     meta.replaceChildren();
     renderWaveformPhaseControls();
     renderLevelEnvelope();
+    renderPhaseAudioStats();
     renderSignalPlot();
     status.textContent = "Check";
     status.className = "pill warn";
@@ -1161,6 +1253,7 @@ function renderWaveformPosition() {
     scrubber.value = "0";
     renderCurrentParameters(null);
     updateParameterTimelinePlayhead(null);
+    updatePhaseAudioStatsActive(null);
     updateActivePhaseButtons(null);
     return;
   }
@@ -1179,6 +1272,7 @@ function renderWaveformPosition() {
   phaseRange.textContent = formatRegionRange(activeRegion, waveform.sampleRate);
   renderCurrentParameters(activeRegion);
   updateParameterTimelinePlayhead(activeRegion);
+  updatePhaseAudioStatsActive(activeRegion);
   scrubber.value = String(
     waveform.frames > 0 ? state.playheadFrame / waveform.frames : 0,
   );
@@ -2164,6 +2258,7 @@ function renderError(message, details = {}) {
   setText("signalPlotLagSummary", "lag 1 ms");
   setText("signalPlotPoint", "x 0 / y 0");
   setStatus("phaseCoverageStatus", "Check", false);
+  setStatus("phaseAudioStatsStatus", "Check", false);
   setStatus("phaseStatus", "Check", false);
   setStatus("artifactCoverageStatus", "Check", false);
   setStatus("reportStatus", "Check", false);
@@ -2199,6 +2294,7 @@ function renderError(message, details = {}) {
   renderWaveformPosition();
   clearElement("waveformMeta");
   clearElement("levelEnvelopeMeta");
+  clearElement("phaseAudioStats");
   renderSignalPlotControls();
   clearElement("signalPlotMeta");
   clearElement("boundaryFlags");

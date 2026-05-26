@@ -94,6 +94,8 @@ REQUIRED_SHELL_IDS = {
     "parameterTimeline",
     "parameterTimelinePhase",
     "parameterTimelineStatus",
+    "phaseAudioStats",
+    "phaseAudioStatsStatus",
     "phaseCoverage",
     "phaseCoverageStatus",
     "phaseList",
@@ -696,6 +698,7 @@ def require_waveform_seek_source_contract() -> None:
         '["peak", formatCompactNumber(stats.peak)]',
         '["rms", formatCompactNumber(stats.rms)]',
         '["dc offset", formatCompactNumber(stats.dcOffset)]',
+        "function analyzeSampleRange(samples, startFrame, endFrame)",
         "function activeParameterValue(name, region)",
         "function renderCurrentParameters(region)",
         'frequencyValue === null ? "freq" : `freq ${formatCompactNumber(frequencyValue)} Hz`',
@@ -709,8 +712,12 @@ def require_waveform_seek_source_contract() -> None:
         "function buildLevelEnvelope(waveform)",
         "function drawLevelEnvelope()",
         "function renderLevelEnvelope()",
+        "function renderPhaseAudioStats()",
+        "function updatePhaseAudioStatsActive(region)",
         '["window", `${formatCompactNumber(envelope.windowMs)} ms`]',
         '["source", "decoded primary WAV"]',
+        '["target freq", frequencyValue === null ? "missing" : `${formatCompactNumber(frequencyValue)} Hz`]',
+        '["target amp", amplitudeValue === null ? "missing" : formatCompactNumber(amplitudeValue)]',
         "function drawSignalPlot()",
         "function renderSignalPlotControls()",
         "function signalPlotWindowFrameRange(waveform, drawableFrames)",
@@ -792,6 +799,8 @@ def require_waveform_seek_source_contract() -> None:
         ".parameter-timeline",
         ".parameter-segment.active",
         ".parameter-timeline-marker",
+        ".phase-stat-list",
+        ".phase-stat.active",
     ]:
         require(snippet in style_source, f"waveform drag style missing {snippet}")
     require(
