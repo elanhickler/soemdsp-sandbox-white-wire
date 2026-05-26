@@ -893,7 +893,10 @@ async function checkArtifactAvailability(link, status, modified) {
   }
 
   try {
-    const response = await fetch(artifactUrl(link.path), { cache: "no-store" });
+    const response = await fetch(artifactUrl(link.path), {
+      cache: "no-store",
+      method: "HEAD",
+    });
     if (!response.ok) {
       status.textContent = `Check ${response.status}`;
       status.className = "artifact-status warn";

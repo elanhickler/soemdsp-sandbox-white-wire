@@ -26,32 +26,41 @@ class SandboxServer(BaseHTTPRequestHandler):
         return
 
     def do_GET(self) -> None:
+        self.serve_request(send_body=True)
+
+    def do_HEAD(self) -> None:
+        self.serve_request(send_body=False)
+
+    def serve_request(self, send_body: bool) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/":
-            self.serve_file(PUBLIC / "index.html")
+            self.serve_file(PUBLIC / "index.html", send_body=send_body)
             return
 
         if parsed.path.startswith("/public/"):
             relative = parsed.path.removeprefix("/public/")
-            self.serve_public(relative)
+            self.serve_public(relative, send_body=send_body)
             return
 
         if parsed.path == "/api/manifest":
+            if not send_body:
+                self.send_error(405, "Method not allowed")
+                return
             self.serve_manifest()
             return
 
         if parsed.path == "/artifact":
-            self.serve_artifact(parsed.query)
+            self.serve_artifact(parsed.query, send_body=send_body)
             return
 
         self.send_error(404, "Not found")
 
-    def serve_public(self, relative: str) -> None:
+    def serve_public(self, relative: str, send_body: bool) -> None:
         path = (PUBLIC / unquote(relative)).resolve()
         if not path.is_relative_to(PUBLIC):
             self.send_error(403, "Forbidden")
             return
-        self.serve_file(path)
+        self.serve_file(path, send_body=send_body)
 
     def serve_manifest(self) -> None:
         manifest_path = self.manifest_path.resolve()
@@ -100,7 +109,7 @@ class SandboxServer(BaseHTTPRequestHandler):
             }
         )
 
-    def serve_artifact(self, query: str) -> None:
+    def serve_artifact(self, query: str, send_body: bool) -> None:
         params = parse_qs(query)
         requested = params.get("path", [""])[0]
         if not requested:
@@ -113,22 +122,22 @@ class SandboxServer(BaseHTTPRequestHandler):
             self.send_error(403, "Forbidden")
             return
 
-        self.serve_file(path)
+        self.serve_file(path, send_body=send_body)
 
-    def serve_file(self, path: Path) -> None:
+    def serve_file(self, path: Path, send_body: bool = True) -> None:
         if not path.exists() or not path.is_file():
             self.send_error(404, "Not found")
             return
 
         mime_type, _ = mimetypes.guess_type(path)
-        body = path.read_bytes()
-        modified_time = path.stat().st_mtime
+        stat = path.stat()
         self.send_response(200)
         self.send_header("Content-Type", mime_type or "application/octet-stream")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Last-Modified", formatdate(modified_time, usegmt=True))
+        self.send_header("Content-Length", str(stat.st_size))
+        self.send_header("Last-Modified", formatdate(stat.st_mtime, usegmt=True))
         self.end_headers()
-        self.wfile.write(body)
+        if send_body:
+            self.wfile.write(path.read_bytes())
 
     def send_json(self, payload: object, status: int = 200) -> None:
         body = json.dumps(payload, indent=2).encode("utf-8")
