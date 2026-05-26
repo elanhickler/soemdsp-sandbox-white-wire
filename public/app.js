@@ -76,6 +76,17 @@ function saveSignalPlotSettings() {
   );
 }
 
+function resetSignalPlotSettings() {
+  state.signalLagMs = 1;
+  state.signalPhaseFocusIndex = null;
+  state.signalPhaseFocusName = "all";
+  state.signalPlotMode = "trace";
+  state.signalPlotScale = 1;
+  state.signalPlotWindow = "full";
+  state.signalPlotWindowMs = 80;
+  window.localStorage.removeItem(signalPlotSettingsKey);
+}
+
 function setText(id, value) {
   document.getElementById(id).textContent = value;
 }
@@ -701,6 +712,9 @@ function renderSignalPlotControls() {
   const lagGroup = document.createElement("div");
   lagGroup.className = "control-group";
   lagGroup.setAttribute("aria-label", "Signal plot lag");
+  const resetGroup = document.createElement("div");
+  resetGroup.className = "control-group";
+  resetGroup.setAttribute("aria-label", "Signal plot reset");
 
   const allButton = document.createElement("button");
   allButton.type = "button";
@@ -814,6 +828,18 @@ function renderSignalPlotControls() {
     lagGroup.append(button);
   }
 
+  const resetButton = document.createElement("button");
+  resetButton.type = "button";
+  resetButton.className = "phase-button";
+  resetButton.dataset.signalReset = "settings";
+  resetButton.setAttribute("aria-label", "Signal plot reset settings");
+  resetButton.textContent = "reset";
+  resetButton.addEventListener("click", () => {
+    resetSignalPlotSettings();
+    renderSignalPlot();
+  });
+  resetGroup.append(resetButton);
+
   container.append(
     focusGroup,
     modeGroup,
@@ -821,6 +847,7 @@ function renderSignalPlotControls() {
     windowGroup,
     windowSizeGroup,
     lagGroup,
+    resetGroup,
   );
 }
 
