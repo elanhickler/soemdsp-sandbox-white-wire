@@ -2448,7 +2448,13 @@ function updateParameterTimelinePlayhead(region) {
   const marker = document.getElementById("parameterTimelinePlayhead");
   const waveform = state.waveform;
 
-  phase.textContent = region ? region.name : "phase";
+  const frequency = activeParameterValue("frequency", region);
+  const amplitude = activeParameterValue("amplitude", region);
+  phase.textContent = region
+    ? `phase ${region.name} / freq ${
+        frequency === null ? "missing" : `${formatCompactNumber(frequency)} Hz`
+      } / amp ${amplitude === null ? "missing" : formatCompactNumber(amplitude)}`
+    : "phase";
   for (const segment of timeline.querySelectorAll(".parameter-segment")) {
     segment.classList.toggle("active", segment.dataset.phaseName === region?.name);
   }
