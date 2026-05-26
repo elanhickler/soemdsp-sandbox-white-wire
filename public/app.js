@@ -153,6 +153,17 @@ function setInspectionCursorSeek(sourceName) {
   seek.className = `pill inspection-seek ${sourceName ? "active" : "idle"}`;
 }
 
+function setInspectionCursorSeekSync(match) {
+  const sync = document.getElementById("inspectionCursorSeekSync");
+  sync.textContent =
+    match === "aligned"
+      ? "seek aligned"
+      : match === "diverged"
+        ? "seek drift"
+        : "seek sync idle";
+  sync.className = `pill inspection-seek-sync ${match}`;
+}
+
 function setInspectionCursorTarget(region) {
   const target = document.getElementById("inspectionCursorTarget");
   target.textContent = `target ${region?.name || "none"}`;
@@ -1867,6 +1878,7 @@ function renderInspectionCursor() {
     setInspectionCursorDelta(null, 1);
     setInspectionCursorPreview(false);
     setInspectionCursorSeek(null);
+    setInspectionCursorSeekSync("none");
     setInspectionCursorTransport(null);
     setInspectionCursorTarget(null);
     setInspectionCursorDivergence(null, null);
@@ -1934,6 +1946,7 @@ function renderInspectionCursor() {
   setInspectionCursorDelta(hoverDeltaFrame, waveform.sampleRate);
   setInspectionCursorPreview(hoverFrame !== null);
   setInspectionCursorSeek(state.lastSeekSource);
+  setInspectionCursorSeekSync(lastSeekTransportMatch);
   setInspectionCursorTransport(transportRegion);
   setInspectionCursorTarget(hoverRegion);
   setInspectionCursorDivergence(transportRegion, hoverRegion);
@@ -2824,6 +2837,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["inspection audio pill", waveformReady && Boolean(document.getElementById("inspectionCursorAudio"))],
     ["inspection preview pill", waveformReady && Boolean(document.getElementById("inspectionCursorPreview"))],
     ["inspection seek pill", waveformReady && Boolean(document.getElementById("inspectionCursorSeek"))],
+    ["inspection seek sync pill", waveformReady && Boolean(document.getElementById("inspectionCursorSeekSync"))],
     ["inspection transport pill", waveformReady && Boolean(document.getElementById("inspectionCursorTransport"))],
     ["inspection target pill", waveformReady && Boolean(document.getElementById("inspectionCursorTarget"))],
     ["inspection divergence pill", waveformReady && Boolean(document.getElementById("inspectionCursorDivergence"))],
@@ -3534,6 +3548,7 @@ function renderError(message, details = {}) {
   setInspectionCursorAudio(0);
   setInspectionCursorPreview(false);
   setInspectionCursorSeek(null);
+  setInspectionCursorSeekSync("none");
   setInspectionCursorTransport(null);
   setInspectionCursorTarget(null);
   setInspectionCursorDivergence(null, null);

@@ -239,6 +239,22 @@ audio {
   color: var(--good);
 }
 
+.pill.inspection-seek-sync.none {
+  color: var(--muted);
+}
+
+.pill.inspection-seek-sync.aligned {
+  border-color: rgba(113, 212, 155, 0.42);
+  background: rgba(113, 212, 155, 0.09);
+  color: var(--good);
+}
+
+.pill.inspection-seek-sync.diverged {
+  border-color: rgba(226, 168, 109, 0.54);
+  background: rgba(226, 168, 109, 0.13);
+  color: var(--accent-2);
+}
+
 .pill.inspection-target.none {
   color: var(--muted);
 }
