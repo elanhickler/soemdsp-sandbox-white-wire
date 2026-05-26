@@ -1520,6 +1520,7 @@ def require_waveform_seek_source_contract() -> None:
         "function renderSignalPlotProbe()",
         "waveformRegionAtFrame(frame)?.name",
         "nearest.frame",
+        "`probe frame ${nearest.frame} / ${formatSeconds(nearest.seconds)} / ${nearest.phase} / ${pointText}`",
         "${probeSourceText()} / near frame ${nearest.frame}",
         "state.waveformProbeFrame = state.signalPlotProbe.nearest?.frame ?? null",
         "clampFrame(state.waveformProbeFrame, waveform) / waveform.frames",

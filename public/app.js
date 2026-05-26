@@ -1321,10 +1321,13 @@ function renderSignalPlotProbe() {
     return;
   }
 
-  probe.textContent = `probe x ${formatCompactNumber(
+  const nearest = state.signalPlotProbe.nearest;
+  const pointText = `x ${formatCompactNumber(
     state.signalPlotProbe.x,
   )} / y ${formatCompactNumber(state.signalPlotProbe.y)}`;
-  const nearest = state.signalPlotProbe.nearest;
+  probe.textContent = nearest
+    ? `probe frame ${nearest.frame} / ${formatSeconds(nearest.seconds)} / ${nearest.phase} / ${pointText}`
+    : `probe ${pointText}`;
   source.textContent = nearest
     ? `${probeSourceText()} / near frame ${nearest.frame} / ${formatSeconds(
         nearest.seconds,
