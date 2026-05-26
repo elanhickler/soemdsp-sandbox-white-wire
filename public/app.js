@@ -10,6 +10,7 @@ const state = {
   signalPhaseFocusIndex: null,
   signalPlotMode: "trace",
   signalPlotWindow: "full",
+  signalPlotWindowMs: 80,
 };
 
 const requiredFlags = [
@@ -350,7 +351,10 @@ function signalPlotWindowFrameRange(waveform, drawableFrames) {
     };
   }
 
-  const windowFrames = Math.max(1, Math.round(waveform.sampleRate * 0.08));
+  const windowFrames = Math.max(
+    1,
+    Math.round((waveform.sampleRate * state.signalPlotWindowMs) / 1000),
+  );
   const startFrame = Math.max(
     0,
     Math.min(drawableFrames, state.playheadFrame - Math.floor(windowFrames / 2)),
@@ -564,6 +568,7 @@ function renderSignalPlot() {
     ["focus", signalPlotFocusName(waveform)],
     ["mode", state.signalPlotMode],
     ["window", signalPlotWindowName(waveform, drawableFrames)],
+    ["window size", `${state.signalPlotWindowMs} ms`],
     ["x", "sample[n]"],
     ["y", "sample[n + lag]"],
     ["lag", `${state.signalLagMs} ms`],
@@ -611,6 +616,9 @@ function renderSignalPlotControls() {
   const windowGroup = document.createElement("div");
   windowGroup.className = "control-group";
   windowGroup.setAttribute("aria-label", "Signal plot window");
+  const windowSizeGroup = document.createElement("div");
+  windowSizeGroup.className = "control-group";
+  windowSizeGroup.setAttribute("aria-label", "Signal plot window size");
   const lagGroup = document.createElement("div");
   lagGroup.className = "control-group";
   lagGroup.setAttribute("aria-label", "Signal plot lag");
@@ -673,6 +681,21 @@ function renderSignalPlotControls() {
     windowGroup.append(button);
   }
 
+  for (const windowMs of [40, 80, 160]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "phase-button";
+    button.dataset.signalWindowMs = String(windowMs);
+    button.setAttribute("aria-label", `Signal plot window size ${windowMs} ms`);
+    button.textContent = `${windowMs} ms`;
+    button.classList.toggle("active", windowMs === state.signalPlotWindowMs);
+    button.addEventListener("click", () => {
+      state.signalPlotWindowMs = windowMs;
+      renderSignalPlot();
+    });
+    windowSizeGroup.append(button);
+  }
+
   for (const lagMs of [1, 2, 5, 10]) {
     const button = document.createElement("button");
     button.type = "button";
@@ -688,7 +711,7 @@ function renderSignalPlotControls() {
     lagGroup.append(button);
   }
 
-  container.append(focusGroup, modeGroup, windowGroup, lagGroup);
+  container.append(focusGroup, modeGroup, windowGroup, windowSizeGroup, lagGroup);
 }
 
 function renderWaveformPhaseControls() {
