@@ -356,6 +356,16 @@ def require_shell_contract(html: str) -> None:
     )
     require_shell_element(
         parser,
+        "levelEnvelopeProbe",
+        "span",
+        {
+            "data-probe-source": "none",
+            "data-probe-frame": "none",
+            "title": "Level envelope probe idle",
+        },
+    )
+    require_shell_element(
+        parser,
         "waveformScrubber",
         "input",
         {
@@ -1324,6 +1334,9 @@ def require_waveform_seek_source_contract() -> None:
         "probe.dataset.probeSource = source",
         "probe.dataset.probeFrame = String(frame)",
         "probe.title = `Waveform probe ${source}",
+        "probe.title = \"Level envelope probe idle\"",
+        "probe.title = entry",
+        "`Level envelope probe ${source}",
         "function updateWaveformScrubberLabel(scrubber, waveform, activeRegion)",
         "scrubber.setAttribute(\"aria-valuetext\"",
         "scrubber.dataset.followMode = followText",
@@ -1584,6 +1597,7 @@ def require_waveform_seek_source_contract() -> None:
         "function phaseJumpButtonsLabeled(manifest)",
         "function waveformScrubberLabeled()",
         "function waveformProbeLabeled()",
+        "function levelEnvelopeProbeLabeled()",
         'label.startsWith("Jump waveform to ")',
         'label.includes(" phase at frame ")',
         'button.title.startsWith("Jump to ")',
@@ -1597,6 +1611,7 @@ def require_waveform_seek_source_contract() -> None:
         '["waveform hover probe", waveformReady && Boolean(document.getElementById("waveformProbe"))]',
         '["waveform probe labels", waveformReady && waveformProbeLabeled()]',
         '["level envelope probe", waveformReady && Boolean(document.getElementById("levelEnvelopeProbe"))]',
+        '["level envelope probe labels", waveformReady && levelEnvelopeProbeLabeled()]',
         '["parameter timeline probe", waveformReady && Boolean(document.getElementById("parameterTimelineProbe"))]',
         '["parameter timeline preview", waveformReady && Boolean(document.querySelector(".parameter-segment"))]',
         '["probe frame labels", waveformReady && typeof formatProbeFrame === "function"]',

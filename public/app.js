@@ -768,17 +768,28 @@ function renderLevelEnvelopeProbe() {
   const waveform = state.waveform;
   if (!waveform || state.waveformProbeFrame === null) {
     probe.textContent = "probe";
+    probe.dataset.probeSource = "none";
+    probe.dataset.probeFrame = "none";
+    probe.title = "Level envelope probe idle";
     return;
   }
 
   const frame = clampFrame(state.waveformProbeFrame, waveform);
   const entry = levelEnvelopeWindowAtFrame(frame);
   const region = waveformRegionAtFrame(frame);
+  const source = state.waveformProbeSource || "probe";
   probe.textContent = entry
     ? `${probeSourceText()} ${formatProbeFrame(frame, waveform, region)} / peak ${formatCompactNumber(
         entry.peak,
       )} / rms ${formatCompactNumber(entry.rms)}`
     : "probe";
+  probe.dataset.probeSource = source;
+  probe.dataset.probeFrame = String(frame);
+  probe.title = entry
+    ? `Level envelope probe ${source} / ${formatProbeFrame(frame, waveform, region)} / peak ${formatCompactNumber(
+        entry.peak,
+      )} / rms ${formatCompactNumber(entry.rms)}`
+    : `Level envelope probe ${source} / ${formatProbeFrame(frame, waveform, region)} / no envelope window`;
 }
 
 function renderLevelEnvelope() {
@@ -3265,6 +3276,15 @@ function waveformProbeLabeled() {
   );
 }
 
+function levelEnvelopeProbeLabeled() {
+  const probe = document.getElementById("levelEnvelopeProbe");
+  return (
+    Boolean(probe?.dataset.probeSource) &&
+    Boolean(probe?.dataset.probeFrame) &&
+    Boolean(probe?.title)
+  );
+}
+
 function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform)) {
   const rows = [
     [
@@ -3280,6 +3300,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["waveform hover probe", waveformReady && Boolean(document.getElementById("waveformProbe"))],
     ["waveform probe labels", waveformReady && waveformProbeLabeled()],
     ["level envelope probe", waveformReady && Boolean(document.getElementById("levelEnvelopeProbe"))],
+    ["level envelope probe labels", waveformReady && levelEnvelopeProbeLabeled()],
     ["parameter timeline probe", waveformReady && Boolean(document.getElementById("parameterTimelineProbe"))],
     ["parameter timeline preview", waveformReady && Boolean(document.querySelector(".parameter-segment"))],
     ["probe frame labels", waveformReady && typeof formatProbeFrame === "function"],
