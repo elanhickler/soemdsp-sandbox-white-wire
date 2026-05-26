@@ -167,6 +167,7 @@ class ShellContractParser(HTMLParser):
         self.duplicate_ids: set[str] = set()
         self.elements_by_id: dict[str, tuple[str, dict[str, str]]] = {}
         self.ids: set[str] = set()
+        self.inline_script_count = 0
         self.scripts: set[str] = set()
         self.stylesheets: set[str] = set()
 
@@ -183,6 +184,8 @@ class ShellContractParser(HTMLParser):
             src = attributes.get("src")
             if src:
                 self.scripts.add(src)
+            else:
+                self.inline_script_count += 1
 
         if tag == "link" and attributes.get("rel") == "stylesheet":
             href = attributes.get("href")
@@ -303,10 +306,14 @@ def require_shell_contract(html: str) -> None:
     require(not duplicate_ids, f"shell duplicate ids: {duplicate_ids}")
     missing_ids = sorted(REQUIRED_SHELL_IDS - parser.ids)
     require(not missing_ids, f"shell missing required ids: {missing_ids}")
-    require("/public/app.js" in parser.scripts, "shell missing app.js script")
+    require(parser.inline_script_count == 0, "shell includes inline script")
     require(
-        "/public/styles.css" in parser.stylesheets,
-        "shell missing styles.css stylesheet",
+        parser.scripts == {"/public/app.js"},
+        f"shell scripts were {sorted(parser.scripts)!r}",
+    )
+    require(
+        parser.stylesheets == {"/public/styles.css"},
+        f"shell stylesheets were {sorted(parser.stylesheets)!r}",
     )
     require_shell_element(
         parser,
