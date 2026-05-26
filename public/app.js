@@ -1814,16 +1814,34 @@ function measuredPhaseAudio(region) {
   };
 }
 
+function measuredPhaseAudioMatches(measurement, targetFrequency, targetAmplitude) {
+  return (
+    measurement !== null &&
+    Number.isFinite(measurement.frequency) &&
+    Number.isFinite(measurement.peak) &&
+    targetFrequency !== null &&
+    targetAmplitude !== null &&
+    Math.abs(measurement.frequency - targetFrequency) <= phaseAudioFrequencyToleranceHz &&
+    Math.abs(measurement.peak - targetAmplitude) <= phaseAudioAmplitudeTolerance
+  );
+}
+
 function renderCurrentParameters(region) {
   const frequency = document.getElementById("currentFrequency");
   const amplitude = document.getElementById("currentAmplitude");
   const measuredFrequency = document.getElementById("currentMeasuredFrequency");
   const measuredPeak = document.getElementById("currentMeasuredPeak");
+  const measuredStatus = document.getElementById("currentMeasuredStatus");
   const status = document.getElementById("currentParameterStatus");
   const frequencyValue = activeParameterValue("frequency", region);
   const amplitudeValue = activeParameterValue("amplitude", region);
   const measurement = measuredPhaseAudio(region);
   const ok = frequencyValue !== null && amplitudeValue !== null;
+  const measurementOk = measuredPhaseAudioMatches(
+    measurement,
+    frequencyValue,
+    amplitudeValue,
+  );
 
   frequency.textContent =
     frequencyValue === null ? "freq" : `freq ${formatCompactNumber(frequencyValue)} Hz`;
@@ -1835,6 +1853,12 @@ function renderCurrentParameters(region) {
       : `measured ${formatCompactNumber(measurement.frequency)} Hz`;
   measuredPeak.textContent =
     measurement ? `peak ${formatCompactNumber(measurement.peak)}` : "peak";
+  measuredStatus.textContent = measurementOk
+    ? "measured ok"
+    : measurement
+      ? "measured mismatch"
+      : "measured missing";
+  measuredStatus.className = `pill ${measurementOk ? "good" : "warn"}`;
   status.textContent = ok ? `params ${region?.name || "synced"}` : "params missing";
   status.className = `pill ${ok ? "good" : "warn"}`;
 }
@@ -3133,7 +3157,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["parameter timeline preview", waveformReady && Boolean(document.querySelector(".parameter-segment"))],
     ["probe frame labels", waveformReady && typeof formatProbeFrame === "function"],
     ["follow/free view", Boolean(document.getElementById("followAudioButton"))],
-    ["current measured audio", waveformReady && Boolean(document.getElementById("currentMeasuredFrequency"))],
+    ["current measured audio", waveformReady && Boolean(document.getElementById("currentMeasuredStatus"))],
     [
       "phase jump controls",
       Array.isArray(manifest?.phases) &&
@@ -4028,6 +4052,7 @@ function renderError(message, details = {}) {
   setText("currentAmplitude", "amp");
   setText("currentMeasuredFrequency", "measured freq");
   setText("currentMeasuredPeak", "peak");
+  setStatus("currentMeasuredStatus", "measured", false);
   setText("waveformPhaseJumpTarget", "jump idle");
   setStatus("signalPlotStatus", "Check", false);
   setText("signalPlotModeSummary", "all / trace / x1");
