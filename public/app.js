@@ -2,6 +2,7 @@ const state = {
   response: null,
   waveform: null,
   playheadFrame: 0,
+  waveformProbeFrame: null,
   waveformPointerActive: false,
   followAudio: true,
   reports: [],
@@ -88,6 +89,10 @@ function resetSignalPlotSettings() {
   state.signalPlotWindow = "full";
   state.signalPlotWindowMs = 80;
   window.localStorage.removeItem(signalPlotSettingsKey);
+}
+
+function clampFrame(frame, waveform) {
+  return Math.max(0, Math.min(waveform.frames, frame));
 }
 
 function setText(id, value) {
@@ -1209,11 +1214,20 @@ function activeWaveformRegion() {
     return null;
   }
 
+  return waveformRegionAtFrame(state.playheadFrame);
+}
+
+function waveformRegionAtFrame(frame) {
+  const waveform = state.waveform;
+  if (!waveform) {
+    return null;
+  }
+
   return (
     (waveform.regions || []).find(
       (region) =>
-        state.playheadFrame >= region.startFrame &&
-        state.playheadFrame < region.endFrame,
+        frame >= region.startFrame &&
+        frame < region.endFrame,
     ) || waveform.regions?.at(-1) || null
   );
 }
@@ -1290,6 +1304,7 @@ async function renderWaveform(path) {
     }
 
     state.waveform = parsePcm16Wav(await response.arrayBuffer());
+    state.waveformProbeFrame = null;
     state.waveform.stats = analyzeWaveform(state.waveform.samples);
     state.waveform.envelope = buildLevelEnvelope(state.waveform);
     state.waveform.regions = buildPhaseRegions(
@@ -1324,6 +1339,7 @@ async function renderWaveform(path) {
     renderFollowAudioControl();
   } catch (error) {
     state.waveform = null;
+    state.waveformProbeFrame = null;
     state.playheadFrame = 0;
     meta.replaceChildren();
     renderWaveformPhaseControls();
@@ -1342,6 +1358,7 @@ async function renderWaveform(path) {
 function renderWaveformPosition() {
   const position = document.getElementById("waveformPosition");
   const sample = document.getElementById("waveformSample");
+  const probe = document.getElementById("waveformProbe");
   const phase = document.getElementById("waveformPhase");
   const phaseRange = document.getElementById("waveformPhaseRange");
   const scrubber = document.getElementById("waveformScrubber");
@@ -1349,6 +1366,7 @@ function renderWaveformPosition() {
   if (!waveform) {
     position.textContent = "0.000s";
     sample.textContent = "frame 0 / sample 0";
+    probe.textContent = "probe";
     phase.textContent = "phase";
     phaseRange.textContent = "range";
     scrubber.value = "0";
@@ -1378,6 +1396,26 @@ function renderWaveformPosition() {
     waveform.frames > 0 ? state.playheadFrame / waveform.frames : 0,
   );
   updateActivePhaseButtons(activeRegion);
+  renderWaveformProbe();
+}
+
+function renderWaveformProbe() {
+  const probe = document.getElementById("waveformProbe");
+  const waveform = state.waveform;
+  if (!waveform || state.waveformProbeFrame === null) {
+    probe.textContent = "probe";
+    return;
+  }
+
+  const frame = clampFrame(state.waveformProbeFrame, waveform);
+  const sampleFrame = Math.max(0, Math.min(waveform.samples.length - 1, frame));
+  const sampleValue = waveform.samples[sampleFrame] || 0;
+  const region = waveformRegionAtFrame(frame);
+  probe.textContent = `probe ${formatSeconds(
+    frame / waveform.sampleRate,
+  )} / frame ${frame} / ${formatCompactNumber(sampleValue)} / ${
+    region?.name || "phase"
+  }`;
 }
 
 function renderAudioPosition() {
@@ -1424,7 +1462,7 @@ function seekPrimaryAudioToFrame(frame) {
     return;
   }
 
-  const targetFrame = Math.min(waveform.frames, Math.max(0, frame));
+  const targetFrame = clampFrame(frame, waveform);
   if (state.followAudio) {
     const audio = document.getElementById("audioPlayer");
     const targetTime = targetFrame / waveform.sampleRate;
@@ -1443,13 +1481,32 @@ function seekWaveformAtClientX(clientX) {
     return;
   }
 
+  seekPrimaryAudioToFrame(waveformFrameAtClientX(clientX));
+}
+
+function waveformFrameAtClientX(clientX) {
+  const waveform = state.waveform;
+  if (!waveform) {
+    return 0;
+  }
+
   const canvas = document.getElementById("waveformCanvas");
   const rect = canvas.getBoundingClientRect();
   const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  seekPrimaryAudioToFrame(Math.round(ratio * waveform.frames));
+  return clampFrame(Math.round(ratio * waveform.frames), waveform);
+}
+
+function probeWaveformAtClientX(clientX) {
+  if (!state.waveform) {
+    return;
+  }
+
+  state.waveformProbeFrame = waveformFrameAtClientX(clientX);
+  renderWaveformProbe();
 }
 
 function seekWaveform(event) {
+  probeWaveformAtClientX(event.clientX);
   seekWaveformAtClientX(event.clientX);
 }
 
@@ -1457,10 +1514,12 @@ function beginWaveformDrag(event) {
   state.waveformPointerActive = true;
   event.currentTarget.classList.add("dragging");
   event.currentTarget.setPointerCapture(event.pointerId);
+  probeWaveformAtClientX(event.clientX);
   seekWaveformAtClientX(event.clientX);
 }
 
 function dragWaveform(event) {
+  probeWaveformAtClientX(event.clientX);
   if (!state.waveformPointerActive) {
     return;
   }
@@ -1474,6 +1533,15 @@ function endWaveformDrag(event) {
   if (event.currentTarget.hasPointerCapture(event.pointerId)) {
     event.currentTarget.releasePointerCapture(event.pointerId);
   }
+}
+
+function clearWaveformProbe() {
+  if (state.waveformPointerActive) {
+    return;
+  }
+
+  state.waveformProbeFrame = null;
+  renderWaveformProbe();
 }
 
 function scrubWaveform(event) {
@@ -1986,6 +2054,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ],
     ["decoded waveform", waveformReady],
     ["waveform seek", waveformReady && Number(manifest?.wav?.frames) > 0],
+    ["waveform hover probe", waveformReady && Boolean(document.getElementById("waveformProbe"))],
     ["follow/free view", Boolean(document.getElementById("followAudioButton"))],
     [
       "phase jump controls",
@@ -2610,6 +2679,7 @@ function renderError(message, details = {}) {
   state.response = null;
   state.waveform = null;
   state.playheadFrame = 0;
+  state.waveformProbeFrame = null;
   state.reports = [];
   state.activeReportIndex = 0;
 
@@ -2727,6 +2797,10 @@ document
 document
   .getElementById("waveformCanvas")
   .addEventListener("pointermove", dragWaveform);
+
+document
+  .getElementById("waveformCanvas")
+  .addEventListener("pointerleave", clearWaveformProbe);
 
 document
   .getElementById("waveformCanvas")
