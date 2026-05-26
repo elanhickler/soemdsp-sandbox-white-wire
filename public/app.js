@@ -2265,9 +2265,16 @@ function renderWaveformPlayControl(audio = document.getElementById("audioPlayer"
   const ready = Boolean(audio?.getAttribute("src"));
   const playing = ready && !audio.paused && !audio.ended;
   const ended = ready && audio.ended;
+  const label = playing
+    ? "Pause primary audio"
+    : ended
+      ? "Replay primary audio from start"
+      : "Play primary audio";
   button.disabled = !ready;
   button.textContent = playing ? "Pause Audio" : ended ? "Replay Audio" : "Play Audio";
   button.setAttribute("aria-pressed", String(playing));
+  button.setAttribute("aria-label", label);
+  button.title = label;
   button.classList.toggle("active", playing);
 }
 
@@ -2307,8 +2314,13 @@ function setFollowAudio(enabled, syncNow) {
 
 function renderFollowAudioControl() {
   const button = document.getElementById("followAudioButton");
+  const label = state.followAudio
+    ? "Waveform view follows primary audio"
+    : "Waveform view is independent of primary audio";
   button.textContent = state.followAudio ? "Follow Audio" : "Free View";
   button.setAttribute("aria-pressed", String(state.followAudio));
+  button.setAttribute("aria-label", label);
+  button.title = label;
   button.classList.toggle("active", state.followAudio);
   setInspectionCursorView(state.followAudio);
 }
@@ -3184,6 +3196,19 @@ function phaseJumpButtonsLabeled(manifest) {
   });
 }
 
+function waveformControlsLabeled() {
+  const playButton = document.getElementById("waveformPlayButton");
+  const followButton = document.getElementById("followAudioButton");
+  return (
+    Boolean(playButton?.getAttribute("aria-label")) &&
+    Boolean(playButton?.title) &&
+    Boolean(followButton?.getAttribute("aria-label")) &&
+    Boolean(followButton?.title) &&
+    ["true", "false"].includes(playButton?.getAttribute("aria-pressed")) &&
+    ["true", "false"].includes(followButton?.getAttribute("aria-pressed"))
+  );
+}
+
 function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform)) {
   const rows = [
     [
@@ -3192,6 +3217,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
         Boolean(manifest?.sandboxHandoff?.primaryAudioArtifact),
     ],
     ["waveform play control", Boolean(document.getElementById("waveformPlayButton"))],
+    ["waveform control labels", waveformControlsLabeled()],
     ["decoded waveform", waveformReady],
     ["waveform seek", waveformReady && Number(manifest?.wav?.frames) > 0],
     ["waveform hover probe", waveformReady && Boolean(document.getElementById("waveformProbe"))],
