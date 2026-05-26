@@ -1731,6 +1731,36 @@ def require_waveform_seek_source_contract() -> None:
     )
 
 
+def require_manifest_error_surface_contract() -> None:
+    app_source = (PUBLIC / "app.js").read_text(encoding="utf-8")
+    start = app_source.index("function renderError(message, details = {})")
+    end = app_source.index("async function loadManifest()", start)
+    render_error = app_source[start:end]
+    required_unavailable_renderers = [
+        "renderUnavailableProducerProof();",
+        "renderUnavailableHandsOnReadiness();",
+        "renderUnavailableSandboxContract();",
+        "renderUnavailableParameterSummary();",
+        "renderUnavailableParameterTimeline();",
+        "renderUnavailableWaveformMeta();",
+        "renderUnavailableLevelEnvelopeMeta();",
+        "renderUnavailablePhaseAudioStats();",
+        "renderUnavailableSignalPlotMeta();",
+        "renderUnavailableBoundaryFlags();",
+        "renderUnavailablePhaseCoverage();",
+        "renderUnavailablePhases();",
+        "renderUnavailableChecklist();",
+        "renderUnavailableArtifactCoverage();",
+        "renderUnavailableArtifacts();",
+    ]
+    for renderer in required_unavailable_renderers:
+        require(renderer in render_error, f"manifest error surface missing {renderer}")
+    require(
+        "clearElement(" not in render_error,
+        "manifest error surface clears a user-facing panel",
+    )
+
+
 def fetch_valid_manifest_payload(base_url: str) -> dict[str, object]:
     manifest_response = request(f"{base_url}/api/manifest")
     require(manifest_response.status == 200, "manifest endpoint did not return 200")
@@ -1886,6 +1916,7 @@ def run_valid_manifest_smoke(port: int, manifest: Path) -> None:
         run_step("root shell contract", lambda: require_root_shell(base_url))
         run_step("static assets", lambda: require_static_assets(base_url))
         run_step("waveform seek source contract", require_waveform_seek_source_contract)
+        run_step("manifest error surface contract", require_manifest_error_surface_contract)
 
         payload: dict[str, object] = {}
 
