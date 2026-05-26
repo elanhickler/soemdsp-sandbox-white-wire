@@ -2703,6 +2703,10 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["signal-to-waveform probe", waveformReady && Boolean(document.getElementById("waveformProbe"))],
     ["inspection cursor", waveformReady && Boolean(document.getElementById("inspectionCursor"))],
     ["inspection source pill", waveformReady && Boolean(document.getElementById("inspectionCursorSource"))],
+    [
+      "inspection hover delta",
+      waveformReady && document.getElementById("inspectionCursor")?.textContent.includes("hover delta"),
+    ],
     ["read-only boundary", validateConsumerChecklist(manifest).accepted],
   ];
   const ok = rows.every(([_label, rowOk]) => rowOk);

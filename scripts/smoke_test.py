@@ -1360,6 +1360,8 @@ def require_waveform_seek_source_contract() -> None:
         '["signal-to-waveform probe", waveformReady && Boolean(document.getElementById("waveformProbe"))]',
         '["inspection cursor", waveformReady && Boolean(document.getElementById("inspectionCursor"))]',
         '["inspection source pill", waveformReady && Boolean(document.getElementById("inspectionCursorSource"))]',
+        '"inspection hover delta"',
+        'document.getElementById("inspectionCursor")?.textContent.includes("hover delta")',
         '["read-only boundary", validateConsumerChecklist(manifest).accepted]',
         "function phaseReportCoverageIssue(manifest)",
         'return "phase report phase missing"',
