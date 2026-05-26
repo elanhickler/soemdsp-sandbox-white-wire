@@ -111,6 +111,25 @@
 
     <section class="panel">
       <div class="panel-heading">
+        <h2>Level Envelope</h2>
+        <div class="panel-heading-actions">
+          <span id="levelEnvelopePeak" class="pill">peak 0</span>
+          <span id="levelEnvelopeRms" class="pill">rms 0</span>
+          <span id="levelEnvelopeStatus" class="pill">Loading</span>
+        </div>
+      </div>
+      <canvas
+        id="levelEnvelopeCanvas"
+        class="level-envelope"
+        width="1120"
+        height="140"
+        aria-label="Primary WAV level envelope">
+      </canvas>
+      <dl id="levelEnvelopeMeta" class="kv compact"></dl>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
         <h2>Signal Plot</h2>
         <div class="panel-heading-actions">
           <span id="signalPlotModeSummary" class="pill">trace / x1</span>

@@ -210,6 +210,16 @@ audio {
   cursor: grabbing;
 }
 
+.level-envelope {
+  display: block;
+  width: 100%;
+  height: 140px;
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #111418;
+}
+
 .signal-plot {
   display: block;
   width: 100%;

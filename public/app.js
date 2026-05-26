@@ -236,6 +236,47 @@ function analyzeWaveform(samples) {
   };
 }
 
+function buildLevelEnvelope(waveform) {
+  const windowFrames = Math.max(1, Math.round(waveform.sampleRate * 0.01));
+  const windows = [];
+  let peak = 0;
+  let squareSum = 0;
+  let totalFrames = 0;
+
+  for (let startFrame = 0; startFrame < waveform.frames; startFrame += windowFrames) {
+    const endFrame = Math.min(waveform.frames, startFrame + windowFrames);
+    let windowPeak = 0;
+    let windowSquareSum = 0;
+
+    for (let frame = startFrame; frame < endFrame; frame += 1) {
+      const value = waveform.samples[frame] || 0;
+      const abs = Math.abs(value);
+      windowPeak = Math.max(windowPeak, abs);
+      windowSquareSum += value * value;
+    }
+
+    const frames = Math.max(1, endFrame - startFrame);
+    const rms = Math.sqrt(windowSquareSum / frames);
+    windows.push({
+      endFrame,
+      peak: windowPeak,
+      rms,
+      startFrame,
+    });
+    peak = Math.max(peak, windowPeak);
+    squareSum += windowSquareSum;
+    totalFrames += frames;
+  }
+
+  return {
+    peak,
+    rms: totalFrames ? Math.sqrt(squareSum / totalFrames) : 0,
+    windowFrames,
+    windowMs: (windowFrames / waveform.sampleRate) * 1000,
+    windows,
+  };
+}
+
 function phaseDisplayRange(phase, fallbackStartFrame, totalFrames) {
   const frames = Number(phase.samplesProcessed || 0);
   const explicitStart = Number(phase.startFrame);
@@ -393,6 +434,117 @@ function drawWaveform() {
   context.moveTo(playheadX, 0);
   context.lineTo(playheadX, height);
   context.stroke();
+}
+
+function drawLevelEnvelope() {
+  const canvas = document.getElementById("levelEnvelopeCanvas");
+  const waveform = state.waveform;
+  const envelope = waveform?.envelope;
+  if (!waveform || !envelope) {
+    return;
+  }
+
+  const pixelRatio = window.devicePixelRatio || 1;
+  const width = Math.max(320, Math.floor(canvas.clientWidth * pixelRatio));
+  const height = Math.max(100, Math.floor(canvas.clientHeight * pixelRatio));
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
+  const context = canvas.getContext("2d");
+  context.clearRect(0, 0, width, height);
+  context.fillStyle = "#111418";
+  context.fillRect(0, 0, width, height);
+
+  const regions = waveform.regions || [];
+  for (const [index, region] of regions.entries()) {
+    const startX = Math.round((region.startFrame / waveform.frames) * width);
+    const endX = Math.round((region.endFrame / waveform.frames) * width);
+    context.fillStyle =
+      index % 2 === 0 ? "rgba(127,199,217,0.09)" : "rgba(226,168,109,0.10)";
+    context.fillRect(startX, 0, Math.max(1, endX - startX), height);
+  }
+
+  const pad = 12 * pixelRatio;
+  const top = pad;
+  const bottom = height - pad;
+  const graphHeight = Math.max(1, bottom - top);
+  context.strokeStyle = "rgba(243,241,236,0.16)";
+  context.lineWidth = Math.max(1, pixelRatio);
+  for (const level of [0, 0.5, 1]) {
+    const y = bottom - level * graphHeight;
+    context.beginPath();
+    context.moveTo(0, y);
+    context.lineTo(width, y);
+    context.stroke();
+  }
+
+  const windows = envelope.windows;
+  if (windows.length) {
+    const columnWidth = Math.max(1, width / windows.length);
+    context.fillStyle = "rgba(127,199,217,0.30)";
+    for (const [index, entry] of windows.entries()) {
+      const x = Math.floor(index * columnWidth);
+      const y = bottom - Math.min(1, entry.rms) * graphHeight;
+      context.fillRect(x, y, Math.ceil(columnWidth), bottom - y);
+    }
+
+    context.strokeStyle = "#e2a86d";
+    context.lineWidth = Math.max(1.5, 1.5 * pixelRatio);
+    context.beginPath();
+    for (const [index, entry] of windows.entries()) {
+      const x = index * columnWidth + columnWidth / 2;
+      const y = bottom - Math.min(1, entry.peak) * graphHeight;
+      if (index === 0) {
+        context.moveTo(x, y);
+      } else {
+        context.lineTo(x, y);
+      }
+    }
+    context.stroke();
+  }
+
+  const playheadRatio = waveform.frames > 0 ? state.playheadFrame / waveform.frames : 0;
+  const playheadX = Math.max(0, Math.min(width, playheadRatio * width));
+  context.strokeStyle = "#f3f1ec";
+  context.lineWidth = Math.max(1, pixelRatio);
+  context.beginPath();
+  context.moveTo(playheadX, 0);
+  context.lineTo(playheadX, height);
+  context.stroke();
+}
+
+function renderLevelEnvelope() {
+  const status = document.getElementById("levelEnvelopeStatus");
+  const meta = document.getElementById("levelEnvelopeMeta");
+  const peak = document.getElementById("levelEnvelopePeak");
+  const rms = document.getElementById("levelEnvelopeRms");
+  const waveform = state.waveform;
+  const envelope = waveform?.envelope;
+
+  if (!waveform || !envelope) {
+    peak.textContent = "peak 0";
+    rms.textContent = "rms 0";
+    status.textContent = "Check";
+    status.className = "pill warn";
+    meta.replaceChildren();
+    return;
+  }
+
+  peak.textContent = `peak ${formatCompactNumber(envelope.peak)}`;
+  rms.textContent = `rms ${formatCompactNumber(envelope.rms)}`;
+  renderKeyValue(meta, [
+    ["window", `${formatCompactNumber(envelope.windowMs)} ms`],
+    ["window frames", String(envelope.windowFrames)],
+    ["windows", String(envelope.windows.length)],
+    ["peak", formatCompactNumber(envelope.peak)],
+    ["rms", formatCompactNumber(envelope.rms)],
+    ["source", "decoded primary WAV"],
+  ]);
+  drawLevelEnvelope();
+  status.textContent = "Drawn";
+  status.className = "pill good";
 }
 
 function signalPlotLagFrames(waveform) {
@@ -908,6 +1060,7 @@ function setPlayheadFrame(frame) {
   state.playheadFrame = Math.min(waveform.frames, Math.max(0, frame));
   renderWaveformPosition();
   drawWaveform();
+  drawLevelEnvelope();
   drawSignalPlot();
   renderSignalPlotPoint();
 }
@@ -926,12 +1079,14 @@ async function renderWaveform(path) {
 
     state.waveform = parsePcm16Wav(await response.arrayBuffer());
     state.waveform.stats = analyzeWaveform(state.waveform.samples);
+    state.waveform.envelope = buildLevelEnvelope(state.waveform);
     state.waveform.regions = buildPhaseRegions(
       state.response?.manifest?.phases || [],
       state.waveform.frames,
     );
     setPlayheadFrame(0);
     drawWaveform();
+    renderLevelEnvelope();
     renderSignalPlot();
     renderWaveformPhaseControls();
     const wav = state.response?.manifest?.wav || {};
@@ -958,6 +1113,7 @@ async function renderWaveform(path) {
     state.playheadFrame = 0;
     meta.replaceChildren();
     renderWaveformPhaseControls();
+    renderLevelEnvelope();
     renderSignalPlot();
     status.textContent = "Check";
     status.className = "pill warn";
@@ -1879,6 +2035,9 @@ function renderError(message, details = {}) {
   setStatus("producerStatus", "Check", false);
   setStatus("parameterSummaryStatus", "Check", false);
   setStatus("waveformStatus", "Check", false);
+  setStatus("levelEnvelopeStatus", "Check", false);
+  setText("levelEnvelopePeak", "peak 0");
+  setText("levelEnvelopeRms", "rms 0");
   setStatus("signalPlotStatus", "Check", false);
   setText("signalPlotModeSummary", "all / trace / x1");
   setText("signalPlotWindowSummary", "window full");
@@ -1918,6 +2077,7 @@ function renderError(message, details = {}) {
   renderWaveformPhaseControls();
   renderWaveformPosition();
   clearElement("waveformMeta");
+  clearElement("levelEnvelopeMeta");
   renderSignalPlotControls();
   clearElement("signalPlotMeta");
   clearElement("boundaryFlags");
@@ -2000,6 +2160,7 @@ document
 
 window.addEventListener("resize", () => {
   drawWaveform();
+  drawLevelEnvelope();
   drawSignalPlot();
 });
 

@@ -72,6 +72,11 @@ REQUIRED_SHELL_IDS = {
     "followAudioButton",
     "frameCount",
     "inspectionMode",
+    "levelEnvelopeCanvas",
+    "levelEnvelopeMeta",
+    "levelEnvelopePeak",
+    "levelEnvelopeRms",
+    "levelEnvelopeStatus",
     "manifestBytes",
     "manifestCacheControl",
     "manifestExpires",
@@ -286,6 +291,12 @@ def require_shell_contract(html: str) -> None:
         "signalPlotCanvas",
         "canvas",
         {"width": "720", "height": "360", "aria-label": "Primary WAV signal plot"},
+    )
+    require_shell_element(
+        parser,
+        "levelEnvelopeCanvas",
+        "canvas",
+        {"width": "1120", "height": "140", "aria-label": "Primary WAV level envelope"},
     )
     require_shell_element(
         parser,
@@ -679,6 +690,11 @@ def require_waveform_seek_source_contract() -> None:
         '["peak", formatCompactNumber(stats.peak)]',
         '["rms", formatCompactNumber(stats.rms)]',
         '["dc offset", formatCompactNumber(stats.dcOffset)]',
+        "function buildLevelEnvelope(waveform)",
+        "function drawLevelEnvelope()",
+        "function renderLevelEnvelope()",
+        '["window", `${formatCompactNumber(envelope.windowMs)} ms`]',
+        '["source", "decoded primary WAV"]',
         "function drawSignalPlot()",
         "function renderSignalPlotControls()",
         "function signalPlotWindowFrameRange(waveform, drawableFrames)",
