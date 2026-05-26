@@ -135,6 +135,8 @@ function parsePcm16Wav(buffer) {
   return {
     bitsPerSample,
     channels,
+    dataBytes: dataSize,
+    fileBytes: buffer.byteLength,
     frames,
     sampleRate,
     samples,
@@ -354,12 +356,12 @@ async function renderWaveform(path) {
     renderWaveformPhaseControls();
     const wav = state.response?.manifest?.wav || {};
     renderKeyValue(meta, [
-      ["sample rate", String(state.waveform.sampleRate)],
-      ["channels", String(state.waveform.channels)],
-      ["bit depth", String(state.waveform.bitsPerSample)],
-      ["frames", String(state.waveform.frames)],
-      ["data bytes", formatBytes(Number(wav.dataBytes)) || "missing"],
-      ["file bytes", formatBytes(Number(wav.fileBytes)) || "missing"],
+      ["sample rate", String(state.waveform.sampleRate), manifestNumberText(wav.sampleRate)],
+      ["channels", String(state.waveform.channels), manifestNumberText(wav.channels)],
+      ["bit depth", String(state.waveform.bitsPerSample), manifestNumberText(wav.bitDepth)],
+      ["frames", String(state.waveform.frames), manifestNumberText(wav.frames)],
+      ["data bytes", formatBytes(state.waveform.dataBytes), manifestBytesText(wav.dataBytes)],
+      ["file bytes", formatBytes(state.waveform.fileBytes), manifestBytesText(wav.fileBytes)],
     ]);
     status.textContent = "Drawn";
     status.className = "pill good";
@@ -692,6 +694,16 @@ function formatBytes(bytes) {
   }
 
   return `${formatCompactNumber(bytes / 1024)} KB`;
+}
+
+function manifestNumberText(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? String(number) : "missing";
+}
+
+function manifestBytesText(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? formatBytes(number) : "missing";
 }
 
 function formatTimestamp(value) {
