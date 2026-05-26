@@ -100,6 +100,7 @@ REQUIRED_SHELL_IDS = {
     "waveformMeta",
     "waveformPhase",
     "waveformPhaseControls",
+    "waveformPhaseRange",
     "waveformPosition",
     "waveformSample",
     "waveformScrubber",

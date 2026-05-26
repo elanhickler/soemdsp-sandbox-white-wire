@@ -321,6 +321,16 @@ function activeWaveformRegion() {
   );
 }
 
+function formatRegionRange(region, sampleRate) {
+  if (!region || !sampleRate) {
+    return "range";
+  }
+
+  return `${formatSeconds(region.startFrame / sampleRate)}-${formatSeconds(
+    region.endFrame / sampleRate,
+  )}`;
+}
+
 function setPlayheadFrame(frame) {
   const waveform = state.waveform;
   if (!waveform) {
@@ -383,12 +393,14 @@ function renderWaveformPosition() {
   const position = document.getElementById("waveformPosition");
   const sample = document.getElementById("waveformSample");
   const phase = document.getElementById("waveformPhase");
+  const phaseRange = document.getElementById("waveformPhaseRange");
   const scrubber = document.getElementById("waveformScrubber");
   const waveform = state.waveform;
   if (!waveform) {
     position.textContent = "0.000s";
     sample.textContent = "frame 0 / sample 0";
     phase.textContent = "phase";
+    phaseRange.textContent = "range";
     scrubber.value = "0";
     updateActivePhaseButtons(null);
     return;
@@ -405,6 +417,7 @@ function renderWaveformPosition() {
     sampleValue,
   )}`;
   phase.textContent = activeRegion ? activeRegion.name : "phase";
+  phaseRange.textContent = formatRegionRange(activeRegion, waveform.sampleRate);
   scrubber.value = String(
     waveform.frames > 0 ? state.playheadFrame / waveform.frames : 0,
   );
