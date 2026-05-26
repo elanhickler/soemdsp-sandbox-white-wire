@@ -352,11 +352,14 @@ async function renderWaveform(path) {
     setPlayheadFrame(0);
     drawWaveform();
     renderWaveformPhaseControls();
+    const wav = state.response?.manifest?.wav || {};
     renderKeyValue(meta, [
       ["sample rate", String(state.waveform.sampleRate)],
       ["channels", String(state.waveform.channels)],
       ["bit depth", String(state.waveform.bitsPerSample)],
       ["frames", String(state.waveform.frames)],
+      ["data bytes", formatBytes(Number(wav.dataBytes)) || "missing"],
+      ["file bytes", formatBytes(Number(wav.fileBytes)) || "missing"],
     ]);
     status.textContent = "Drawn";
     status.className = "pill good";
