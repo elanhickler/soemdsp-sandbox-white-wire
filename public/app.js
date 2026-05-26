@@ -1814,7 +1814,7 @@ function renderWaveformPosition() {
   const scrubber = document.getElementById("waveformScrubber");
   const waveform = state.waveform;
   if (!waveform) {
-    position.textContent = "0.000s";
+    position.textContent = "0.000s / unknown";
     sample.textContent = "frame 0 / sample 0";
     probe.textContent = "probe";
     phase.textContent = "phase";
@@ -1836,7 +1836,9 @@ function renderWaveformPosition() {
     Math.min(waveform.samples.length - 1, state.playheadFrame),
   );
   const sampleValue = waveform.samples[sampleFrame] || 0;
-  position.textContent = formatSeconds(state.playheadFrame / waveform.sampleRate);
+  position.textContent = `${formatSeconds(
+    state.playheadFrame / waveform.sampleRate,
+  )} / ${formatAudioDuration(waveform.frames / waveform.sampleRate)}`;
   sample.textContent = `frame ${state.playheadFrame} / sample ${formatCompactNumber(
     sampleValue,
   )}`;
