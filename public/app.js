@@ -5,6 +5,7 @@ const state = {
   waveformProbeFrame: null,
   waveformProbeSource: null,
   waveformPointerActive: false,
+  scrubberPointerActive: false,
   phaseJumpPreviewIndex: null,
   lastSeekSource: null,
   lastSeekFrame: null,
@@ -1862,6 +1863,8 @@ async function renderWaveform(path) {
     }
 
     state.waveform = parsePcm16Wav(await response.arrayBuffer());
+    state.waveformPointerActive = false;
+    state.scrubberPointerActive = false;
     state.waveformProbeFrame = null;
     state.waveformProbeSource = null;
     state.phaseJumpPreviewIndex = null;
@@ -1903,6 +1906,8 @@ async function renderWaveform(path) {
     renderFollowAudioControl();
   } catch (error) {
     state.waveform = null;
+    state.waveformPointerActive = false;
+    state.scrubberPointerActive = false;
     state.waveformProbeFrame = null;
     state.waveformProbeSource = null;
     state.phaseJumpPreviewIndex = null;
@@ -2206,7 +2211,12 @@ function updateActivePhaseButtons(activeRegion) {
 function syncWaveformToAudio() {
   const audio = document.getElementById("audioPlayer");
   renderAudioPosition();
-  if (!state.followAudio || !state.waveform || Number.isNaN(audio.currentTime)) {
+  if (
+    !state.followAudio ||
+    !state.waveform ||
+    state.scrubberPointerActive ||
+    Number.isNaN(audio.currentTime)
+  ) {
     return;
   }
 
@@ -2359,6 +2369,18 @@ function scrubWaveform(event) {
 
   const ratio = Number(event.currentTarget.value);
   seekPrimaryAudioToFrame(Math.round(ratio * waveform.frames), "scrubber");
+}
+
+function beginScrubberDrag(event) {
+  state.scrubberPointerActive = true;
+  event.currentTarget.setPointerCapture(event.pointerId);
+}
+
+function endScrubberDrag(event) {
+  state.scrubberPointerActive = false;
+  if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }
 }
 
 function toggleFollowAudio() {
@@ -3879,6 +3901,8 @@ function renderError(message, details = {}) {
   state.response = null;
   state.waveform = null;
   state.playheadFrame = 0;
+  state.waveformPointerActive = false;
+  state.scrubberPointerActive = false;
   state.waveformProbeFrame = null;
   state.waveformProbeSource = null;
   state.phaseJumpPreviewIndex = null;
@@ -4039,6 +4063,22 @@ document
 document
   .getElementById("waveformScrubber")
   .addEventListener("input", scrubWaveform);
+
+document
+  .getElementById("waveformScrubber")
+  .addEventListener("pointerdown", beginScrubberDrag);
+
+document
+  .getElementById("waveformScrubber")
+  .addEventListener("pointerup", endScrubberDrag);
+
+document
+  .getElementById("waveformScrubber")
+  .addEventListener("pointercancel", endScrubberDrag);
+
+document
+  .getElementById("waveformScrubber")
+  .addEventListener("lostpointercapture", endScrubberDrag);
 
 document
   .getElementById("levelEnvelopeCanvas")

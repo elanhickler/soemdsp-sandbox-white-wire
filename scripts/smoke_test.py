@@ -1337,8 +1337,12 @@ def require_waveform_seek_source_contract() -> None:
         "formatInspectionDelta(lastSeekHoverDeltaFrame, waveform.sampleRate)",
         "state.lastSeekFrame = targetFrame",
         "state.lastSeekFollowAudio = state.followAudio",
+        "scrubberPointerActive: false",
+        "function beginScrubberDrag(event)",
+        "function endScrubberDrag(event)",
         "state.lastSeekFrame = null",
         "state.lastSeekFollowAudio = null",
+        "state.scrubberPointerActive = false",
         'seekPrimaryAudioToFrame(region.startFrame, "phase jump")',
         'seekPrimaryAudioToFrame(waveformFrameAtClientX(clientX), "waveform")',
         'seekPrimaryAudioToFrame(Math.round(ratio * waveform.frames), "scrubber")',
@@ -1772,6 +1776,9 @@ def require_follow_free_seek_contract() -> None:
     start = app_source.index('function seekPrimaryAudioToFrame(frame, source = "waveform")')
     end = app_source.index("function seekWaveformAtClientX(clientX)", start)
     seek_function = app_source[start:end]
+    sync_start = app_source.index("function syncWaveformToAudio()")
+    sync_end = app_source.index('function seekPrimaryAudioToFrame(frame, source = "waveform")', sync_start)
+    sync_function = app_source[sync_start:sync_end]
     require(
         "if (state.followAudio) {" in seek_function,
         "waveform seek no longer gates native audio seeking behind follow mode",
@@ -1793,6 +1800,21 @@ def require_follow_free_seek_contract() -> None:
         seek_function.index("setPlayheadFrame(targetFrame);"),
         "waveform seek updates local playhead before native audio",
     )
+    require(
+        "state.scrubberPointerActive" in sync_function,
+        "audio sync no longer defers while the waveform scrubber is being dragged",
+    )
+    for snippet in [
+        "function beginScrubberDrag(event)",
+        "function endScrubberDrag(event)",
+        "state.scrubberPointerActive = true;",
+        "state.scrubberPointerActive = false;",
+        '.addEventListener("pointerdown", beginScrubberDrag)',
+        '.addEventListener("pointerup", endScrubberDrag)',
+        '.addEventListener("pointercancel", endScrubberDrag)',
+        '.addEventListener("lostpointercapture", endScrubberDrag)',
+    ]:
+        require(snippet in app_source, f"scrubber drag guard missing {snippet}")
 
 
 def fetch_valid_manifest_payload(base_url: str) -> dict[str, object]:
