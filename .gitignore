@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.log
+sandbox-preview.png
+.python-version
+.DS_Store

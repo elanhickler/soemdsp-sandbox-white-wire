@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>soemdsp-sandbox</title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">soemdsp-sandbox</p>
+        <h1>Bound WAV Resync</h1>
+      </div>
+      <button id="refreshButton" type="button">Refresh</button>
+    </header>
+
+    <section class="status-strip" aria-label="Sandbox status">
+      <div>
+        <span class="label">Manifest</span>
+        <strong id="manifestStatus">Loading</strong>
+      </div>
+      <div>
+        <span class="label">Contract</span>
+        <strong id="contractStatus">Loading</strong>
+      </div>
+      <div>
+        <span class="label">Mode</span>
+        <strong id="inspectionMode">Loading</strong>
+      </div>
+      <div>
+        <span class="label">Frames</span>
+        <strong id="frameCount">Loading</strong>
+      </div>
+    </section>
+
+    <section class="audio-panel" aria-label="Primary audio">
+      <div>
+        <p class="label">Primary Audio</p>
+        <h2 id="audioTitle">runtime_dsp_object_bound_wav_resync_demo.wav</h2>
+      </div>
+      <audio id="audioPlayer" controls preload="metadata"></audio>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <h2>Boundary Flags</h2>
+        <dl id="boundaryFlags" class="kv"></dl>
+      </div>
+
+      <div class="panel">
+        <h2>Phases</h2>
+        <div id="phaseList" class="phase-list"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Artifacts</h2>
+      <div id="artifactList" class="artifact-list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Source</h2>
+      <dl class="kv">
+        <dt>Manifest</dt>
+        <dd id="manifestPath">Loading</dd>
+        <dt>Artifact Root</dt>
+        <dd id="artifactRoot">Loading</dd>
+      </dl>
+    </section>
+  </main>
+
+  <script src="/public/app.js"></script>
+</body>
+</html>
