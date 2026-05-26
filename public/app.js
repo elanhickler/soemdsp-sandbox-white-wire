@@ -134,6 +134,11 @@ function setInspectionCursorDelta(deltaFrame, sampleRate) {
   delta.className = `pill inspection-delta ${deltaFrame === null ? "none" : "hover"}`;
 }
 
+function setInspectionCursorAudio(time) {
+  const audio = document.getElementById("inspectionCursorAudio");
+  audio.textContent = `audio ${formatSeconds(Number.isFinite(time) ? time : 0)}`;
+}
+
 function boolText(value) {
   return value ? "true" : "false";
 }
@@ -1900,6 +1905,7 @@ function renderAudioPosition() {
   const position = document.getElementById("audioPosition");
   const time = Number(audio.currentTime);
   position.textContent = `audio ${formatSeconds(Number.isFinite(time) ? time : 0)}`;
+  setInspectionCursorAudio(time);
 }
 
 function setFollowAudio(enabled, syncNow) {
@@ -2717,6 +2723,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["inspection cursor", waveformReady && Boolean(document.getElementById("inspectionCursor"))],
     ["inspection source pill", waveformReady && Boolean(document.getElementById("inspectionCursorSource"))],
     ["inspection delta pill", waveformReady && Boolean(document.getElementById("inspectionCursorDelta"))],
+    ["inspection audio pill", waveformReady && Boolean(document.getElementById("inspectionCursorAudio"))],
     [
       "inspection hover delta",
       waveformReady && document.getElementById("inspectionCursor")?.textContent.includes("hover delta"),
@@ -3419,6 +3426,7 @@ function renderError(message, details = {}) {
   setStatus("handsOnReadinessStatus", "Check", false);
   setInspectionCursorSource("none", "none");
   setInspectionCursorDelta(null, 1);
+  setInspectionCursorAudio(0);
   setStatus("sandboxContractStatus", "Check", false);
   setStatus("parameterSummaryStatus", "Check", false);
   setStatus("parameterTimelineStatus", "Check", false);
