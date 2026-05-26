@@ -763,14 +763,18 @@ function levelEnvelopeWindowAtFrame(frame) {
   );
 }
 
+function setProbePillMetadata(probe, source, frame, title) {
+  probe.dataset.probeSource = source;
+  probe.dataset.probeFrame = frame === null || frame === undefined ? "none" : String(frame);
+  probe.title = title;
+}
+
 function renderLevelEnvelopeProbe() {
   const probe = document.getElementById("levelEnvelopeProbe");
   const waveform = state.waveform;
   if (!waveform || state.waveformProbeFrame === null) {
     probe.textContent = "probe";
-    probe.dataset.probeSource = "none";
-    probe.dataset.probeFrame = "none";
-    probe.title = "Level envelope probe idle";
+    setProbePillMetadata(probe, "none", null, "Level envelope probe idle");
     return;
   }
 
@@ -783,13 +787,16 @@ function renderLevelEnvelopeProbe() {
         entry.peak,
       )} / rms ${formatCompactNumber(entry.rms)}`
     : "probe";
-  probe.dataset.probeSource = source;
-  probe.dataset.probeFrame = String(frame);
-  probe.title = entry
-    ? `Level envelope probe ${source} / ${formatProbeFrame(frame, waveform, region)} / peak ${formatCompactNumber(
-        entry.peak,
-      )} / rms ${formatCompactNumber(entry.rms)}`
-    : `Level envelope probe ${source} / ${formatProbeFrame(frame, waveform, region)} / no envelope window`;
+  setProbePillMetadata(
+    probe,
+    source,
+    frame,
+    entry
+      ? `Level envelope probe ${source} / ${formatProbeFrame(frame, waveform, region)} / peak ${formatCompactNumber(
+          entry.peak,
+        )} / rms ${formatCompactNumber(entry.rms)}`
+      : `Level envelope probe ${source} / ${formatProbeFrame(frame, waveform, region)} / no envelope window`,
+  );
 }
 
 function renderLevelEnvelope() {
@@ -858,9 +865,7 @@ function renderPhaseAudioStatsProbe() {
   const waveform = state.waveform;
   if (!waveform || state.waveformProbeFrame === null) {
     probe.textContent = "probe";
-    probe.dataset.probeSource = "none";
-    probe.dataset.probeFrame = "none";
-    probe.title = "Phase audio stats probe idle";
+    setProbePillMetadata(probe, "none", null, "Phase audio stats probe idle");
     updatePhaseProbeTargets();
     return;
   }
@@ -871,15 +876,18 @@ function renderPhaseAudioStatsProbe() {
   probe.textContent = region
     ? `${probeSourceText()} ${formatProbeFrame(frame, waveform, region)}`
     : "probe";
-  probe.dataset.probeSource = source;
-  probe.dataset.probeFrame = String(frame);
-  probe.title = region
-    ? `Phase audio stats probe ${source} / ${formatProbeFrame(frame, waveform, region)}`
-    : `Phase audio stats probe ${source} / ${formatProbeFrame(
-        frame,
-        waveform,
-        region,
-      )} / no phase`;
+  setProbePillMetadata(
+    probe,
+    source,
+    frame,
+    region
+      ? `Phase audio stats probe ${source} / ${formatProbeFrame(frame, waveform, region)}`
+      : `Phase audio stats probe ${source} / ${formatProbeFrame(
+          frame,
+          waveform,
+          region,
+        )} / no phase`,
+  );
   updatePhaseProbeTargets();
 }
 
@@ -1380,13 +1388,9 @@ function renderSignalPlotProbe() {
   const source = document.getElementById("signalPlotProbeSource");
   if (!state.waveform || !state.signalPlotProbe) {
     probe.textContent = "probe";
-    probe.dataset.probeSource = "none";
-    probe.dataset.probeFrame = "none";
-    probe.title = "Signal plot probe idle";
+    setProbePillMetadata(probe, "none", null, "Signal plot probe idle");
     source.textContent = "near frame";
-    source.dataset.probeSource = "none";
-    source.dataset.probeFrame = "none";
-    source.title = "Signal plot source probe idle";
+    setProbePillMetadata(source, "none", null, "Signal plot source probe idle");
     return;
   }
 
@@ -1398,26 +1402,32 @@ function renderSignalPlotProbe() {
   probe.textContent = nearest
     ? `probe ${formatProbeFrame(nearest.frame, state.waveform)} / ${pointText}`
     : `probe ${pointText}`;
-  probe.dataset.probeSource = probeSource;
-  probe.dataset.probeFrame = nearest ? String(nearest.frame) : "none";
-  probe.title = nearest
-    ? `Signal plot probe ${probeSource} / ${formatProbeFrame(
-        nearest.frame,
-        state.waveform,
-      )} / ${pointText}`
-    : `Signal plot probe ${probeSource} / ${pointText}`;
+  setProbePillMetadata(
+    probe,
+    probeSource,
+    nearest?.frame,
+    nearest
+      ? `Signal plot probe ${probeSource} / ${formatProbeFrame(
+          nearest.frame,
+          state.waveform,
+        )} / ${pointText}`
+      : `Signal plot probe ${probeSource} / ${pointText}`,
+  );
   source.textContent = nearest
     ? `${probeSourceText()} / near frame ${nearest.frame} / ${formatSeconds(
         nearest.seconds,
       )} / ${nearest.phase}`
     : "near frame";
-  source.dataset.probeSource = probeSource;
-  source.dataset.probeFrame = nearest ? String(nearest.frame) : "none";
-  source.title = nearest
-    ? `Signal plot source ${probeSource} / near frame ${nearest.frame} / ${formatSeconds(
-        nearest.seconds,
-      )} / ${nearest.phase}`
-    : `Signal plot source ${probeSource} / no nearest frame`;
+  setProbePillMetadata(
+    source,
+    probeSource,
+    nearest?.frame,
+    nearest
+      ? `Signal plot source ${probeSource} / near frame ${nearest.frame} / ${formatSeconds(
+          nearest.seconds,
+        )} / ${nearest.phase}`
+      : `Signal plot source ${probeSource} / no nearest frame`,
+  );
 }
 
 function probeSignalPlot(event) {
@@ -2144,9 +2154,7 @@ function renderWaveformProbe() {
   const waveform = state.waveform;
   if (!waveform || state.waveformProbeFrame === null) {
     probe.textContent = "probe";
-    probe.dataset.probeSource = "none";
-    probe.dataset.probeFrame = "none";
-    probe.title = "Waveform probe idle";
+    setProbePillMetadata(probe, "none", null, "Waveform probe idle");
     renderInspectionCursor();
     renderParameterTimelineProbe();
     renderPhaseAudioStatsProbe();
@@ -2164,11 +2172,14 @@ function renderWaveformProbe() {
   )} / frame ${frame} / ${formatCompactNumber(sampleValue)} / ${
     region?.name || "phase"
   }`;
-  probe.dataset.probeSource = source;
-  probe.dataset.probeFrame = String(frame);
-  probe.title = `Waveform probe ${source} / ${formatSeconds(
-    frame / waveform.sampleRate,
-  )} / frame ${frame} / ${region?.name || "phase"}`;
+  setProbePillMetadata(
+    probe,
+    source,
+    frame,
+    `Waveform probe ${source} / ${formatSeconds(
+      frame / waveform.sampleRate,
+    )} / frame ${frame} / ${region?.name || "phase"}`,
+  );
   renderInspectionCursor();
   renderParameterTimelineProbe();
   renderPhaseAudioStatsProbe();
@@ -2898,9 +2909,7 @@ function renderParameterTimelineProbe() {
   const waveform = state.waveform;
   if (!waveform || state.waveformProbeFrame === null) {
     probe.textContent = "probe";
-    probe.dataset.probeSource = "none";
-    probe.dataset.probeFrame = "none";
-    probe.title = "Parameter timeline probe idle";
+    setProbePillMetadata(probe, "none", null, "Parameter timeline probe idle");
     updateParameterTimelinePreview(null);
     updateParameterTimelineProbeMarker();
     return;
@@ -2916,13 +2925,16 @@ function renderParameterTimelineProbe() {
   probe.textContent = `${probeSourceText()} ${formatProbeFrame(frame, waveform, region)} / freq ${
     frequencyText
   } / amp ${amplitudeText}`;
-  probe.dataset.probeSource = source;
-  probe.dataset.probeFrame = String(frame);
-  probe.title = `Parameter timeline probe ${source} / ${formatProbeFrame(
+  setProbePillMetadata(
+    probe,
+    source,
     frame,
-    waveform,
-    region,
-  )} / freq ${frequencyText} / amp ${amplitudeText}`;
+    `Parameter timeline probe ${source} / ${formatProbeFrame(
+      frame,
+      waveform,
+      region,
+    )} / freq ${frequencyText} / amp ${amplitudeText}`,
+  );
   updateParameterTimelinePreview(region);
   updateParameterTimelineProbeMarker();
 }
@@ -3803,9 +3815,7 @@ function renderPhaseProbe() {
   const waveform = state.waveform;
   if (!waveform || state.waveformProbeFrame === null) {
     probe.textContent = "probe";
-    probe.dataset.probeSource = "none";
-    probe.dataset.probeFrame = "none";
-    probe.title = "Phase list probe idle";
+    setProbePillMetadata(probe, "none", null, "Phase list probe idle");
     updatePhaseProbeTargets();
     return;
   }
@@ -3816,11 +3826,14 @@ function renderPhaseProbe() {
   probe.textContent = region
     ? `${probeSourceText()} ${formatProbeFrame(frame, waveform, region)}`
     : "probe";
-  probe.dataset.probeSource = source;
-  probe.dataset.probeFrame = String(frame);
-  probe.title = region
-    ? `Phase list probe ${source} / ${formatProbeFrame(frame, waveform, region)}`
-    : `Phase list probe ${source} / ${formatProbeFrame(frame, waveform, region)} / no phase`;
+  setProbePillMetadata(
+    probe,
+    source,
+    frame,
+    region
+      ? `Phase list probe ${source} / ${formatProbeFrame(frame, waveform, region)}`
+      : `Phase list probe ${source} / ${formatProbeFrame(frame, waveform, region)} / no phase`,
+  );
   updatePhaseProbeTargets();
 }
 
