@@ -63,6 +63,15 @@ def require_no_store(response: Response, label: str) -> None:
     require(response.headers.get("expires") == "0", f"{label} missing expires 0")
 
 
+def require_content_type(response: Response, expected: str | tuple[str, ...], label: str) -> None:
+    content_type = response.headers.get("content-type", "")
+    expected_values = (expected,) if isinstance(expected, str) else expected
+    require(
+        any(content_type.startswith(value) for value in expected_values),
+        f"{label} content-type was {content_type!r}, expected {expected_values!r}",
+    )
+
+
 def wait_for_server(base_url: str) -> None:
     deadline = time.monotonic() + 5
     last_status = ""
@@ -107,6 +116,20 @@ def run_valid_manifest_smoke(port: int, manifest: Path) -> None:
 
     try:
         wait_for_server(base_url)
+
+        root_response = request(f"{base_url}/", method="HEAD")
+        require(root_response.status == 200, "root shell did not return 200")
+        require_no_store(root_response, "root shell")
+        require_content_type(root_response, "text/html", "root shell")
+
+        for path, content_type in [
+            ("/public/app.js", ("application/javascript", "text/javascript")),
+            ("/public/styles.css", "text/css"),
+        ]:
+            static_response = request(f"{base_url}{path}", method="HEAD")
+            require(static_response.status == 200, f"{path} did not return 200")
+            require_no_store(static_response, path)
+            require_content_type(static_response, content_type, path)
 
         manifest_response = request(f"{base_url}/api/manifest")
         require(manifest_response.status == 200, "manifest endpoint did not return 200")

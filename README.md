@@ -35,8 +35,9 @@ python C:\Users\argit\Desktop\soemdsp-sandbox\scripts\smoke_test.py
 ```
 
 The smoke test starts an isolated local server, checks the manifest endpoint,
-checks primary audio artifact reachability, checks expected error and forbidden
-path responses, and verifies local responses use no-store cache headers.
+checks the root shell and static assets, checks primary audio artifact
+reachability, checks expected error and forbidden path responses, and verifies
+local responses use no-store cache headers.
 
 ## Boundaries
 
