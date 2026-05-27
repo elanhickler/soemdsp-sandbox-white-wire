@@ -150,10 +150,20 @@ function setStatus(id, value, ok) {
   element.className = isPill ? `pill ${ok ? "good" : "warn"}` : ok ? "" : "warn";
 }
 
+function labelInspectionCursorPill(element, label, value, stateName) {
+  element.setAttribute("aria-label", `${label}: ${value}`);
+  element.title = `${label}: ${value}`;
+  element.dataset.inspectionPill = label;
+  element.dataset.inspectionValue = value;
+  element.dataset.inspectionState = stateName;
+}
+
 function setInspectionCursorSource(sourceName, mode) {
   const source = document.getElementById("inspectionCursorSource");
-  source.textContent = `source ${sourceName}`;
+  const value = `source ${sourceName}`;
+  source.textContent = value;
   source.className = `pill inspection-source ${mode}`;
+  labelInspectionCursorPill(source, "inspection source", value, mode);
 }
 
 function formatInspectionDelta(deltaFrame, sampleRate) {
@@ -167,10 +177,11 @@ function formatInspectionDelta(deltaFrame, sampleRate) {
 
 function setInspectionCursorDelta(deltaFrame, sampleRate) {
   const delta = document.getElementById("inspectionCursorDelta");
-  delta.textContent = `delta ${formatInspectionDelta(deltaFrame, sampleRate)}`;
-  delta.className = `pill inspection-delta ${
-    deltaFrame === null ? inspectionModes.none : inspectionModes.hover
-  }`;
+  const stateName = deltaFrame === null ? inspectionModes.none : inspectionModes.hover;
+  const value = `delta ${formatInspectionDelta(deltaFrame, sampleRate)}`;
+  delta.textContent = value;
+  delta.className = `pill inspection-delta ${stateName}`;
+  labelInspectionCursorPill(delta, "inspection delta", value, stateName);
 }
 
 function formatAudioDuration(duration) {
@@ -179,71 +190,106 @@ function formatAudioDuration(duration) {
 
 function setInspectionCursorAudio(time, duration) {
   const audio = document.getElementById("inspectionCursorAudio");
-  audio.textContent = `audio ${formatSeconds(Number.isFinite(time) ? time : 0)} / ${formatAudioDuration(duration)}`;
+  const value = `audio ${formatSeconds(Number.isFinite(time) ? time : 0)} / ${formatAudioDuration(duration)}`;
+  audio.textContent = value;
+  labelInspectionCursorPill(
+    audio,
+    "inspection audio",
+    value,
+    Number.isFinite(duration) && duration > 0 ? "known" : "unknown",
+  );
 }
 
 function setInspectionCursorPlayback(audio) {
   const playback = document.getElementById("inspectionCursorPlayback");
   const stateName = audio?.ended ? "ended" : audio?.paused === false ? "playing" : "paused";
-  playback.textContent = `playback ${stateName}`;
+  const value = `playback ${stateName}`;
+  playback.textContent = value;
   playback.className = `pill inspection-playback ${stateName}`;
+  labelInspectionCursorPill(playback, "inspection playback", value, stateName);
 }
 
 function setInspectionCursorView(followAudio) {
   const view = document.getElementById("inspectionCursorView");
   const stateName = followAudio ? "follow" : "free";
-  view.textContent = `view ${stateName}`;
+  const value = `view ${stateName}`;
+  view.textContent = value;
   view.className = `pill inspection-view ${stateName}`;
+  labelInspectionCursorPill(view, "inspection view", value, stateName);
 }
 
 function setInspectionCursorPreview(active) {
   const preview = document.getElementById("inspectionCursorPreview");
-  preview.textContent = active ? "preview only" : "preview idle";
-  preview.className = `pill inspection-preview ${active ? "active" : "idle"}`;
+  const stateName = active ? "active" : "idle";
+  const value = active ? "preview only" : "preview idle";
+  preview.textContent = value;
+  preview.className = `pill inspection-preview ${stateName}`;
+  labelInspectionCursorPill(preview, "inspection preview", value, stateName);
 }
 
 function setInspectionCursorSeek(sourceName) {
   const seek = document.getElementById("inspectionCursorSeek");
-  seek.textContent = sourceName ? `seek ${sourceName}` : "seek idle";
-  seek.className = `pill inspection-seek ${sourceName ? "active" : "idle"}`;
+  const stateName = sourceName ? "active" : "idle";
+  const value = sourceName ? `seek ${sourceName}` : "seek idle";
+  seek.textContent = value;
+  seek.className = `pill inspection-seek ${stateName}`;
+  labelInspectionCursorPill(seek, "inspection seek", value, stateName);
 }
 
 function setInspectionCursorSeekTarget(region, frame, sampleRate) {
   const target = document.getElementById("inspectionCursorSeekTarget");
   const hasTarget = region && frame !== null && Number.isFinite(sampleRate) && sampleRate > 0;
-  target.textContent = hasTarget
+  const value = hasTarget
     ? `seek target ${region.name} / ${formatSeconds(frame / sampleRate)} / frame ${frame}`
     : "seek target none";
+  target.textContent = value;
   target.className = `pill inspection-seek-target ${hasTarget ? "active" : "none"}`;
+  labelInspectionCursorPill(
+    target,
+    "inspection seek target",
+    value,
+    hasTarget ? "active" : "none",
+  );
 }
 
 function setInspectionCursorSeekSync(match) {
   const sync = document.getElementById("inspectionCursorSeekSync");
-  sync.textContent =
+  const value =
     match === "aligned"
       ? "seek aligned"
       : match === "diverged"
         ? "seek drift"
         : "seek sync idle";
+  sync.textContent = value;
   sync.className = `pill inspection-seek-sync ${match}`;
+  labelInspectionCursorPill(sync, "inspection seek sync", value, match);
 }
 
 function setInspectionCursorTarget(region, frame, sampleRate) {
   const target = document.getElementById("inspectionCursorTarget");
   const hasTarget = region && frame !== null && Number.isFinite(sampleRate) && sampleRate > 0;
-  target.textContent = hasTarget
+  const value = hasTarget
     ? `target ${region.name} / ${formatSeconds(frame / sampleRate)} / frame ${frame}`
     : "target none";
+  target.textContent = value;
   target.className = `pill inspection-target ${hasTarget ? "active" : "none"}`;
+  labelInspectionCursorPill(target, "inspection target", value, hasTarget ? "active" : "none");
 }
 
 function setInspectionCursorTransport(region, frame, sampleRate) {
   const transport = document.getElementById("inspectionCursorTransport");
   const hasTransport = region && frame !== null && Number.isFinite(sampleRate) && sampleRate > 0;
-  transport.textContent = hasTransport
+  const value = hasTransport
     ? `transport ${region.name} / ${formatSeconds(frame / sampleRate)} / frame ${frame}`
     : "transport none";
+  transport.textContent = value;
   transport.className = `pill inspection-transport ${hasTransport ? "active" : "none"}`;
+  labelInspectionCursorPill(
+    transport,
+    "inspection transport",
+    value,
+    hasTransport ? "active" : "none",
+  );
 }
 
 function setInspectionCursorDivergence(transportRegion, targetRegion) {
@@ -253,10 +299,17 @@ function setInspectionCursorDivergence(transportRegion, targetRegion) {
       targetRegion &&
       transportRegion.name !== targetRegion.name,
   );
-  divergence.textContent = diverged
+  const value = diverged
     ? `phase diverged ${transportRegion.name} -> ${targetRegion.name}`
     : "phase aligned";
+  divergence.textContent = value;
   divergence.className = `pill inspection-divergence ${diverged ? "diverged" : "aligned"}`;
+  labelInspectionCursorPill(
+    divergence,
+    "inspection divergence",
+    value,
+    diverged ? "diverged" : "aligned",
+  );
 }
 
 function boolText(value) {
@@ -3626,6 +3679,34 @@ function signalPlotCanvasLabeled() {
   );
 }
 
+function inspectionCursorPillsLabeled() {
+  const ids = [
+    "inspectionCursorSource",
+    "inspectionCursorDelta",
+    "inspectionCursorAudio",
+    "inspectionCursorPlayback",
+    "inspectionCursorView",
+    "inspectionCursorPreview",
+    "inspectionCursorSeek",
+    "inspectionCursorSeekTarget",
+    "inspectionCursorSeekSync",
+    "inspectionCursorTransport",
+    "inspectionCursorTarget",
+    "inspectionCursorDivergence",
+  ];
+  return ids.every((id) => {
+    const pill = document.getElementById(id);
+    return (
+      pill &&
+      pill.dataset.inspectionPill !== undefined &&
+      pill.dataset.inspectionValue !== undefined &&
+      pill.dataset.inspectionState !== undefined &&
+      pill.getAttribute("aria-label")?.startsWith(`${pill.dataset.inspectionPill}: `) &&
+      pill.title === pill.getAttribute("aria-label")
+    );
+  });
+}
+
 function parameterTimelineSegmentsLabeled() {
   const segments = [...document.querySelectorAll("#parameterTimeline .parameter-segment")];
   return (
@@ -3802,6 +3883,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["inspection transport pill", waveformReady && Boolean(document.getElementById("inspectionCursorTransport"))],
     ["inspection target pill", waveformReady && Boolean(document.getElementById("inspectionCursorTarget"))],
     ["inspection divergence pill", waveformReady && Boolean(document.getElementById("inspectionCursorDivergence"))],
+    ["inspection pill labels", waveformReady && inspectionCursorPillsLabeled()],
     [
       "inspection hover delta",
       waveformReady && document.getElementById("inspectionCursor")?.textContent.includes("hover delta"),
