@@ -6156,7 +6156,9 @@ const nodeGraphMvp = {
   historySnapshots: [],
   live: {
     context: null,
+    mediaDestination: null,
     node: null,
+    outputGain: null,
     syncFrame: 0,
     syncTimer: 0,
   },
@@ -8278,6 +8280,15 @@ function setNodeGraphLiveMeter(peak = 0, rms = 0) {
   meter.className = `pill ${peak > 0.001 ? "good" : ""}`.trim();
 }
 
+function setNodeGraphLiveRouteStatus(text, state = "") {
+  const status = document.getElementById("nodeLiveRouteStatus");
+  if (!status) {
+    return;
+  }
+  status.textContent = text;
+  status.className = `pill ${state}`.trim();
+}
+
 function renderNodeGraphLiveControls(running = Boolean(nodeGraphMvp.live.node)) {
   const starting = document.getElementById("nodeLiveStatus")?.textContent === "starting";
   document.getElementById("nodeStartLiveButton").disabled = running || starting;
@@ -8358,8 +8369,11 @@ async function stopNodeGraphLiveAudio() {
   clearNodeGraphLivePlanSync();
   const liveNode = nodeGraphMvp.live.node;
   const liveContext = nodeGraphMvp.live.context;
+  const monitor = document.getElementById("nodeLiveMonitor");
   nodeGraphMvp.live.node = null;
   nodeGraphMvp.live.context = null;
+  nodeGraphMvp.live.mediaDestination = null;
+  nodeGraphMvp.live.outputGain = null;
 
   try {
     liveNode?.port.postMessage({ type: "stop" });
@@ -8370,8 +8384,15 @@ async function stopNodeGraphLiveAudio() {
   if (liveContext && liveContext.state !== "closed") {
     await liveContext.close();
   }
+  if (monitor) {
+    monitor.pause();
+    monitor.removeAttribute("src");
+    monitor.srcObject = null;
+    monitor.load();
+  }
   setNodeGraphLiveStatus("stopped");
   setNodeGraphLiveMeter();
+  setNodeGraphLiveRouteStatus("route stopped");
   document.getElementById("nodeLiveStatus").removeAttribute("title");
   renderNodeGraphLiveControls(false);
 }
@@ -8401,6 +8422,12 @@ async function startNodeGraphLiveAudio() {
       numberOfOutputs: 1,
       outputChannelCount: [2],
     });
+    const outputGain = context.createGain();
+    outputGain.gain.value = 1;
+    const monitor = document.getElementById("nodeLiveMonitor");
+    const mediaDestination = typeof context.createMediaStreamDestination === "function"
+      ? context.createMediaStreamDestination()
+      : null;
     liveNode.port.onmessage = (event) => {
       if (event.data?.type === "error") {
         setNodeGraphLiveStatus("error", "warn");
@@ -8412,9 +8439,25 @@ async function startNodeGraphLiveAudio() {
     };
 
     nodeGraphMvp.live.context = context;
+    nodeGraphMvp.live.mediaDestination = mediaDestination;
     nodeGraphMvp.live.node = liveNode;
+    nodeGraphMvp.live.outputGain = outputGain;
     liveNode.port.postMessage({ plan, type: "setPlan" });
-    liveNode.connect(context.destination);
+    liveNode.connect(outputGain);
+    outputGain.connect(context.destination);
+    if (mediaDestination && monitor) {
+      outputGain.connect(mediaDestination);
+      monitor.srcObject = mediaDestination.stream;
+      monitor.muted = false;
+      monitor.volume = 1;
+      setNodeGraphLiveRouteStatus("route direct + monitor", "good");
+      monitor.play().catch(() => {
+        setNodeGraphLiveRouteStatus("route direct / press monitor play", "warn");
+        monitor.controls = true;
+      });
+    } else {
+      setNodeGraphLiveRouteStatus("route direct only", "warn");
+    }
     await context.resume();
     setNodeGraphLiveStatus("running", "good");
     document.getElementById("nodeLiveStatus").removeAttribute("title");
