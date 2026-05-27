@@ -6133,7 +6133,10 @@ function nodeGraphReadNodeNumber(node, key) {
 function formatNodeSliderNumber(value, options = {}) {
   const number = Number(value);
   const text = number.toFixed(6);
-  return options.showSign && number >= 0 ? `+${text}` : text;
+  if (options.showSign && number >= 0) {
+    return `+${text}`;
+  }
+  return options.reserveSignSpace && number >= 0 ? ` ${text}` : text;
 }
 
 function nodeSliderShouldShowSign(slider) {
@@ -6301,6 +6304,7 @@ function syncNodeSliderReadout(slider) {
   const position = nodeSliderTravelFromValue(slider, Number(slider.value)) * 100;
   const unit = (slider.dataset.unit || "").trim();
   valueText.textContent = formatNodeSliderNumber(slider.value, {
+    reserveSignSpace: true,
     showSign: nodeSliderShouldShowSign(slider),
   });
   unitText.textContent = unit;
@@ -6723,6 +6727,7 @@ function beginNodeSliderReadoutEdit(readout) {
   input.className = "node-slider-readout-input";
   input.inputMode = "decimal";
   input.value = formatNodeSliderNumber(slider.value, {
+    reserveSignSpace: true,
     showSign: nodeSliderShouldShowSign(slider),
   });
   input.dataset.sliderTarget = slider.id;

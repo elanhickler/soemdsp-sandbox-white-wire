@@ -2881,7 +2881,7 @@ def require_node_graph_mvp_contract() -> None:
         "metadataChoicesValue",
         "Choices",
         "metadataShowSignValue",
-        "Always show +/- symbol",
+        "Always show +/-",
         "metadataPopoverDragHandle",
         "Set Defaults from Kind",
     ]:
@@ -2922,6 +2922,7 @@ def require_node_graph_mvp_contract() -> None:
         "function nodeSliderShouldShowSign(slider)",
         "function nodeSliderMetadata(slider)",
         "function formatNodeSliderMetadataTooltip(slider)",
+        "reserveSignSpace",
         "function syncNodeSliderMetadataTooltip(slider)",
         "function nodeSliderDebugPath(slider)",
         "function nodeGraphNodeType(node)",
