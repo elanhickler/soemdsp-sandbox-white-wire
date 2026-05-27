@@ -1037,12 +1037,37 @@ function renderPhaseAudioStats() {
       producerRmsDelta !== null &&
       Math.abs(producerRmsDelta) <= phaseAudioRmsTolerance;
     allOk = allOk && producerOk;
+    const targetFrequencyText =
+      frequencyValue === null ? "missing" : `${formatCompactNumber(frequencyValue)} Hz`;
+    const measuredFrequencyText =
+      measuredFrequency === null ? "missing" : `${formatCompactNumber(measuredFrequency)} Hz`;
+    const targetAmplitudeText =
+      amplitudeValue === null ? "missing" : formatCompactNumber(amplitudeValue);
+    const peakText = formatCompactNumber(stats.peak);
+    const rmsText = formatCompactNumber(stats.rms);
+    const startTime = formatSeconds(region.startFrame / waveform.sampleRate);
+    const endTime = formatSeconds(region.endFrame / waveform.sampleRate);
+    const itemLabel =
+      `Phase audio stats ${region.name} from frame ${region.startFrame} to ${region.endFrame}`;
 
     const item = document.createElement("div");
     item.className = producerOk ? "phase-stat" : "phase-stat warn-row";
     item.dataset.phaseName = region.name;
     item.dataset.startFrame = String(region.startFrame);
     item.dataset.endFrame = String(region.endFrame);
+    item.dataset.startTime = startTime;
+    item.dataset.endTime = endTime;
+    item.dataset.targetFrequency = targetFrequencyText;
+    item.dataset.measuredFrequency = measuredFrequencyText;
+    item.dataset.targetAmplitude = targetAmplitudeText;
+    item.dataset.peak = peakText;
+    item.dataset.rms = rmsText;
+    item.dataset.producerMatch = String(Boolean(producerOk));
+    item.setAttribute("aria-label", itemLabel);
+    item.setAttribute("role", "group");
+    item.title =
+      `${itemLabel} / target ${targetFrequencyText} / measured ${measuredFrequencyText} / ` +
+      `peak ${peakText} / producer ${producerOk ? "match" : "check"}`;
     item.addEventListener("pointermove", probePhaseAudioStats);
     item.addEventListener("pointerleave", clearPhaseAudioStatsProbe);
 
@@ -1068,17 +1093,17 @@ function renderPhaseAudioStats() {
     const producerRmsDeltaText =
       producerRmsDelta === null ? "missing" : formatSignedNumber(producerRmsDelta);
     renderKeyValue(body, [
-      ["target freq", frequencyValue === null ? "missing" : `${formatCompactNumber(frequencyValue)} Hz`],
-      ["measured freq", measuredFrequency === null ? "missing" : `${formatCompactNumber(measuredFrequency)} Hz`],
+      ["target freq", targetFrequencyText],
+      ["measured freq", measuredFrequencyText],
       ["freq delta", frequencyDelta],
       ["producer freq", Number.isFinite(producerFrequency) ? `${formatCompactNumber(producerFrequency)} Hz` : "missing"],
       ["producer freq delta", producerFrequencyDeltaText],
-      ["target amp", amplitudeValue === null ? "missing" : formatCompactNumber(amplitudeValue)],
-      ["peak", formatCompactNumber(stats.peak)],
+      ["target amp", targetAmplitudeText],
+      ["peak", peakText],
       ["peak delta", peakDelta],
       ["producer peak", Number.isFinite(producerPeak) ? formatCompactNumber(producerPeak) : "missing"],
       ["producer peak delta", producerPeakDeltaText],
-      ["rms", formatCompactNumber(stats.rms)],
+      ["rms", rmsText],
       ["producer rms", Number.isFinite(producerRms) ? formatCompactNumber(producerRms) : "missing"],
       ["producer rms delta", producerRmsDeltaText],
       ["min", formatCompactNumber(stats.min)],
@@ -1102,6 +1127,20 @@ function renderUnavailablePhaseAudioStats() {
 
   const item = document.createElement("div");
   item.className = "phase-stat warn-row";
+  item.dataset.phaseName = "unavailable";
+  item.dataset.startFrame = "none";
+  item.dataset.endFrame = "none";
+  item.dataset.startTime = "unavailable";
+  item.dataset.endTime = "unavailable";
+  item.dataset.targetFrequency = "unavailable";
+  item.dataset.measuredFrequency = "unavailable";
+  item.dataset.targetAmplitude = "unavailable";
+  item.dataset.peak = "unavailable";
+  item.dataset.rms = "unavailable";
+  item.dataset.producerMatch = "false";
+  item.setAttribute("aria-label", "Phase audio stats unavailable: manifest required");
+  item.setAttribute("role", "group");
+  item.title = "Phase audio stats unavailable: manifest required";
 
   const name = document.createElement("h3");
   name.textContent = "Phase audio stats unavailable";
@@ -3513,6 +3552,32 @@ function phaseListItemsLabeled() {
   );
 }
 
+function phaseAudioStatsItemsLabeled() {
+  const items = [...document.querySelectorAll("#phaseAudioStats .phase-stat")];
+  return (
+    items.length > 0 &&
+    items.every((item) => {
+      const label = item.getAttribute("aria-label") || "";
+      return (
+        item.dataset.phaseName !== undefined &&
+        item.dataset.startFrame !== undefined &&
+        item.dataset.endFrame !== undefined &&
+        item.dataset.startTime !== undefined &&
+        item.dataset.endTime !== undefined &&
+        item.dataset.targetFrequency !== undefined &&
+        item.dataset.measuredFrequency !== undefined &&
+        item.dataset.targetAmplitude !== undefined &&
+        item.dataset.peak !== undefined &&
+        item.dataset.rms !== undefined &&
+        item.dataset.producerMatch !== undefined &&
+        label.startsWith("Phase audio stats ") &&
+        item.getAttribute("role") === "group" &&
+        item.title.startsWith(label)
+      );
+    })
+  );
+}
+
 function probePillLabeled(id) {
   const probe = document.getElementById(id);
   return (
@@ -3592,6 +3657,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["producer measurement compare", phaseAudioMeasurementIssues(manifest).length === 0],
     ["phase audio stats probe", waveformReady && Boolean(document.getElementById("phaseAudioStatsProbe"))],
     ["phase audio stats probe labels", waveformReady && phaseAudioStatsProbeLabeled()],
+    ["phase audio stats item labels", waveformReady && phaseAudioStatsItemsLabeled()],
     ["signal inspection", waveformReady && Boolean(document.getElementById("signalPlotCanvas"))],
     ["signal plot probe", waveformReady && Boolean(document.getElementById("signalPlotProbe"))],
     ["signal plot source probe", waveformReady && Boolean(document.getElementById("signalPlotProbeSource"))],
