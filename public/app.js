@@ -5926,6 +5926,7 @@ const nodeGraphMvp = {
   bufferSource: null,
   connections: nodeGraphDefaultConnections.map((connection) => ({ ...connection })),
   dragging: null,
+  nodeDragging: null,
   rendered: null,
   sampleRate: 44100,
   seconds: 2,
@@ -6176,6 +6177,67 @@ function endNodeGraphWireDrag(event) {
   }
 }
 
+function nodeGraphClientPoint(event) {
+  const workspace = document.getElementById("nodeGraphWorkspace");
+  const workspaceRect = workspace.getBoundingClientRect();
+  return {
+    x: event.clientX - workspaceRect.left,
+    y: event.clientY - workspaceRect.top,
+  };
+}
+
+function beginNodeGraphNodeDrag(event) {
+  if (event.target.closest(".node-port, input, button, label")) {
+    return;
+  }
+
+  const node = event.currentTarget;
+  const workspace = document.getElementById("nodeGraphWorkspace");
+  const nodeRect = node.getBoundingClientRect();
+  const workspaceRect = workspace.getBoundingClientRect();
+  const point = nodeGraphClientPoint(event);
+  nodeGraphMvp.nodeDragging = {
+    node,
+    offsetX: point.x - (nodeRect.left - workspaceRect.left),
+    offsetY: point.y - (nodeRect.top - workspaceRect.top),
+  };
+  node.classList.add("dragging");
+  node.setPointerCapture(event.pointerId);
+}
+
+function dragNodeGraphNode(event) {
+  if (!nodeGraphMvp.nodeDragging) {
+    return;
+  }
+
+  const workspace = document.getElementById("nodeGraphWorkspace");
+  const workspaceRect = workspace.getBoundingClientRect();
+  const { node, offsetX, offsetY } = nodeGraphMvp.nodeDragging;
+  const point = nodeGraphClientPoint(event);
+  const maxX = Math.max(0, workspaceRect.width - node.offsetWidth - 10);
+  const maxY = Math.max(0, workspaceRect.height - node.offsetHeight - 10);
+  const x = Math.max(10, Math.min(maxX, point.x - offsetX));
+  const y = Math.max(10, Math.min(maxY, point.y - offsetY));
+
+  node.style.setProperty("--node-x", `${x}px`);
+  node.style.setProperty("--node-y", `${y}px`);
+  drawNodeGraphWires();
+}
+
+function endNodeGraphNodeDrag(event) {
+  if (!nodeGraphMvp.nodeDragging) {
+    return;
+  }
+
+  const { node } = nodeGraphMvp.nodeDragging;
+  node.classList.remove("dragging");
+  if (node.hasPointerCapture?.(event.pointerId)) {
+    node.releasePointerCapture(event.pointerId);
+  }
+  nodeGraphMvp.nodeDragging = null;
+  drawNodeGraphWires();
+}
+
 function restoreDefaultNodeGraph() {
   nodeGraphMvp.connections = nodeGraphDefaultConnections.map((connection) => ({
     ...connection,
@@ -6369,6 +6431,13 @@ async function playNodeGraphAudio() {
 function initNodeGraphMvp() {
   for (const port of document.querySelectorAll(".node-port.output")) {
     port.addEventListener("pointerdown", beginNodeGraphWireDrag);
+  }
+  for (const node of document.querySelectorAll(".dsp-node")) {
+    node.addEventListener("pointerdown", beginNodeGraphNodeDrag);
+    node.addEventListener("pointermove", dragNodeGraphNode);
+    node.addEventListener("pointerup", endNodeGraphNodeDrag);
+    node.addEventListener("pointercancel", endNodeGraphNodeDrag);
+    node.addEventListener("lostpointercapture", endNodeGraphNodeDrag);
   }
 
   document.addEventListener("pointermove", dragNodeGraphWire);

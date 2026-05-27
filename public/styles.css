@@ -201,10 +201,16 @@ audio {
   border-radius: 8px;
   background: rgba(27, 30, 34, 0.96);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+  cursor: grab;
 }
 
 .dsp-node.connected {
   border-color: rgba(113, 212, 155, 0.46);
+}
+
+.dsp-node.dragging {
+  border-color: rgba(226, 168, 109, 0.62);
+  cursor: grabbing;
 }
 
 .dsp-node.output-node {
@@ -253,6 +259,7 @@ audio {
   border-radius: 999px;
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.72rem;
+  cursor: crosshair;
 }
 
 .node-port.output {
