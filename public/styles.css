@@ -381,6 +381,38 @@ audio {
   justify-content: flex-end;
 }
 
+.node-scene-context-menu {
+  position: fixed;
+  z-index: 19;
+  display: grid;
+  gap: 6px;
+  width: min(180px, calc(100vw - 28px));
+  padding: 8px;
+  border: 1px solid rgba(226, 168, 109, 0.42);
+  border-radius: 8px;
+  background: rgba(27, 30, 34, 0.98);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+}
+
+.node-scene-context-menu[hidden] {
+  display: none;
+}
+
+.scene-context-title {
+  padding: 4px 6px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.node-scene-context-menu button {
+  min-height: 32px;
+  justify-content: flex-start;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  text-align: left;
+}
+
 .dsp-node p {
   margin: 0;
   color: var(--muted);

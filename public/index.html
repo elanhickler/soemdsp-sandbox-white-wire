@@ -69,7 +69,7 @@
       <div
         id="nodeGraphWorkspace"
         class="node-graph-workspace"
-        aria-label="Drag wires between DSP node ports">
+        aria-label="Drag wires between DSP node ports; right-click empty scene space to add modules">
         <svg
           id="nodeWireSvg"
           class="node-wire-svg"
@@ -176,6 +176,19 @@
             <p id="nodeOutputSummary">waiting for render</p>
           </article>
         </div>
+      </div>
+
+      <div
+        id="nodeSceneContextMenu"
+        class="node-scene-context-menu"
+        hidden
+        role="menu"
+        aria-label="Add module">
+        <div class="scene-context-title">Add Module</div>
+        <button id="nodeSceneAddOsc" type="button" role="menuitem" data-context-module="osc">Osc</button>
+        <button id="nodeSceneAddNoise" type="button" role="menuitem" data-context-module="noise">Noise</button>
+        <button id="nodeSceneAddGain" type="button" role="menuitem" data-context-module="gain">Gain</button>
+        <button id="nodeSceneAddBias" type="button" role="menuitem" data-context-module="bias">Bias</button>
       </div>
 
       <div class="node-graph-controls">

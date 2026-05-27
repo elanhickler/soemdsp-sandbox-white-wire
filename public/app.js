@@ -5924,6 +5924,7 @@ const nodeGraphMvp = {
   metadataEditorTarget: null,
   nodeDragging: null,
   rendered: null,
+  sceneContextPoint: null,
   selected: null,
   sampleRate: 44100,
   seconds: 2,
@@ -6108,6 +6109,12 @@ function closeNodeMetadataPopover() {
   const popover = document.getElementById("nodeParameterMetadataPopover");
   popover.hidden = true;
   nodeGraphMvp.metadataEditorTarget = null;
+}
+
+function closeNodeSceneContextMenu() {
+  const menu = document.getElementById("nodeSceneContextMenu");
+  menu.hidden = true;
+  nodeGraphMvp.sceneContextPoint = null;
 }
 
 function applyNodeMetadataPopover(event) {
@@ -6739,6 +6746,43 @@ function nodeGraphClientPoint(event) {
   };
 }
 
+function positionNodeGraphNode(node, point) {
+  const workspace = document.getElementById("nodeGraphWorkspace");
+  const workspaceRect = workspace.getBoundingClientRect();
+  const maxX = Math.max(0, workspaceRect.width - node.offsetWidth - 10);
+  const maxY = Math.max(0, workspaceRect.height - node.offsetHeight - 10);
+  const x = Math.max(10, Math.min(maxX, point.x));
+  const y = Math.max(10, Math.min(maxY, point.y));
+  node.style.setProperty("--node-x", `${x}px`);
+  node.style.setProperty("--node-y", `${y}px`);
+}
+
+function positionNodeSceneContextMenu(menu, x, y) {
+  const margin = 12;
+  menu.hidden = false;
+  const rect = menu.getBoundingClientRect();
+  const left = Math.max(margin, Math.min(window.innerWidth - rect.width - margin, x));
+  const top = Math.max(margin, Math.min(window.innerHeight - rect.height - margin, y));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+}
+
+function openNodeSceneContextMenu(event) {
+  if (event.target.closest(".dsp-node, .node-port, .node-slider-readout")) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  closeNodeMetadataPopover();
+  nodeGraphMvp.sceneContextPoint = nodeGraphClientPoint(event);
+  positionNodeSceneContextMenu(
+    document.getElementById("nodeSceneContextMenu"),
+    event.clientX,
+    event.clientY,
+  );
+}
+
 function beginNodeGraphNodeDrag(event) {
   if (event.target.closest(".node-port, input, button, label")) {
     return;
@@ -6764,17 +6808,12 @@ function dragNodeGraphNode(event) {
     return;
   }
 
-  const workspace = document.getElementById("nodeGraphWorkspace");
-  const workspaceRect = workspace.getBoundingClientRect();
   const { node, offsetX, offsetY } = nodeGraphMvp.nodeDragging;
   const point = nodeGraphClientPoint(event);
-  const maxX = Math.max(0, workspaceRect.width - node.offsetWidth - 10);
-  const maxY = Math.max(0, workspaceRect.height - node.offsetHeight - 10);
-  const x = Math.max(10, Math.min(maxX, point.x - offsetX));
-  const y = Math.max(10, Math.min(maxY, point.y - offsetY));
-
-  node.style.setProperty("--node-x", `${x}px`);
-  node.style.setProperty("--node-y", `${y}px`);
+  positionNodeGraphNode(node, {
+    x: point.x - offsetX,
+    y: point.y - offsetY,
+  });
   drawNodeGraphWires();
 }
 
@@ -6832,12 +6871,30 @@ function renderNodePalette() {
   }
 }
 
-function showPaletteNode(node) {
+function showNodeGraphModule(node, point = null) {
+  if (node === "output" || !Object.hasOwn(nodeGraphNodeLabels, node)) {
+    return;
+  }
+
   nodeGraphMvp.activeNodes.add(node);
   renderNodePalette();
   renderNodeVisibility();
+  const element = document.querySelector(`.dsp-node[data-node="${node}"]`);
+  if (point && element) {
+    positionNodeGraphNode(element, point);
+  }
+  setNodeGraphSelection({ type: "node", id: node });
   renderNodeGraphConnectionList();
   renderNodeGraphAudio();
+}
+
+function showPaletteNode(node) {
+  showNodeGraphModule(node);
+}
+
+function addNodeGraphModuleFromContext(event) {
+  showNodeGraphModule(event.currentTarget.dataset.contextModule, nodeGraphMvp.sceneContextPoint);
+  closeNodeSceneContextMenu();
 }
 
 function deleteSelectedNodeGraphItem() {
@@ -6868,6 +6925,10 @@ function deleteSelectedNodeGraphItem() {
 function handleNodeGraphKeydown(event) {
   if (event.key === "Escape" && nodeGraphMvp.metadataEditorTarget) {
     closeNodeMetadataPopover();
+    return;
+  }
+  if (event.key === "Escape" && nodeGraphMvp.sceneContextPoint) {
+    closeNodeSceneContextMenu();
     return;
   }
   if (event.key !== "Delete" && event.key !== "Backspace") {
@@ -7084,6 +7145,9 @@ function initNodeGraphMvp() {
   for (const button of document.querySelectorAll("[data-palette-node]")) {
     button.addEventListener("click", () => showPaletteNode(button.dataset.paletteNode));
   }
+  document
+    .getElementById("nodeGraphWorkspace")
+    .addEventListener("contextmenu", openNodeSceneContextMenu);
 
   document.addEventListener("pointermove", dragNodeGraphWire);
   document.addEventListener("pointerup", endNodeGraphWireDrag);
@@ -7097,6 +7161,10 @@ function initNodeGraphMvp() {
       !event.target.closest(".node-slider-readout")
     ) {
       closeNodeMetadataPopover();
+    }
+    const menu = document.getElementById("nodeSceneContextMenu");
+    if (nodeGraphMvp.sceneContextPoint && !menu.contains(event.target)) {
+      closeNodeSceneContextMenu();
     }
   });
   document.getElementById("nodeRenderButton").addEventListener("click", renderNodeGraphAudio);
@@ -7120,6 +7188,9 @@ function initNodeGraphMvp() {
   document
     .getElementById("metadataResetCurrentButton")
     .addEventListener("click", resetNodeMetadataCurrentToDefault);
+  for (const button of document.querySelectorAll("[data-context-module]")) {
+    button.addEventListener("click", addNodeGraphModuleFromContext);
+  }
   for (const id of [
     "nodeOscFrequency",
     "nodeOscLevel",
