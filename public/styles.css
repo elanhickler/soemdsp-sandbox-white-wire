@@ -350,6 +350,13 @@ audio {
   gap: 8px;
 }
 
+.metadata-popover-title-group {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 7px;
+}
+
 .metadata-popover-heading strong {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -361,6 +368,22 @@ audio {
   min-height: 30px;
   padding: 0 10px;
   font-size: 0.72rem;
+}
+
+.metadata-popover-heading .metadata-popover-drag-handle {
+  flex: 0 0 30px;
+  width: 30px;
+  padding: 0;
+  cursor: move;
+  font-size: 0.86rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.metadata-popover-heading .metadata-popover-drag-handle:active,
+.metadata-popover-heading .metadata-popover-drag-handle.dragging {
+  border-color: rgba(226, 168, 109, 0.72);
+  color: var(--accent-2);
 }
 
 .metadata-popover-grid {

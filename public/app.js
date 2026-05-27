@@ -6079,6 +6079,7 @@ const nodeGraphMvp = {
   bufferSource: null,
   connections: nodeGraphDefaultConnections.map((connection) => ({ ...connection })),
   dragging: null,
+  metadataDragging: null,
   metadataEditorTarget: null,
   nodeDragging: null,
   nodeTypeCounts: {
@@ -6321,6 +6322,63 @@ function positionNodeMetadataPopover(popover, x, y) {
   popover.style.top = `${top}px`;
 }
 
+function beginNodeMetadataPopoverDrag(event) {
+  if (event.button > 0) {
+    return;
+  }
+
+  const popover = document.getElementById("nodeParameterMetadataPopover");
+  if (popover.hidden) {
+    return;
+  }
+
+  const rect = popover.getBoundingClientRect();
+  nodeGraphMvp.metadataDragging = {
+    handle: event.currentTarget,
+    offsetX: event.clientX - rect.left,
+    offsetY: event.clientY - rect.top,
+    pointerId: event.pointerId ?? null,
+  };
+  event.currentTarget.classList.add("dragging");
+  if (event.pointerId !== undefined) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  event.preventDefault();
+}
+
+function dragNodeMetadataPopover(event) {
+  const drag = nodeGraphMvp.metadataDragging;
+  if (
+    !drag ||
+    (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId)
+  ) {
+    return;
+  }
+
+  positionNodeMetadataPopover(
+    document.getElementById("nodeParameterMetadataPopover"),
+    event.clientX - drag.offsetX,
+    event.clientY - drag.offsetY,
+  );
+  event.preventDefault();
+}
+
+function endNodeMetadataPopoverDrag(event) {
+  const drag = nodeGraphMvp.metadataDragging;
+  if (
+    !drag ||
+    (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId)
+  ) {
+    return;
+  }
+
+  drag.handle.classList.remove("dragging");
+  if (event.pointerId !== undefined && drag.handle.hasPointerCapture?.(event.pointerId)) {
+    drag.handle.releasePointerCapture(event.pointerId);
+  }
+  nodeGraphMvp.metadataDragging = null;
+}
+
 function populateNodeMetadataKindChoices() {
   const select = document.getElementById("metadataKindValue");
   if (select.options.length) {
@@ -6407,6 +6465,10 @@ function openNodeMetadataPopover(event, readout) {
 function closeNodeMetadataPopover() {
   const popover = document.getElementById("nodeParameterMetadataPopover");
   popover.hidden = true;
+  if (nodeGraphMvp.metadataDragging?.handle) {
+    nodeGraphMvp.metadataDragging.handle.classList.remove("dragging");
+  }
+  nodeGraphMvp.metadataDragging = null;
   nodeGraphMvp.metadataEditorTarget = null;
 }
 
@@ -7619,6 +7681,9 @@ function initNodeGraphMvp() {
   document.addEventListener("pointermove", dragNodeGraphWire);
   document.addEventListener("pointerup", endNodeGraphWireDrag);
   document.addEventListener("pointercancel", endNodeGraphWireDrag);
+  document.addEventListener("pointermove", dragNodeMetadataPopover);
+  document.addEventListener("pointerup", endNodeMetadataPopoverDrag);
+  document.addEventListener("pointercancel", endNodeMetadataPopoverDrag);
   document.addEventListener("keydown", handleNodeGraphKeydown);
   document.addEventListener("pointerdown", (event) => {
     const popover = document.getElementById("nodeParameterMetadataPopover");
@@ -7649,6 +7714,9 @@ function initNodeGraphMvp() {
   document
     .getElementById("metadataPopoverClose")
     .addEventListener("click", closeNodeMetadataPopover);
+  document
+    .getElementById("metadataPopoverDragHandle")
+    .addEventListener("pointerdown", beginNodeMetadataPopoverDrag);
   document
     .getElementById("metadataSetDefaultButton")
     .addEventListener("click", setNodeMetadataDefaultsFromKind);
