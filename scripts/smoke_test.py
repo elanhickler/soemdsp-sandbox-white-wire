@@ -2951,6 +2951,7 @@ def require_node_graph_mvp_contract() -> None:
         "const nodeGraphGrid",
         "const nodeGraphDefaultPatch",
         "function cloneNodeGraphPatch(patch)",
+        "function nodeGraphGridSnapOffset()",
         "function nodeGraphGridToPixel(point)",
         "function nodeGraphPixelToGrid(point)",
         "function snapNodeGraphPointToGrid(point)",

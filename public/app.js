@@ -6166,19 +6166,25 @@ function nodeGraphGridSize() {
   return Number.isFinite(size) && size > 0 ? size : nodeGraphGrid.sizePx;
 }
 
+function nodeGraphGridSnapOffset() {
+  return nodeGraphGridSize() / 2;
+}
+
 function nodeGraphGridToPixel(point) {
   const size = nodeGraphGridSize();
+  const offset = nodeGraphGridSnapOffset();
   return {
-    x: point.gx * size,
-    y: point.gy * size,
+    x: point.gx * size + offset,
+    y: point.gy * size + offset,
   };
 }
 
 function nodeGraphPixelToGrid(point) {
   const size = nodeGraphGridSize();
+  const offset = nodeGraphGridSnapOffset();
   return {
-    gx: Math.round(point.x / size),
-    gy: Math.round(point.y / size),
+    gx: Math.round((point.x - offset) / size),
+    gy: Math.round((point.y - offset) / size),
   };
 }
 
