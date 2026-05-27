@@ -2286,12 +2286,13 @@ function renderPhaseJumpTarget() {
       ? null
       : waveform?.regions?.[state.phaseJumpPreviewIndex];
 
-  target.textContent =
+  const targetText =
     waveform && region
       ? `jump ${region.name} / ${formatSeconds(
           region.startFrame / waveform.sampleRate,
         )} / frame ${region.startFrame}`
       : "jump idle";
+  labelWaveformHeaderPill(target, "phase jump target", targetText, Boolean(waveform));
 }
 
 function setPlayheadFrame(frame) {
@@ -3897,6 +3898,18 @@ function waveformTransportPillsLabeled() {
   });
 }
 
+function phaseJumpTargetLabeled() {
+  const target = document.getElementById("waveformPhaseJumpTarget");
+  const label = target?.getAttribute("aria-label") || "";
+  return (
+    target?.dataset.waveformHeaderLabel === "phase jump target" &&
+    target.dataset.waveformHeaderValue !== undefined &&
+    target.dataset.waveformHeaderState === "ok" &&
+    label === `phase jump target: ${target.dataset.waveformHeaderValue}` &&
+    target.title === `${label} / ok`
+  );
+}
+
 function artifactRowsLabeled() {
   const rows = [...document.querySelectorAll("#artifactList .artifact-row")];
   return (
@@ -4260,6 +4273,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["phase jump preview", waveformReady && Boolean(document.querySelector("#waveformPhaseControls button"))],
     ["phase jump labels", waveformReady && phaseJumpButtonsLabeled(manifest)],
     ["phase jump target", waveformReady && Boolean(document.getElementById("waveformPhaseJumpTarget"))],
+    ["phase jump target labels", waveformReady && phaseJumpTargetLabeled()],
     ["phase list probe", waveformReady && Boolean(document.getElementById("phaseProbe"))],
     ["phase list probe labels", waveformReady && phaseListProbeLabeled()],
     ["phase list item labels", waveformReady && phaseListItemsLabeled()],
