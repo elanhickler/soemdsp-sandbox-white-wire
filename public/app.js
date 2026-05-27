@@ -5916,12 +5916,14 @@ const nodeGraphDefaultConnections = Object.freeze([
 ]);
 
 const nodeGraphMvp = {
+  activeNodes: new Set(["osc", "noise", "gain", "bias", "output"]),
   audioContext: null,
   bufferSource: null,
   connections: nodeGraphDefaultConnections.map((connection) => ({ ...connection })),
   dragging: null,
   nodeDragging: null,
   rendered: null,
+  selected: null,
   sampleRate: 44100,
   seconds: 2,
   sliderDragging: null,
@@ -6128,6 +6130,8 @@ function nodeGraphInputKey(node, port) {
 function nodeGraphFindInputConnections(node, port) {
   return nodeGraphMvp.connections.filter(
     (connection) =>
+      nodeGraphMvp.activeNodes.has(connection.sourceNode) &&
+      nodeGraphMvp.activeNodes.has(connection.destinationNode) &&
       connection.destinationNode === node && connection.destinationPort === port,
   );
 }
@@ -6239,9 +6243,56 @@ function nodeGraphPortCenter(node, port, io) {
   };
 }
 
+function setNodeGraphSelection(selection) {
+  nodeGraphMvp.selected = selection;
+  renderNodeGraphSelection();
+}
+
+function sameNodeGraphSelection(a, b) {
+  return a?.type === b?.type && a?.id === b?.id && a?.index === b?.index;
+}
+
+function renderNodeGraphSelection() {
+  for (const node of document.querySelectorAll(".dsp-node")) {
+    const selected = sameNodeGraphSelection(nodeGraphMvp.selected, {
+      type: "node",
+      id: node.dataset.node,
+    });
+    node.classList.toggle("selected", selected);
+  }
+
+  for (const path of document.querySelectorAll(".node-wire-path")) {
+    path.classList.toggle(
+      "selected",
+      sameNodeGraphSelection(nodeGraphMvp.selected, {
+        type: "wire",
+        index: Number(path.dataset.connectionIndex),
+      }),
+    );
+  }
+
+  for (const item of document.querySelectorAll("[data-connection-row-index]")) {
+    item.classList.toggle(
+      "selected",
+      sameNodeGraphSelection(nodeGraphMvp.selected, {
+        type: "wire",
+        index: Number(item.dataset.connectionRowIndex),
+      }),
+    );
+  }
+
+  const button = document.getElementById("nodeDeleteButton");
+  button.disabled = !nodeGraphMvp.selected;
+}
+
 function nodeGraphPath(from, to) {
   const span = Math.max(68, Math.abs(to.x - from.x) * 0.48);
   return `M ${from.x} ${from.y} C ${from.x + span} ${from.y}, ${to.x - span} ${to.y}, ${to.x} ${to.y}`;
+}
+
+function selectNodeGraphWire(event, index) {
+  event.stopPropagation();
+  setNodeGraphSelection({ type: "wire", index });
 }
 
 function drawNodeGraphWires() {
@@ -6259,16 +6310,32 @@ function drawNodeGraphWires() {
     node.classList.remove("connected");
   }
 
-  for (const connection of nodeGraphMvp.connections) {
+  for (const [index, connection] of nodeGraphMvp.connections.entries()) {
+    if (
+      !nodeGraphMvp.activeNodes.has(connection.sourceNode) ||
+      !nodeGraphMvp.activeNodes.has(connection.destinationNode)
+    ) {
+      continue;
+    }
+
     const from = nodeGraphPortCenter(connection.sourceNode, connection.sourcePort, "output");
     const to = nodeGraphPortCenter(
       connection.destinationNode,
       connection.destinationPort,
       "input",
     );
+    const pathData = nodeGraphPath(from, to);
+    const hitPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    hitPath.setAttribute("class", "node-wire-hit-path");
+    hitPath.dataset.connectionIndex = String(index);
+    hitPath.setAttribute("d", pathData);
+    hitPath.addEventListener("click", (event) => selectNodeGraphWire(event, index));
+    svg.append(hitPath);
+
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("class", "node-wire-path");
-    path.setAttribute("d", nodeGraphPath(from, to));
+    path.dataset.connectionIndex = String(index);
+    path.setAttribute("d", pathData);
     svg.append(path);
 
     workspace
@@ -6288,6 +6355,8 @@ function drawNodeGraphWires() {
     );
     svg.append(path);
   }
+
+  renderNodeGraphSelection();
 }
 
 function renderNodeGraphConnectionList() {
@@ -6299,7 +6368,20 @@ function renderNodeGraphConnectionList() {
 
   list.replaceChildren();
   for (const [index, connection] of nodeGraphMvp.connections.entries()) {
+    if (
+      !nodeGraphMvp.activeNodes.has(connection.sourceNode) ||
+      !nodeGraphMvp.activeNodes.has(connection.destinationNode)
+    ) {
+      continue;
+    }
+
     const item = document.createElement("li");
+    item.dataset.connectionRowIndex = String(index);
+    item.classList.toggle(
+      "selected",
+      sameNodeGraphSelection(nodeGraphMvp.selected, { type: "wire", index }),
+    );
+    item.addEventListener("click", () => setNodeGraphSelection({ type: "wire", index }));
     const label = document.createElement("span");
     label.textContent = `${nodeGraphLabel(connection.sourceNode, connection.sourcePort)} -> ${nodeGraphLabel(
       connection.destinationNode,
@@ -6341,12 +6423,19 @@ function disconnectNodeGraphConnection(index) {
   nodeGraphMvp.connections = nodeGraphMvp.connections.filter(
     (_connection, connectionIndex) => connectionIndex !== index,
   );
+  if (sameNodeGraphSelection(nodeGraphMvp.selected, { type: "wire", index })) {
+    setNodeGraphSelection(null);
+  }
   renderNodeGraphConnectionList();
   renderNodeGraphAudio();
 }
 
 function connectNodeGraphPorts(sourceNode, sourcePort, destinationNode, destinationPort) {
-  if (!nodeGraphInputKey(destinationNode, destinationPort)) {
+  if (
+    !nodeGraphInputKey(destinationNode, destinationPort) ||
+    !nodeGraphMvp.activeNodes.has(sourceNode) ||
+    !nodeGraphMvp.activeNodes.has(destinationNode)
+  ) {
     return false;
   }
 
@@ -6446,6 +6535,7 @@ function beginNodeGraphNodeDrag(event) {
   }
 
   const node = event.currentTarget;
+  setNodeGraphSelection({ type: "node", id: node.dataset.node });
   const workspace = document.getElementById("nodeGraphWorkspace");
   const nodeRect = node.getBoundingClientRect();
   const workspaceRect = workspace.getBoundingClientRect();
@@ -6493,15 +6583,20 @@ function endNodeGraphNodeDrag(event) {
 }
 
 function restoreDefaultNodeGraph() {
+  nodeGraphMvp.activeNodes = new Set(["osc", "noise", "gain", "bias", "output"]);
   nodeGraphMvp.connections = nodeGraphDefaultConnections.map((connection) => ({
     ...connection,
   }));
+  setNodeGraphSelection(null);
+  renderNodePalette();
+  renderNodeVisibility();
   renderNodeGraphConnectionList();
   renderNodeGraphAudio();
 }
 
 function clearNodeGraphWires() {
   nodeGraphMvp.connections = [];
+  setNodeGraphSelection(null);
   nodeGraphMvp.rendered = null;
   document.getElementById("nodePlayButton").disabled = true;
   document.getElementById("nodeGraphRenderStatus").textContent = "render pending";
@@ -6509,6 +6604,74 @@ function clearNodeGraphWires() {
   document.getElementById("nodeOutputSummary").textContent = "waiting for render";
   renderNodeGraphConnectionList();
   drawNodeRenderedAudio();
+}
+
+function renderNodeVisibility() {
+  for (const node of document.querySelectorAll(".dsp-node")) {
+    node.classList.toggle("removed", !nodeGraphMvp.activeNodes.has(node.dataset.node));
+  }
+  drawNodeGraphWires();
+}
+
+function renderNodePalette() {
+  for (const button of document.querySelectorAll("[data-palette-node]")) {
+    const node = button.dataset.paletteNode;
+    const active = nodeGraphMvp.activeNodes.has(node);
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  }
+}
+
+function showPaletteNode(node) {
+  nodeGraphMvp.activeNodes.add(node);
+  renderNodePalette();
+  renderNodeVisibility();
+  renderNodeGraphConnectionList();
+  renderNodeGraphAudio();
+}
+
+function deleteSelectedNodeGraphItem() {
+  const selection = nodeGraphMvp.selected;
+  if (!selection) {
+    return;
+  }
+
+  if (selection.type === "wire") {
+    disconnectNodeGraphConnection(selection.index);
+    return;
+  }
+
+  if (selection.type === "node" && selection.id !== "output") {
+    nodeGraphMvp.activeNodes.delete(selection.id);
+    nodeGraphMvp.connections = nodeGraphMvp.connections.filter(
+      (connection) =>
+        connection.sourceNode !== selection.id && connection.destinationNode !== selection.id,
+    );
+    setNodeGraphSelection(null);
+    renderNodePalette();
+    renderNodeVisibility();
+    renderNodeGraphConnectionList();
+    renderNodeGraphAudio();
+  }
+}
+
+function handleNodeGraphKeydown(event) {
+  if (event.key !== "Delete" && event.key !== "Backspace") {
+    return;
+  }
+  if (event.target.closest("input, textarea")) {
+    return;
+  }
+
+  deleteSelectedNodeGraphItem();
+}
+
+function toggleDebugSections() {
+  const collapsed = !document.body.classList.contains("debug-collapsed");
+  document.body.classList.toggle("debug-collapsed", collapsed);
+  const button = document.getElementById("toggleDebugButton");
+  button.textContent = collapsed ? "Show Evidence" : "Hide Evidence";
+  button.setAttribute("aria-pressed", String(!collapsed));
 }
 
 function renderNodeGraphAudio() {
@@ -6704,14 +6867,20 @@ function initNodeGraphMvp() {
     node.addEventListener("pointercancel", endNodeGraphNodeDrag);
     node.addEventListener("lostpointercapture", endNodeGraphNodeDrag);
   }
+  for (const button of document.querySelectorAll("[data-palette-node]")) {
+    button.addEventListener("click", () => showPaletteNode(button.dataset.paletteNode));
+  }
 
   document.addEventListener("pointermove", dragNodeGraphWire);
   document.addEventListener("pointerup", endNodeGraphWireDrag);
   document.addEventListener("pointercancel", endNodeGraphWireDrag);
+  document.addEventListener("keydown", handleNodeGraphKeydown);
   document.getElementById("nodeRenderButton").addEventListener("click", renderNodeGraphAudio);
   document.getElementById("nodePlayButton").addEventListener("click", playNodeGraphAudio);
   document.getElementById("nodeDefaultButton").addEventListener("click", restoreDefaultNodeGraph);
   document.getElementById("nodeClearButton").addEventListener("click", clearNodeGraphWires);
+  document.getElementById("nodeDeleteButton").addEventListener("click", deleteSelectedNodeGraphItem);
+  document.getElementById("toggleDebugButton").addEventListener("click", toggleDebugSections);
   for (const id of [
     "nodeOscFrequency",
     "nodeOscLevel",
@@ -6737,6 +6906,8 @@ function initNodeGraphMvp() {
   document.addEventListener("mousemove", dragNodeSlider);
   document.addEventListener("mouseup", endNodeSliderDrag);
 
+  renderNodePalette();
+  renderNodeVisibility();
   renderNodeGraphConnectionList();
   renderNodeGraphAudio();
 }

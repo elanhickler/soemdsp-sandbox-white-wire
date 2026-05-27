@@ -76,7 +76,7 @@
           aria-hidden="true"
           focusable="false"></svg>
         <div id="nodeGraphNodes" class="node-graph-nodes">
-          <article class="dsp-node" data-node="osc" style="--node-x: 4%; --node-y: 14%;">
+          <article class="dsp-node" data-node="osc" style="--node-x: 4%; --node-y: 24px;">
             <div class="dsp-node-title">
               <span>Osc</span>
               <button
@@ -97,7 +97,7 @@
             </label>
           </article>
 
-          <article class="dsp-node" data-node="noise" style="--node-x: 4%; --node-y: 66%;">
+          <article class="dsp-node" data-node="noise" style="--node-x: 4%; --node-y: 330px;">
             <div class="dsp-node-title">
               <span>Noise</span>
               <button
@@ -114,7 +114,7 @@
             </label>
           </article>
 
-          <article class="dsp-node" data-node="gain" style="--node-x: 36%; --node-y: 30%;">
+          <article class="dsp-node" data-node="gain" style="--node-x: 36%; --node-y: 205px;">
             <div class="dsp-node-title">
               <button
                 class="node-port input"
@@ -138,7 +138,7 @@
             </label>
           </article>
 
-          <article class="dsp-node" data-node="bias" style="--node-x: 62%; --node-y: 30%;">
+          <article class="dsp-node" data-node="bias" style="--node-x: 62%; --node-y: 205px;">
             <div class="dsp-node-title">
               <button
                 class="node-port input"
@@ -162,7 +162,7 @@
             </label>
           </article>
 
-          <article class="dsp-node output-node" data-node="output" style="--node-x: 84%; --node-y: 34%;">
+          <article class="dsp-node output-node" data-node="output" style="--node-x: 84%; --node-y: 230px;">
             <div class="dsp-node-title">
               <button
                 class="node-port input"
@@ -179,21 +179,22 @@
       </div>
 
       <div class="node-graph-controls">
+        <div id="nodePalette" class="node-palette" aria-label="Node palette">
+          <button type="button" data-palette-node="osc">Osc</button>
+          <button type="button" data-palette-node="noise">Noise</button>
+          <button type="button" data-palette-node="gain">Gain</button>
+          <button type="button" data-palette-node="bias">Bias</button>
+        </div>
         <button id="nodeRenderButton" type="button">Render Graph</button>
         <button id="nodePlayButton" type="button" disabled>Play Render</button>
         <button id="nodeDefaultButton" type="button">Default Chain</button>
         <button id="nodeClearButton" type="button">Clear Wires</button>
+        <button id="nodeDeleteButton" type="button" disabled>Delete Selection</button>
+        <button id="toggleDebugButton" type="button" aria-pressed="true">Hide Evidence</button>
       </div>
 
       <div class="node-graph-output">
-        <div>
-          <div class="panel-heading compact-heading">
-            <h3>Graph Connections</h3>
-            <span id="nodeGraphValidation" class="pill">valid</span>
-          </div>
-          <ol id="nodeConnectionList" class="node-connection-list"></ol>
-        </div>
-        <div>
+        <div class="node-preview-panel">
           <div class="panel-heading compact-heading">
             <h3>Rendered Output</h3>
             <span id="nodeAudioStats" class="pill">peak 0 / rms 0</span>
@@ -201,15 +202,22 @@
           <canvas
             id="nodeWaveformCanvas"
             class="node-waveform"
-            width="560"
-            height="150"
+            width="720"
+            height="180"
             aria-label="Node graph rendered waveform"></canvas>
           <canvas
             id="nodeSignalPlotCanvas"
             class="node-signal-plot"
-            width="560"
-            height="220"
+            width="720"
+            height="300"
             aria-label="Node graph rendered signal plot"></canvas>
+        </div>
+        <div>
+          <div class="panel-heading compact-heading">
+            <h3>Graph Connections</h3>
+            <span id="nodeGraphValidation" class="pill">valid</span>
+          </div>
+          <ol id="nodeConnectionList" class="node-connection-list"></ol>
         </div>
       </div>
     </section>
