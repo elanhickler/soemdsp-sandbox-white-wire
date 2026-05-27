@@ -6131,6 +6131,48 @@ function clampNodeSliderValue(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function normalizedNodeSliderMid(slider) {
+  const min = Number(slider.min);
+  const max = Number(slider.max);
+  const mid = clampNodeSliderValue(Number(slider.dataset.mid), min, max);
+  const range = max - min;
+  if (!Number.isFinite(range) || range <= 0) {
+    return 0.5;
+  }
+
+  return clampNodeSliderValue((mid - min) / range, 0.000001, 0.999999);
+}
+
+function nodeSliderSkewExponent(slider) {
+  return Math.log(normalizedNodeSliderMid(slider)) / Math.log(0.5);
+}
+
+function nodeSliderValueFromTravel(slider, travel) {
+  const min = Number(slider.min);
+  const max = Number(slider.max);
+  const range = max - min;
+  if (!Number.isFinite(range) || range <= 0) {
+    return min;
+  }
+
+  const exponent = nodeSliderSkewExponent(slider);
+  const normalizedTravel = clampNodeSliderValue(travel, 0, 1);
+  return min + range * normalizedTravel ** exponent;
+}
+
+function nodeSliderTravelFromValue(slider, value) {
+  const min = Number(slider.min);
+  const max = Number(slider.max);
+  const range = max - min;
+  if (!Number.isFinite(range) || range <= 0) {
+    return 0;
+  }
+
+  const exponent = nodeSliderSkewExponent(slider);
+  const normalizedValue = clampNodeSliderValue((value - min) / range, 0, 1);
+  return normalizedValue ** (1 / exponent);
+}
+
 function setNodeSliderMetadata(slider, metadata) {
   slider.min = String(metadata.min);
   slider.max = String(metadata.max);
@@ -6168,10 +6210,7 @@ function syncNodeSliderReadout(slider) {
   }
   const valueText = readout.querySelector(".node-slider-readout-value");
   const unitText = readout.querySelector(".node-slider-readout-unit");
-  const min = Number(slider.min);
-  const max = Number(slider.max);
-  const range = max - min;
-  const position = range === 0 ? 0 : ((Number(slider.value) - min) / range) * 100;
+  const position = nodeSliderTravelFromValue(slider, Number(slider.value)) * 100;
   const unit = (slider.dataset.unit || "").trim();
   valueText.textContent = formatNodeSliderNumber(slider.value);
   unitText.textContent = unit;
@@ -6387,7 +6426,7 @@ function beginNodeSliderDrag(event) {
     pointerId: event.pointerId ?? null,
     slider,
     surface,
-    startValue: Number(slider.value),
+    startTravel: nodeSliderTravelFromValue(slider, Number(slider.value)),
     startX: event.clientX,
     startY: event.clientY,
     width: Math.max(1, rect.width),
@@ -6408,13 +6447,15 @@ function dragNodeSlider(event) {
     return;
   }
 
-  const range = Number(drag.slider.max) - Number(drag.slider.min);
   const horizontalDelta = event.clientX - drag.startX;
   const verticalDelta = drag.startY - event.clientY;
-  const valueDelta = ((horizontalDelta + verticalDelta) / drag.width) * range;
+  const travelDelta = (horizontalDelta + verticalDelta) / drag.width;
   setNodeSliderValue(
     drag.slider,
-    quantizeNodeSliderDragValue(drag.slider, drag.startValue + valueDelta),
+    quantizeNodeSliderDragValue(
+      drag.slider,
+      nodeSliderValueFromTravel(drag.slider, drag.startTravel + travelDelta),
+    ),
   );
   event.preventDefault();
 }
