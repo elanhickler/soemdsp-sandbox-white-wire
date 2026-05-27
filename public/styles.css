@@ -370,6 +370,12 @@ audio {
   font-size: 0.78rem;
 }
 
+.node-parameter-metadata-popover button:focus,
+.metadata-popover-grid input:focus {
+  outline: none;
+  border-color: rgba(127, 199, 217, 0.5);
+}
+
 .metadata-popover-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
