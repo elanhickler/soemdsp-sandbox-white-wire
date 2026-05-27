@@ -285,8 +285,8 @@ audio {
 
 .node-slider-numbers {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
 }
 
 .node-slider-number {
@@ -297,7 +297,7 @@ audio {
 
 .node-slider-number span {
   color: var(--muted);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   text-transform: uppercase;
 }
 
@@ -305,13 +305,13 @@ audio {
   width: 100%;
   min-width: 0;
   height: 28px;
-  padding: 0 6px;
+  padding: 0 4px;
   border: 1px solid var(--line);
   border-radius: 5px;
   background: #111418;
   color: var(--text);
   font-family: Consolas, "Courier New", monospace;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
 }
 
 .dsp-node p {

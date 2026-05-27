@@ -5954,8 +5954,10 @@ function syncNodeSliderNumberFields(slider) {
 
   const fields = {
     min: slider.min,
-    mid: slider.value,
+    mid: slider.dataset.mid,
     max: slider.max,
+    def: slider.dataset.default,
+    cur: slider.value,
   };
   for (const [field, value] of Object.entries(fields)) {
     const input = row.querySelector(`[data-slider-number-field="${field}"]`);
@@ -5977,23 +5979,41 @@ function updateNodeSliderFromNumber(input) {
     return;
   }
 
+  const clampSliderMetadata = () => {
+    const min = Number(slider.min);
+    const max = Number(slider.max);
+    slider.dataset.mid = String(
+      clampNodeSliderValue(Number(slider.dataset.mid), min, max),
+    );
+    slider.dataset.default = String(
+      clampNodeSliderValue(Number(slider.dataset.default), min, max),
+    );
+    slider.value = String(clampNodeSliderValue(Number(slider.value), min, max));
+  };
+
   if (input.dataset.sliderNumberField === "min") {
     const max = Number(slider.max);
     slider.min = String(Math.min(value, max));
-    slider.value = String(
-      clampNodeSliderValue(Number(slider.value), Number(slider.min), Number(slider.max)),
-    );
+    clampSliderMetadata();
   }
   if (input.dataset.sliderNumberField === "mid") {
-    slider.value = String(
+    slider.dataset.mid = String(
       clampNodeSliderValue(value, Number(slider.min), Number(slider.max)),
     );
   }
   if (input.dataset.sliderNumberField === "max") {
     const min = Number(slider.min);
     slider.max = String(Math.max(value, min));
+    clampSliderMetadata();
+  }
+  if (input.dataset.sliderNumberField === "def") {
+    slider.dataset.default = String(
+      clampNodeSliderValue(value, Number(slider.min), Number(slider.max)),
+    );
+  }
+  if (input.dataset.sliderNumberField === "cur") {
     slider.value = String(
-      clampNodeSliderValue(Number(slider.value), Number(slider.min), Number(slider.max)),
+      clampNodeSliderValue(value, Number(slider.min), Number(slider.max)),
     );
   }
 
@@ -6090,12 +6110,17 @@ function createNodeSliderNumberControls(slider) {
     return;
   }
 
+  slider.dataset.mid ||= String((Number(slider.min) + Number(slider.max)) / 2);
+  slider.dataset.default ||= slider.value;
+
   const row = document.createElement("div");
   row.className = "node-slider-numbers";
   for (const [field, labelText] of [
-    ["min", "Min"],
-    ["mid", "Mid"],
-    ["max", "Max"],
+    ["min", "MIN"],
+    ["mid", "MID"],
+    ["max", "MAX"],
+    ["def", "DEF"],
+    ["cur", "CUR"],
   ]) {
     const label = document.createElement("label");
     label.className = "node-slider-number";
