@@ -6187,7 +6187,7 @@ function nodeGraphGridSize() {
 }
 
 function nodeGraphGridSnapOffset() {
-  return nodeGraphGridSize() / 2;
+  return 6;
 }
 
 function nodeGraphGridToPixel(point) {
@@ -7344,6 +7344,9 @@ function createNodeGraphModuleElement(type, node) {
   article.className = `dsp-node${definition.output ? " output-node" : ""}`;
   article.dataset.node = node;
   article.dataset.nodeType = type;
+  const bodyRowCount = definition.parameters.length + (definition.output ? 1 : 0);
+  article.style.setProperty("--node-grid-width-units", definition.output ? "6" : "7");
+  article.style.setProperty("--node-grid-height-units", String(2 + Math.max(1, bodyRowCount) * 2));
 
   const header = document.createElement("div");
   header.className = "dsp-node-header dsp-node-title";

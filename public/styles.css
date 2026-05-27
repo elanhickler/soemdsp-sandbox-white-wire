@@ -173,7 +173,7 @@ audio {
 .node-graph-workspace {
   --node-graph-zoom: 1;
   --node-grid-size: 28px;
-  --node-module-grid-fill: 8px;
+  --node-module-grid-inset: 6px;
   position: relative;
   min-height: 560px;
   margin-top: 16px;
@@ -334,10 +334,13 @@ audio {
   left: var(--node-x);
   top: var(--node-y);
   display: grid;
+  grid-template-rows: calc(var(--node-grid-size) * 2) minmax(0, 1fr);
   gap: 0;
-  width: calc((var(--node-grid-size) * 7) + var(--node-module-grid-fill));
-  min-width: calc((var(--node-grid-size) * 7) + var(--node-module-grid-fill));
-  padding: 0 0 var(--node-module-grid-fill);
+  width: calc((var(--node-grid-size) * var(--node-grid-width-units, 7)) - (var(--node-module-grid-inset) * 2));
+  min-width: calc((var(--node-grid-size) * var(--node-grid-width-units, 7)) - (var(--node-module-grid-inset) * 2));
+  height: calc((var(--node-grid-size) * var(--node-grid-height-units, 4)) - (var(--node-module-grid-inset) * 2));
+  min-height: calc((var(--node-grid-size) * var(--node-grid-height-units, 4)) - (var(--node-module-grid-inset) * 2));
+  padding: 0;
   border-radius: 8px;
   outline: 1px solid rgba(243, 241, 236, 0.18);
   background: rgba(27, 30, 34, 0.96);
@@ -365,8 +368,7 @@ audio {
 }
 
 .dsp-node.output-node {
-  width: calc((var(--node-grid-size) * 6) + var(--node-module-grid-fill));
-  min-width: calc((var(--node-grid-size) * 6) + var(--node-module-grid-fill));
+  --node-grid-width-units: 6;
 }
 
 .dsp-node-header {
@@ -379,6 +381,7 @@ audio {
 
 .dsp-node-body {
   display: grid;
+  grid-auto-rows: minmax(0, 1fr);
   gap: 0;
   padding: 0;
 }
@@ -426,14 +429,14 @@ audio {
   grid-template-columns: 16px minmax(0, 1fr);
   align-items: end;
   gap: 7px;
-  min-height: calc(var(--node-grid-size) * 2);
+  min-height: 0;
   padding: 0 13px;
 }
 
 .dsp-node p {
   display: flex;
   align-items: center;
-  min-height: calc(var(--node-grid-size) * 2);
+  min-height: 0;
   padding: 0 13px;
 }
 
