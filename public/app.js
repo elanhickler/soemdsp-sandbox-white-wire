@@ -85,6 +85,12 @@ function artifactUrl(path) {
   return `/artifact?path=${encodeURIComponent(path)}`;
 }
 
+function artifactRowLabel(link) {
+  return `${link.path ? "Open" : "Missing"} ${link.kind || "artifact"} artifact: ${
+    link.label || link.path || "unknown"
+  }`;
+}
+
 function loadSignalPlotSettings() {
   try {
     const settings = JSON.parse(
@@ -3971,18 +3977,27 @@ function phaseJumpTargetLabeled() {
   return waveformHeaderPillsLabeled(["waveformPhaseJumpTarget"]);
 }
 
-function artifactRowsLabeled() {
+function artifactRowsLabeled(manifest) {
+  const links = Array.isArray(manifest?.artifactLinks) ? manifest.artifactLinks : [];
   const rows = [...document.querySelectorAll("#artifactList .artifact-row")];
   return (
-    rows.length > 0 &&
-    rows.every((row) => {
+    links.length > 0 &&
+    rows.length === links.length &&
+    rows.every((row, index) => {
+      const link = links[index];
       const label = row.getAttribute("aria-label") || "";
       return (
-        row.dataset.artifactKind !== undefined &&
-        row.dataset.artifactPath !== undefined &&
-        row.dataset.artifactLabel !== undefined &&
-        label.toLowerCase().includes("artifact") &&
-        row.title === label
+        row.dataset.artifactKind === (link.kind || "") &&
+        row.dataset.artifactPath === (link.path || "") &&
+        row.dataset.artifactLabel === (link.label || "") &&
+        label === artifactRowLabel(link) &&
+        row.title === label &&
+        (link.path
+          ? row.tagName === "A" &&
+            row.getAttribute("href") === artifactUrl(link.path) &&
+            row.getAttribute("target") === "_blank" &&
+            row.getAttribute("rel") === "noreferrer"
+          : row.tagName === "DIV" && row.getAttribute("role") === "group")
       );
     })
   );
@@ -4377,7 +4392,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["status strip labels", statusStripItemsLabeled()],
     ["report control labels", reportControlsLabeled()],
     ["report viewer labels", state.reports.length > 0 && reportViewerLabeled()],
-    ["artifact row labels", artifactRowsLabeled()],
+    ["artifact row labels", artifactRowsLabeled(manifest)],
     ["artifact coverage row labels", artifactCoverageRowsLabeled()],
     ["source row labels", sourceRowsLabeled()],
     ["producer proof row labels", producerProofRowsLabeled()],
@@ -4691,9 +4706,7 @@ function renderArtifacts(links) {
   const checks = [];
   for (const link of links) {
     const row = document.createElement(link.path ? "a" : "div");
-    const rowLabel = `${link.path ? "Open" : "Missing"} ${link.kind || "artifact"} artifact: ${
-      link.label || link.path || "unknown"
-    }`;
+    const rowLabel = artifactRowLabel(link);
     row.className = "artifact-row";
     row.dataset.artifactKind = link.kind || "";
     row.dataset.artifactPath = link.path || "";
