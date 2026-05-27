@@ -3744,6 +3744,14 @@ function waveformControlsLabeled() {
   return waveformControlButtonsLabeled(["waveformPlayButton", "followAudioButton"]);
 }
 
+function waveformPlayControlLabeled() {
+  return waveformControlButtonsLabeled(["waveformPlayButton"]);
+}
+
+function followAudioControlLabeled() {
+  return waveformControlButtonsLabeled(["followAudioButton"]);
+}
+
 function waveformControlButtonsLabeled(ids) {
   return ids.every((id) => {
     const button = document.getElementById(id);
@@ -4290,7 +4298,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["primary audio title labels", primaryAudioTitleLabeled(manifest)],
     ["primary audio position labels", primaryAudioPositionLabeled()],
     ["reload manifest labels", reloadManifestControlLabeled()],
-    ["waveform play control", Boolean(document.getElementById("waveformPlayButton"))],
+    ["waveform play control", waveformPlayControlLabeled()],
     ["waveform control labels", waveformControlsLabeled()],
     ["status strip labels", statusStripItemsLabeled()],
     ["report control labels", reportControlsLabeled()],
@@ -4315,7 +4323,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["parameter timeline segment labels", waveformReady && parameterTimelineSegmentsLabeled()],
     ["parameter timeline preview", waveformReady && Boolean(document.querySelector(".parameter-segment"))],
     ["probe frame labels", waveformReady && typeof formatProbeFrame === "function"],
-    ["follow/free view", Boolean(document.getElementById("followAudioButton"))],
+    ["follow/free view", followAudioControlLabeled()],
     ["current measured audio", waveformReady && currentMeasuredAudioPillsLabeled()],
     ["current parameter labels", waveformReady && currentParameterPillsLabeled()],
     [
