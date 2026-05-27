@@ -2933,9 +2933,26 @@ function renderActiveReport() {
   const report = state.reports[state.activeReportIndex];
   if (!report) {
     viewer.textContent = "";
+    viewer.dataset.reportLabel = "none";
+    viewer.dataset.reportKind = "none";
+    viewer.dataset.reportPath = "";
+    viewer.dataset.reportState = "unavailable";
+    viewer.setAttribute("role", "region");
+    viewer.setAttribute("aria-label", "Report viewer unavailable");
+    viewer.title = "Report viewer unavailable";
     return;
   }
 
+  const stateName = report.ok ? "ok" : "check";
+  viewer.dataset.reportLabel = report.label || "";
+  viewer.dataset.reportKind = report.kind || "";
+  viewer.dataset.reportPath = report.path || "";
+  viewer.dataset.reportState = stateName;
+  viewer.setAttribute("role", "region");
+  viewer.setAttribute("aria-label", `Report viewer ${report.label}: ${stateName}`);
+  viewer.title = `Report viewer ${report.label} / ${report.kind} / ${
+    report.path || "missing"
+  } / ${stateName}`;
   viewer.textContent = report.ok
     ? report.text
     : `${report.label}\n${report.error || "Report unavailable"}`;
@@ -3669,6 +3686,23 @@ function reportControlsLabeled() {
   );
 }
 
+function reportViewerLabeled() {
+  const viewer = document.getElementById("reportViewer");
+  const label = viewer?.getAttribute("aria-label") || "";
+  return (
+    viewer?.dataset.reportLabel &&
+    viewer.dataset.reportKind &&
+    viewer.dataset.reportPath !== undefined &&
+    viewer.dataset.reportState === "ok" &&
+    viewer.getAttribute("role") === "region" &&
+    label === `Report viewer ${viewer.dataset.reportLabel}: ok` &&
+    viewer.title ===
+      `Report viewer ${viewer.dataset.reportLabel} / ${viewer.dataset.reportKind} / ${
+        viewer.dataset.reportPath || "missing"
+      } / ok`
+  );
+}
+
 function artifactRowsLabeled() {
   const rows = [...document.querySelectorAll("#artifactList .artifact-row")];
   return (
@@ -3994,6 +4028,7 @@ function renderHandsOnReadiness(manifest, waveformReady = Boolean(state.waveform
     ["waveform play control", Boolean(document.getElementById("waveformPlayButton"))],
     ["waveform control labels", waveformControlsLabeled()],
     ["report control labels", reportControlsLabeled()],
+    ["report viewer labels", state.reports.length > 0 && reportViewerLabeled()],
     ["artifact row labels", artifactRowsLabeled()],
     ["artifact coverage row labels", artifactCoverageRowsLabeled()],
     ["source row labels", sourceRowsLabeled()],
