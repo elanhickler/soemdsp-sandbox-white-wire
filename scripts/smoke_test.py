@@ -3190,6 +3190,7 @@ def require_node_graph_mvp_contract() -> None:
         ".node-graph-zoom-surface",
         ".node-interaction-help",
         ".node-interaction-help:empty",
+        "justify-content: center",
         "min-height: 44px",
         "white-space: pre-line",
         "--node-module-grid-inset: 6px",

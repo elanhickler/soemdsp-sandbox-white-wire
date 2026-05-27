@@ -162,6 +162,9 @@ audio {
 }
 
 .node-interaction-help {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1 1 180px;
   min-width: 140px;
   min-height: 44px;
