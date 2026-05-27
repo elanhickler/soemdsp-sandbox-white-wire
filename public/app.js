@@ -6157,8 +6157,11 @@ const nodeGraphMvp = {
   live: {
     context: null,
     mediaDestination: null,
+    meterGain: null,
     node: null,
     outputGain: null,
+    runtime: null,
+    scriptNode: null,
     syncFrame: 0,
     syncTimer: 0,
   },
@@ -8322,14 +8325,139 @@ function nodeGraphBuildLivePlan() {
   };
 }
 
+function createNodeGraphLiveRuntime(plan) {
+  const nodes = new Map((plan.nodes || []).map((node) => [node.id, node]));
+  const inputConnections = new Map();
+  for (const connection of plan.connections || []) {
+    const key = `${connection.destinationNode}.${connection.destinationPort}`;
+    const connections = inputConnections.get(key) || [];
+    connections.push(connection);
+    inputConnections.set(key, connections);
+  }
+  const phases = new Map();
+  const noiseSeeds = new Map();
+  for (const node of plan.nodes || []) {
+    if (node.type === "osc") {
+      phases.set(node.id, 0);
+    }
+    if (node.type === "noise") {
+      noiseSeeds.set(node.id, nodeGraphStableSeed(node.id));
+    }
+  }
+  return {
+    inputConnections,
+    meterCounter: 0,
+    meterPeak: 0,
+    meterSamples: 0,
+    meterSquareSum: 0,
+    nodes,
+    noiseSeeds,
+    outputNode: plan.outputNode || "output",
+    phases,
+  };
+}
+
+function readNodeGraphLiveParam(node, key, fallback = 0) {
+  const value = Number(node?.params?.[key]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function evaluateNodeGraphLiveNode(runtime, nodeId, frameValues, visiting, sampleRate) {
+  if (frameValues.has(nodeId)) {
+    return frameValues.get(nodeId);
+  }
+  if (visiting.has(nodeId)) {
+    return 0;
+  }
+  visiting.add(nodeId);
+
+  const node = runtime.nodes.get(nodeId);
+  let value = 0;
+  const mixInput = () => (runtime.inputConnections.get(`${nodeId}.In`) || []).reduce(
+    (sum, connection) =>
+      sum + evaluateNodeGraphLiveNode(
+        runtime,
+        connection.sourceNode,
+        frameValues,
+        visiting,
+        sampleRate,
+      ),
+    0,
+  );
+
+  if (node?.type === "osc") {
+    const phase = runtime.phases.get(nodeId) || 0;
+    const frequency = readNodeGraphLiveParam(node, "frequency", 220);
+    value = Math.sin(phase) * readNodeGraphLiveParam(node, "level", 0.35);
+    runtime.phases.set(
+      nodeId,
+      (phase + (Math.PI * 2 * frequency) / sampleRate) % (Math.PI * 2),
+    );
+  } else if (node?.type === "noise") {
+    const seed = (Math.imul(1664525, runtime.noiseSeeds.get(nodeId) || 0x12345678) + 1013904223) >>> 0;
+    runtime.noiseSeeds.set(nodeId, seed);
+    value = ((seed / 0xffffffff) * 2 - 1) * readNodeGraphLiveParam(node, "level", 0.12);
+  } else if (node?.type === "gain") {
+    value = mixInput() * readNodeGraphLiveParam(node, "amount", 1);
+  } else if (node?.type === "bias") {
+    value = mixInput() + readNodeGraphLiveParam(node, "offset", 0);
+  } else if (node?.type === "output") {
+    value = mixInput();
+  }
+
+  visiting.delete(nodeId);
+  frameValues.set(nodeId, value);
+  return value;
+}
+
+function renderNodeGraphLiveScriptBlock(event) {
+  const runtime = nodeGraphMvp.live.runtime;
+  if (!runtime) {
+    return;
+  }
+  const output = event.outputBuffer;
+  const frames = output.length;
+  const sampleRate = event.playbackTime !== undefined
+    ? output.sampleRate
+    : nodeGraphMvp.live.context?.sampleRate || nodeGraphMvp.sampleRate;
+  for (let frame = 0; frame < frames; frame += 1) {
+    const value = Math.max(
+      -0.95,
+      Math.min(
+        0.95,
+        evaluateNodeGraphLiveNode(runtime, runtime.outputNode, new Map(), new Set(), sampleRate),
+      ),
+    );
+    runtime.meterPeak = Math.max(runtime.meterPeak, Math.abs(value));
+    runtime.meterSquareSum += value * value;
+    runtime.meterSamples += 1;
+    for (let channel = 0; channel < output.numberOfChannels; channel += 1) {
+      output.getChannelData(channel)[frame] = value;
+    }
+  }
+  runtime.meterCounter += frames;
+  if (runtime.meterCounter >= sampleRate / 10) {
+    setNodeGraphLiveMeter(
+      runtime.meterPeak,
+      Math.sqrt(runtime.meterSquareSum / Math.max(1, runtime.meterSamples)),
+    );
+    runtime.meterCounter = 0;
+    runtime.meterPeak = 0;
+    runtime.meterSamples = 0;
+    runtime.meterSquareSum = 0;
+  }
+}
+
 function sendNodeGraphLivePlan() {
   if (!nodeGraphMvp.live.node) {
     return;
   }
 
   try {
+    const plan = nodeGraphBuildLivePlan();
+    nodeGraphMvp.live.runtime = createNodeGraphLiveRuntime(plan);
     nodeGraphMvp.live.node.port.postMessage({
-      plan: nodeGraphBuildLivePlan(),
+      plan,
       type: "setPlan",
     });
     setNodeGraphLiveStatus("running", "good");
@@ -8370,14 +8498,19 @@ async function stopNodeGraphLiveAudio() {
   const liveNode = nodeGraphMvp.live.node;
   const liveContext = nodeGraphMvp.live.context;
   const monitor = document.getElementById("nodeLiveMonitor");
+  const scriptNode = nodeGraphMvp.live.scriptNode;
   nodeGraphMvp.live.node = null;
   nodeGraphMvp.live.context = null;
   nodeGraphMvp.live.mediaDestination = null;
+  nodeGraphMvp.live.meterGain = null;
   nodeGraphMvp.live.outputGain = null;
+  nodeGraphMvp.live.runtime = null;
+  nodeGraphMvp.live.scriptNode = null;
 
   try {
     liveNode?.port.postMessage({ type: "stop" });
     liveNode?.disconnect();
+    scriptNode?.disconnect();
   } catch (_error) {
     // Live shutdown is best effort; a disconnected worklet is already silent.
   }
@@ -8424,6 +8557,10 @@ async function startNodeGraphLiveAudio() {
     });
     const outputGain = context.createGain();
     outputGain.gain.value = 1;
+    const meterGain = context.createGain();
+    meterGain.gain.value = 0;
+    const scriptNode = context.createScriptProcessor(512, 0, 2);
+    scriptNode.onaudioprocess = renderNodeGraphLiveScriptBlock;
     const monitor = document.getElementById("nodeLiveMonitor");
     const mediaDestination = typeof context.createMediaStreamDestination === "function"
       ? context.createMediaStreamDestination()
@@ -8440,23 +8577,28 @@ async function startNodeGraphLiveAudio() {
 
     nodeGraphMvp.live.context = context;
     nodeGraphMvp.live.mediaDestination = mediaDestination;
+    nodeGraphMvp.live.meterGain = meterGain;
     nodeGraphMvp.live.node = liveNode;
     nodeGraphMvp.live.outputGain = outputGain;
+    nodeGraphMvp.live.runtime = createNodeGraphLiveRuntime(plan);
+    nodeGraphMvp.live.scriptNode = scriptNode;
     liveNode.port.postMessage({ plan, type: "setPlan" });
-    liveNode.connect(outputGain);
+    liveNode.connect(meterGain);
+    meterGain.connect(context.destination);
+    scriptNode.connect(outputGain);
     outputGain.connect(context.destination);
     if (mediaDestination && monitor) {
       outputGain.connect(mediaDestination);
       monitor.srcObject = mediaDestination.stream;
       monitor.muted = false;
       monitor.volume = 1;
-      setNodeGraphLiveRouteStatus("route direct + monitor", "good");
+      setNodeGraphLiveRouteStatus("route script + monitor", "good");
       monitor.play().catch(() => {
-        setNodeGraphLiveRouteStatus("route direct / press monitor play", "warn");
+        setNodeGraphLiveRouteStatus("route script / press monitor play", "warn");
         monitor.controls = true;
       });
     } else {
-      setNodeGraphLiveRouteStatus("route direct only", "warn");
+      setNodeGraphLiveRouteStatus("route script only", "warn");
     }
     await context.resume();
     setNodeGraphLiveStatus("running", "good");
