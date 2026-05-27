@@ -5921,6 +5921,7 @@ const nodeGraphMvp = {
   bufferSource: null,
   connections: nodeGraphDefaultConnections.map((connection) => ({ ...connection })),
   dragging: null,
+  metadataEditorTarget: null,
   nodeDragging: null,
   rendered: null,
   selected: null,
@@ -5940,6 +5941,16 @@ function nodeGraphReadNumber(id) {
 
 function formatNodeSliderNumber(value) {
   return Number(value).toFixed(6);
+}
+
+function formatNodeSliderCompactNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Number(number.toFixed(6)).toString() : "";
+}
+
+function parseNodeMetadataNumber(value, fallback) {
+  const number = Number(String(value).trim());
+  return Number.isFinite(number) ? number : fallback;
 }
 
 function nodeSliderMetadata(slider) {
@@ -5990,6 +6001,20 @@ function clampNodeSliderValue(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function setNodeSliderMetadata(slider, metadata) {
+  slider.min = String(metadata.min);
+  slider.max = String(metadata.max);
+  slider.dataset.mid = String(clampNodeSliderValue(metadata.mid, metadata.min, metadata.max));
+  slider.dataset.default = String(
+    clampNodeSliderValue(metadata.def, metadata.min, metadata.max),
+  );
+  slider.dataset.step = metadata.step > 0 ? String(metadata.step) : "any";
+  slider.dataset.kind = metadata.kind || "decimal";
+  slider.dataset.display = metadata.display || "decimal";
+  slider.value = String(clampNodeSliderValue(Number(slider.value), metadata.min, metadata.max));
+  syncNodeSliderReadout(slider);
+}
+
 function quantizeNodeSliderDragValue(slider, value) {
   const step = Number(slider.dataset.step);
   if (!Number.isFinite(step) || step <= 0) {
@@ -6021,6 +6046,118 @@ function syncNodeSliderReadout(slider) {
   syncNodeSliderMetadataTooltip(slider);
 }
 
+function nodeSliderLabelText(slider) {
+  const label = slider.closest("label");
+  if (!label) {
+    return slider.id;
+  }
+  for (const node of label.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent.trim();
+      if (text) {
+        return text;
+      }
+    }
+  }
+  return slider.id;
+}
+
+function positionNodeMetadataPopover(popover, x, y) {
+  const margin = 12;
+  popover.hidden = false;
+  const rect = popover.getBoundingClientRect();
+  const left = Math.max(margin, Math.min(window.innerWidth - rect.width - margin, x));
+  const top = Math.max(margin, Math.min(window.innerHeight - rect.height - margin, y));
+  popover.style.left = `${left}px`;
+  popover.style.top = `${top}px`;
+}
+
+function fillNodeMetadataPopover(slider) {
+  const metadata = nodeSliderMetadata(slider);
+  document.getElementById("metadataPopoverTitle").textContent =
+    `${nodeSliderLabelText(slider)} Metadata`;
+  document.getElementById("metadataMinValue").value = formatNodeSliderCompactNumber(metadata.min);
+  document.getElementById("metadataMidValue").value = formatNodeSliderCompactNumber(metadata.mid);
+  document.getElementById("metadataMaxValue").value = formatNodeSliderCompactNumber(metadata.max);
+  document.getElementById("metadataDefaultValue").value =
+    formatNodeSliderCompactNumber(metadata.def);
+  document.getElementById("metadataStepValue").value =
+    metadata.step > 0 ? formatNodeSliderCompactNumber(metadata.step) : "any";
+  document.getElementById("metadataKindValue").value = metadata.kind;
+  document.getElementById("metadataDisplayValue").value = metadata.display;
+}
+
+function openNodeMetadataPopover(event, readout) {
+  event.preventDefault();
+  event.stopPropagation();
+  const slider = document.getElementById(readout.dataset.sliderTarget);
+  if (!slider) {
+    return;
+  }
+
+  nodeGraphMvp.metadataEditorTarget = slider.id;
+  fillNodeMetadataPopover(slider);
+  positionNodeMetadataPopover(
+    document.getElementById("nodeParameterMetadataPopover"),
+    event.clientX,
+    event.clientY,
+  );
+}
+
+function closeNodeMetadataPopover() {
+  const popover = document.getElementById("nodeParameterMetadataPopover");
+  popover.hidden = true;
+  nodeGraphMvp.metadataEditorTarget = null;
+}
+
+function applyNodeMetadataPopover(event) {
+  event.preventDefault();
+  const slider = document.getElementById(nodeGraphMvp.metadataEditorTarget);
+  if (!slider) {
+    closeNodeMetadataPopover();
+    return;
+  }
+
+  const current = nodeSliderMetadata(slider);
+  let min = parseNodeMetadataNumber(document.getElementById("metadataMinValue").value, current.min);
+  let max = parseNodeMetadataNumber(document.getElementById("metadataMaxValue").value, current.max);
+  if (min > max) {
+    [min, max] = [max, min];
+  }
+  const mid = parseNodeMetadataNumber(document.getElementById("metadataMidValue").value, current.mid);
+  const def = parseNodeMetadataNumber(
+    document.getElementById("metadataDefaultValue").value,
+    current.def,
+  );
+  const stepInput = document.getElementById("metadataStepValue").value.trim();
+  const step = stepInput.toLowerCase() === "any"
+    ? 0
+    : Math.max(0, parseNodeMetadataNumber(stepInput, current.step));
+  const kind = document.getElementById("metadataKindValue").value.trim() || "decimal";
+  const display = document.getElementById("metadataDisplayValue").value.trim() || "decimal";
+  setNodeSliderMetadata(slider, { min, mid, max, def, step, kind, display });
+  renderNodeGraphAudio();
+  closeNodeMetadataPopover();
+}
+
+function setNodeMetadataDefaultFromCurrent() {
+  const slider = document.getElementById(nodeGraphMvp.metadataEditorTarget);
+  if (!slider) {
+    return;
+  }
+  document.getElementById("metadataDefaultValue").value =
+    formatNodeSliderCompactNumber(slider.value);
+}
+
+function resetNodeMetadataCurrentToDefault() {
+  const slider = document.getElementById(nodeGraphMvp.metadataEditorTarget);
+  if (!slider) {
+    return;
+  }
+  updateNodeSliderCurrentValue(slider, slider.dataset.default);
+  fillNodeMetadataPopover(slider);
+}
+
 function updateNodeSliderCurrentValue(slider, rawValue) {
   if (!slider) {
     return;
@@ -6035,6 +6172,9 @@ function updateNodeSliderCurrentValue(slider, rawValue) {
 
   slider.value = String(clampNodeSliderValue(value, Number(slider.min), Number(slider.max)));
   syncNodeSliderReadout(slider);
+  if (nodeGraphMvp.metadataEditorTarget === slider.id) {
+    fillNodeMetadataPopover(slider);
+  }
   renderNodeGraphAudio();
 }
 
@@ -6047,7 +6187,7 @@ function setNodeSliderValue(slider, value) {
 }
 
 function beginNodeSliderDrag(event) {
-  if (nodeGraphMvp.sliderDragging || event.button > 0) {
+  if (nodeGraphMvp.sliderDragging || event.button > 0 || event.detail > 1) {
     return;
   }
 
@@ -6163,6 +6303,7 @@ function beginNodeSliderReadoutEdit(readout) {
 
 function attachNodeSliderReadoutEvents(readout) {
   readout.addEventListener("dblclick", () => beginNodeSliderReadoutEdit(readout));
+  readout.addEventListener("contextmenu", (event) => openNodeMetadataPopover(event, readout));
   readout.addEventListener("pointerdown", beginNodeSliderDrag);
   readout.addEventListener("lostpointercapture", endNodeSliderDrag);
   readout.addEventListener("mousedown", beginNodeSliderDrag);
@@ -6725,6 +6866,10 @@ function deleteSelectedNodeGraphItem() {
 }
 
 function handleNodeGraphKeydown(event) {
+  if (event.key === "Escape" && nodeGraphMvp.metadataEditorTarget) {
+    closeNodeMetadataPopover();
+    return;
+  }
   if (event.key !== "Delete" && event.key !== "Backspace") {
     return;
   }
@@ -6944,12 +7089,37 @@ function initNodeGraphMvp() {
   document.addEventListener("pointerup", endNodeGraphWireDrag);
   document.addEventListener("pointercancel", endNodeGraphWireDrag);
   document.addEventListener("keydown", handleNodeGraphKeydown);
+  document.addEventListener("pointerdown", (event) => {
+    const popover = document.getElementById("nodeParameterMetadataPopover");
+    if (
+      nodeGraphMvp.metadataEditorTarget &&
+      !popover.contains(event.target) &&
+      !event.target.closest(".node-slider-readout")
+    ) {
+      closeNodeMetadataPopover();
+    }
+  });
   document.getElementById("nodeRenderButton").addEventListener("click", renderNodeGraphAudio);
   document.getElementById("nodePlayButton").addEventListener("click", playNodeGraphAudio);
   document.getElementById("nodeDefaultButton").addEventListener("click", restoreDefaultNodeGraph);
   document.getElementById("nodeClearButton").addEventListener("click", clearNodeGraphWires);
   document.getElementById("nodeDeleteButton").addEventListener("click", deleteSelectedNodeGraphItem);
   document.getElementById("toggleDebugButton").addEventListener("click", toggleDebugSections);
+  document
+    .getElementById("nodeParameterMetadataPopover")
+    .addEventListener("submit", applyNodeMetadataPopover);
+  document
+    .getElementById("metadataPopoverClose")
+    .addEventListener("click", closeNodeMetadataPopover);
+  document
+    .getElementById("metadataCancelButton")
+    .addEventListener("click", closeNodeMetadataPopover);
+  document
+    .getElementById("metadataSetDefaultButton")
+    .addEventListener("click", setNodeMetadataDefaultFromCurrent);
+  document
+    .getElementById("metadataResetCurrentButton")
+    .addEventListener("click", resetNodeMetadataCurrentToDefault);
   for (const id of [
     "nodeOscFrequency",
     "nodeOscLevel",

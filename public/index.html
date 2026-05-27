@@ -193,6 +193,32 @@
         <button id="toggleDebugButton" type="button" aria-pressed="true">Hide Evidence</button>
       </div>
 
+      <form
+        id="nodeParameterMetadataPopover"
+        class="node-parameter-metadata-popover"
+        hidden
+        aria-label="Parameter metadata editor">
+        <div class="metadata-popover-heading">
+          <strong id="metadataPopoverTitle">Parameter Metadata</strong>
+          <button id="metadataPopoverClose" type="button" aria-label="Close parameter metadata editor">Close</button>
+        </div>
+        <div class="metadata-popover-grid">
+          <label>Min <input id="metadataMinValue" type="text" inputmode="decimal"></label>
+          <label>Mid <input id="metadataMidValue" type="text" inputmode="decimal"></label>
+          <label>Max <input id="metadataMaxValue" type="text" inputmode="decimal"></label>
+          <label>Default <input id="metadataDefaultValue" type="text" inputmode="decimal"></label>
+          <label>Drag Step <input id="metadataStepValue" type="text" inputmode="decimal"></label>
+          <label>Kind <input id="metadataKindValue" type="text"></label>
+          <label>Display <input id="metadataDisplayValue" type="text"></label>
+        </div>
+        <div class="metadata-popover-actions">
+          <button id="metadataSetDefaultButton" type="button">Set Default From Current</button>
+          <button id="metadataResetCurrentButton" type="button">Reset Current</button>
+          <button id="metadataCancelButton" type="button">Cancel</button>
+          <button id="metadataApplyButton" type="submit">Apply</button>
+        </div>
+      </form>
+
       <div class="node-graph-output">
         <div class="node-preview-panel">
           <div class="panel-heading compact-heading">

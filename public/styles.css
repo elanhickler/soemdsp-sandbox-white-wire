@@ -304,6 +304,77 @@ audio {
   color: var(--accent);
 }
 
+.node-parameter-metadata-popover {
+  position: fixed;
+  z-index: 20;
+  display: grid;
+  gap: 12px;
+  width: min(340px, calc(100vw - 28px));
+  padding: 12px;
+  border: 1px solid rgba(127, 199, 217, 0.42);
+  border-radius: 8px;
+  background: rgba(27, 30, 34, 0.98);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.42);
+}
+
+.node-parameter-metadata-popover[hidden] {
+  display: none;
+}
+
+.metadata-popover-heading,
+.metadata-popover-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.metadata-popover-heading strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.88rem;
+}
+
+.metadata-popover-heading button,
+.metadata-popover-actions button {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+}
+
+.metadata-popover-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metadata-popover-grid label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.metadata-popover-grid input {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #111418;
+  color: var(--text);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.78rem;
+}
+
+.metadata-popover-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .dsp-node p {
   margin: 0;
   color: var(--muted);
