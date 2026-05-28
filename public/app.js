@@ -7876,6 +7876,31 @@ function nodeGraphValidate() {
   };
 }
 
+function nodeGraphExecutionParameterSnapshot(order) {
+  const parametersByNode = {};
+  for (const nodeId of order) {
+    const type = nodeGraphNodeType(nodeId);
+    const definition = nodeGraphModuleDefinitions[type];
+    const parameters = {};
+    for (const parameter of definition?.parameters || []) {
+      const slider = nodeGraphNodeElement(nodeId)?.querySelector(
+        `input[data-param="${CSS.escape(parameter.key)}"]`,
+      );
+      const value = nodeGraphReadNodeNumber(nodeId, parameter.key);
+      parameters[parameter.key] = {
+        display: slider
+          ? nodeSliderChoiceLabel(slider) ?? formatNodeSliderCompactNumber(value)
+          : formatNodeSliderCompactNumber(value),
+        value,
+      };
+    }
+    if (Object.keys(parameters).length) {
+      parametersByNode[nodeId] = parameters;
+    }
+  }
+  return parametersByNode;
+}
+
 function serializeNodeGraphExecutionPlanDebug(plan) {
   const signalInputs = {};
   for (const [key, connections] of plan.inputConnections.entries()) {
@@ -7897,6 +7922,7 @@ function serializeNodeGraphExecutionPlanDebug(plan) {
       modulationInputs,
       order: plan.order,
       outputNode: plan.outputNode,
+      parameters: nodeGraphExecutionParameterSnapshot(plan.order),
       signalInputs,
       sourceNodes: plan.sourceNodes,
       valid: plan.valid,
