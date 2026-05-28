@@ -94,6 +94,8 @@ Render Sample and Live Audio expose patch evidence for debugging:
   inspected without scraping the visible status text
 - Live Audio plan and parameter acknowledgements show the current patch
   fingerprint in the plan status pill
+- the execution debug panel reports a runtime boundary block that separates
+  authoring/display fields from compiled runtime fields
 - `window.soemdspSandboxDebug` exposes `compileExecutionPlan()`,
   `currentPatchFingerprint()`, `lastRender()`, and `live()` for direct
   inspection
