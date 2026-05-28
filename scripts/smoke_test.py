@@ -3931,7 +3931,7 @@ def require_node_graph_mvp_contract() -> None:
         ".dsp-node-header",
         "box-sizing: border-box;",
         "min-width: 0;",
-        "grid-template-rows: 21px minmax(0, 1fr)",
+        "grid-template-rows: minmax(0, 1fr) 21px",
         "grid-template-rows: var(--node-header-height) minmax(0, 1fr)",
         ".dsp-node-body",
         ".node-header-actions",

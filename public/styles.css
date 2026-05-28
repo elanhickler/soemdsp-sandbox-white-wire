@@ -469,7 +469,7 @@ audio {
   min-width: 0;
   height: var(--node-header-height);
   display: grid;
-  grid-template-rows: 21px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 21px;
   gap: 1px;
   padding: 3px 16px;
   border-bottom: 1px solid rgba(243, 241, 236, 0.08);

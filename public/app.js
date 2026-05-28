@@ -8408,6 +8408,14 @@ function createNodeGraphModuleElement(type, node) {
 
   const header = document.createElement("div");
   header.className = "dsp-node-header";
+  const titleRow = document.createElement("div");
+  titleRow.className = "node-header-title-row";
+  const titleText = document.createElement("span");
+  titleText.className = "node-header-title";
+  titleText.textContent = node === type ? nodeGraphNodeLabels[type] : `${nodeGraphNodeLabels[type]} ${node.split("-").at(-1)}`;
+  titleRow.append(titleText);
+  header.append(titleRow);
+
   const actionRow = document.createElement("div");
   actionRow.className = "node-header-actions";
   const handle = document.createElement("button");
@@ -8444,14 +8452,6 @@ function createNodeGraphModuleElement(type, node) {
   actionButton.textContent = "⚙";
   actionRow.append(actionButton);
   header.append(actionRow);
-
-  const titleRow = document.createElement("div");
-  titleRow.className = "node-header-title-row";
-  const titleText = document.createElement("span");
-  titleText.className = "node-header-title";
-  titleText.textContent = node === type ? nodeGraphNodeLabels[type] : `${nodeGraphNodeLabels[type]} ${node.split("-").at(-1)}`;
-  titleRow.append(titleText);
-  header.append(titleRow);
 
   const inputRail = createNodeGraphPortRail(node, type, definition.inputs, "input");
   const outputRail = createNodeGraphPortRail(node, type, definition.outputs, "output");
