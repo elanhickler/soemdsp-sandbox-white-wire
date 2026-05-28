@@ -9520,9 +9520,27 @@ function setNodeGraphLivePlanStatus(text = "plan idle", state = "") {
   status.className = `pill ${state}`.trim();
 }
 
+function setNodeGraphLivePlanTitle(text = "") {
+  const status = document.getElementById("nodeLivePlanStatus");
+  if (!status) {
+    return;
+  }
+  if (text) {
+    status.title = text;
+  } else {
+    status.removeAttribute("title");
+  }
+}
+
 function nodeGraphLivePlanStatusText(plan, serial = nodeGraphMvp.live.planSerial) {
   const serialText = serial ? ` #${serial}` : "";
   return `plan${serialText} ${plan.nodes.length} nodes / ${plan.connections.length} wires / ${plan.modulations.length} mods`;
+}
+
+function nodeGraphLivePlanScheduleTitle(order = []) {
+  return order.length
+    ? `worklet order: ${order.join(" -> ")}`
+    : "";
 }
 
 function nodeGraphLivePlanSentStatusText(serial = nodeGraphMvp.live.planSerial) {
@@ -9971,6 +9989,7 @@ function handleNodeGraphLiveWorkletMessage(event) {
       return;
     }
     setNodeGraphLivePlanStatus(nodeGraphLivePlanAppliedStatusText(message), "good");
+    setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(message.order));
   }
 }
 
@@ -9984,6 +10003,7 @@ function sendNodeGraphLivePlan() {
     nodeGraphMvp.live.planSerial += 1;
     if (nodeGraphMvp.live.usesWorklet) {
       setNodeGraphLivePlanStatus(nodeGraphLivePlanSentStatusText(), "warn");
+      setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(plan.order));
       nodeGraphMvp.live.node?.port?.postMessage({
         plan,
         planSerial: nodeGraphMvp.live.planSerial,
@@ -9993,9 +10013,11 @@ function sendNodeGraphLivePlan() {
     } else if (nodeGraphMvp.live.runtime) {
       updateNodeGraphLiveRuntimePlan(nodeGraphMvp.live.runtime, plan);
       setNodeGraphLivePlanStatus(nodeGraphLivePlanStatusText(plan), "good");
+      setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(plan.order));
     } else {
       nodeGraphMvp.live.runtime = createNodeGraphLiveRuntime(plan);
       setNodeGraphLivePlanStatus(nodeGraphLivePlanStatusText(plan), "good");
+      setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(plan.order));
     }
     setNodeGraphLiveStatus("running", "good");
     setNodeGraphLiveRouteStatus(nodeGraphScheduleText(plan.order), "good");
@@ -10003,6 +10025,7 @@ function sendNodeGraphLivePlan() {
     nodeGraphMvp.live.runtime = null;
     nodeGraphMvp.live.node?.port?.postMessage({ type: "stop" });
     setNodeGraphLivePlanStatus("plan blocked", "warn");
+    setNodeGraphLivePlanTitle(error.message);
     setNodeGraphLiveMeter();
     setNodeGraphLiveRouteStatus(`schedule blocked: ${error.message}`, "warn");
     setNodeGraphLiveStatus("error", "warn");
@@ -10064,6 +10087,7 @@ async function stopNodeGraphLiveAudio() {
   setNodeGraphLiveEngineStatus();
   setNodeGraphLiveEngineTitle();
   setNodeGraphLivePlanStatus();
+  setNodeGraphLivePlanTitle();
   setNodeGraphLiveMeter();
   setNodeGraphLiveRouteStatus("route stopped");
   document.getElementById("nodeLiveStatus").removeAttribute("title");
