@@ -8418,17 +8418,61 @@ function nodeGraphFeedbackIdentitySets(plan) {
   };
 }
 
+function nodeGraphActiveNodeIds(plan) {
+  return new Set(plan.reachableNodes || plan.order || []);
+}
+
+function nodeGraphSignalConnectionIsActive(connection, activeNodeIds) {
+  return activeNodeIds.has(connection.sourceNode) && activeNodeIds.has(connection.destinationNode);
+}
+
+function nodeGraphModulationIsActive(modulation, activeNodeIds) {
+  return activeNodeIds.has(modulation.sourceNode) && activeNodeIds.has(modulation.destinationNode);
+}
+
+function nodeGraphActiveSignalConnections(plan) {
+  const activeNodeIds = nodeGraphActiveNodeIds(plan);
+  return (plan.connections || []).filter((connection) =>
+    nodeGraphSignalConnectionIsActive(connection, activeNodeIds),
+  );
+}
+
+function nodeGraphActiveModulations(plan) {
+  const activeNodeIds = nodeGraphActiveNodeIds(plan);
+  return (plan.modulations || []).filter((modulation) =>
+    nodeGraphModulationIsActive(modulation, activeNodeIds),
+  );
+}
+
+function nodeGraphInactiveWireReads(plan) {
+  const activeNodeIds = nodeGraphActiveNodeIds(plan);
+  return {
+    modulations: (plan.modulations || [])
+      .filter((modulation) => !nodeGraphModulationIsActive(modulation, activeNodeIds))
+      .map((modulation) => ({
+        destination: `${modulation.destinationNode}.${modulation.destinationParam}`,
+        source: `${modulation.sourceNode}.${modulation.sourcePort}`,
+      })),
+    signals: (plan.connections || [])
+      .filter((connection) => !nodeGraphSignalConnectionIsActive(connection, activeNodeIds))
+      .map((connection) => ({
+        destination: `${connection.destinationNode}.${connection.destinationPort}`,
+        source: `${connection.sourceNode}.${connection.sourcePort}`,
+      })),
+  };
+}
+
 function nodeGraphExecutionWireReads(plan) {
   const feedbackSets = nodeGraphFeedbackIdentitySets(plan);
   return {
-    modulations: (plan.modulations || []).map((modulation) => ({
+    modulations: nodeGraphActiveModulations(plan).map((modulation) => ({
       destination: `${modulation.destinationNode}.${modulation.destinationParam}`,
       mode: feedbackSets.modulation.has(nodeGraphModulationWireIdentity(modulation))
         ? "state-read"
         : "same-pass",
       source: `${modulation.sourceNode}.${modulation.sourcePort}`,
     })),
-    signals: (plan.connections || []).map((connection) => ({
+    signals: nodeGraphActiveSignalConnections(plan).map((connection) => ({
       destination: `${connection.destinationNode}.${connection.destinationPort}`,
       mode: feedbackSets.signal.has(nodeGraphSignalWireIdentity(connection))
         ? "state-read"
@@ -8515,17 +8559,28 @@ function serializeNodeGraphExecutionPlanDebug(plan) {
   }
 
   const signalInputs = {};
+  const activeNodeIds = nodeGraphActiveNodeIds(plan);
   for (const [key, connections] of plan.inputConnections.entries()) {
-    signalInputs[key] = connections.map((connection) =>
-      `${connection.sourceNode}.${connection.sourcePort}`,
+    const activeConnections = connections.filter((connection) =>
+      nodeGraphSignalConnectionIsActive(connection, activeNodeIds),
     );
+    if (activeConnections.length) {
+      signalInputs[key] = activeConnections.map((connection) =>
+        `${connection.sourceNode}.${connection.sourcePort}`,
+      );
+    }
   }
 
   const modulationInputs = {};
   for (const [key, modulations] of plan.modulationConnections.entries()) {
-    modulationInputs[key] = modulations.map((modulation) =>
-      `${modulation.sourceNode}.${modulation.sourcePort}`,
+    const activeModulations = modulations.filter((modulation) =>
+      nodeGraphModulationIsActive(modulation, activeNodeIds),
     );
+    if (activeModulations.length) {
+      modulationInputs[key] = activeModulations.map((modulation) =>
+        `${modulation.sourceNode}.${modulation.sourcePort}`,
+      );
+    }
   }
 
   return JSON.stringify(
@@ -8539,6 +8594,7 @@ function serializeNodeGraphExecutionPlanDebug(plan) {
         `${connection.sourceNode}.${connection.sourcePort} -> ${connection.destinationNode}.${connection.destinationPort}`,
       ),
       inactiveNodes: plan.inactiveNodes || [],
+      inactiveWireReads: nodeGraphInactiveWireReads(plan),
       issues: plan.issues,
       modulationInputs,
       order: plan.valid ? plan.order : [],
@@ -10087,18 +10143,10 @@ function nodeGraphBuildLivePlan() {
     throw error;
   }
 
-  const activeNodeIds = new Set(compiled.order);
-  const activeSignalConnections = nodeGraphMvp.patch.connections
-    .filter((connection) =>
-      activeNodeIds.has(connection.sourceNode) &&
-      activeNodeIds.has(connection.destinationNode),
-    )
+  const activeNodeIds = nodeGraphActiveNodeIds(compiled);
+  const activeSignalConnections = nodeGraphActiveSignalConnections(compiled)
     .map((connection) => ({ ...connection }));
-  const activeModulations = nodeGraphMvp.patch.modulations
-    .filter((modulation) =>
-      activeNodeIds.has(modulation.sourceNode) &&
-      activeNodeIds.has(modulation.destinationNode),
-    )
+  const activeModulations = nodeGraphActiveModulations(compiled)
     .map((modulation) => ({ ...modulation }));
 
   return {
