@@ -598,6 +598,10 @@ audio {
   color: var(--accent-2);
 }
 
+.node-drag-handle:hover {
+  border-color: rgba(127, 199, 217, 0.58);
+}
+
 .dsp-node label,
 .node-parameter-control {
   display: grid;
@@ -700,11 +704,6 @@ audio {
 .node-slider-readout.value-dragging {
   border-color: rgba(226, 168, 109, 0.62);
   color: var(--accent-2);
-}
-
-.node-slider-readout:hover {
-  border-color: rgba(127, 199, 217, 0.5);
-  color: var(--accent);
 }
 
 .node-parameter-metadata-popover {

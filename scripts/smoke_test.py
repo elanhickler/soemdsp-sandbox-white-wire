@@ -3924,6 +3924,11 @@ def require_node_graph_mvp_contract() -> None:
     ]:
         require(snippet not in app_source, f"module selection should be limited to move handles or marquee, not {snippet}")
 
+    require(
+        ".node-slider-readout:hover" not in style_source,
+        "parameter readout border should not change on hover",
+    )
+
     for snippet in [
         'if (event.key === "Escape" && nodeGraphMvp.metadataEditorTarget)',
         "closeNodeMetadataPopover();\n  nodeGraphMvp.sceneContextPoint",
@@ -3991,6 +3996,7 @@ def require_node_graph_mvp_contract() -> None:
         ".dsp-node.bypassed",
         ".dsp-node.removed",
         ".node-drag-handle",
+        ".node-drag-handle:hover",
         ".node-drag-handle.dragging",
         ".node-action-button",
         ".node-bypass-button",
