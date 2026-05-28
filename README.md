@@ -82,6 +82,10 @@ Render Sample and Live Audio expose patch evidence for debugging:
 - rendered samples store the patch fingerprint that produced them
 - the execution debug panel reports whether the last render still matches the
   current patch
+- Render Sample and Live Audio evidence include active graph counts for nodes,
+  signal wires, modulation wires, feedback wires, and state reads
+- Live Audio error evidence includes the blocking message so failures can be
+  inspected without scraping the visible status text
 - Live Audio plan and parameter acknowledgements show the current patch
   fingerprint in the plan status pill
 - `window.soemdspSandboxDebug` exposes `compileExecutionPlan()`,

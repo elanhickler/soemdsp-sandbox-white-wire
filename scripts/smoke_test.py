@@ -3809,6 +3809,8 @@ def require_readme_scheduler_contract() -> None:
         "each node starts with stored output `0`",
         "disconnected modules remain in the editable patch but are omitted from the audio runtime plan",
         "rendered samples store the patch fingerprint that produced them",
+        "Render Sample and Live Audio evidence include active graph counts",
+        "Live Audio error evidence includes the blocking message",
         "Live Audio plan and parameter acknowledgements show the current patch fingerprint",
         "`window.soemdspSandboxDebug` exposes `compileExecutionPlan()`, `currentPatchFingerprint()`, `lastRender()`, and `live()`",
         "Feedback routing is intentionally simple stateful patch behavior",
