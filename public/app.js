@@ -9408,7 +9408,10 @@ function handleNodePatchScriptInput(event) {
 function nodeGraphPatchFileName() {
   const info = normalizeNodeGraphPatchInfo(nodeGraphMvp.patch.info);
   const baseName = info.name || "soemdsp-patch";
-  const safeName = baseName
+  const tagName = info.tags && info.tags !== "tags"
+    ? `-${info.tags}`
+    : "";
+  const safeName = `${baseName}${tagName}`
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "");

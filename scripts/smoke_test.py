@@ -3125,6 +3125,7 @@ def require_node_graph_mvp_contract() -> None:
         "nodeSettingsView",
         "function handleNodePatchScriptInput(event)",
         "function nodeGraphPatchFileName()",
+        "const tagName = info.tags && info.tags !== \"tags\"",
         "function saveNodeGraphScript()",
         "function loadNodeGraphScript()",
         "function handleNodeGraphScriptFileLoad(event)",
