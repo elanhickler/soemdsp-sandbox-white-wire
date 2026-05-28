@@ -3327,6 +3327,8 @@ def require_node_graph_mvp_contract() -> None:
         "function installNodeGraphDebugApi()",
         "window.soemdspSandboxDebug = Object.freeze",
         "compileExecutionPlan(patch = nodeGraphMvp.patch)",
+        "currentPatchFingerprint()",
+        "lastRender()",
         "function renderNodeGraphExecutionPlanDebug(plan = compileNodeGraphExecutionPlan())",
         "const activeNodeText = nodeGraphActiveNodeText(plan)",
         "const activeWireText = nodeGraphActiveWireText(plan)",

@@ -8873,6 +8873,12 @@ function installNodeGraphDebugApi() {
     compileExecutionPlan(patch = nodeGraphMvp.patch) {
       return serializeNodeGraphExecutionPlanApiDebug(compileNodeGraphExecutionPlan(patch));
     },
+    currentPatchFingerprint() {
+      return nodeGraphPatchFingerprint();
+    },
+    lastRender() {
+      return nodeGraphLastRenderDebug();
+    },
   });
 }
 
