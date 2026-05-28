@@ -6693,6 +6693,12 @@ function handleNodeGraphSettingsInput() {
   });
 }
 
+function commitNodeGraphSettingsHistory() {
+  recordNodeGraphHistory();
+  const scriptStatus = nodeGraphPatchScriptStatus("settings saved", true);
+  syncNodeGraphScriptView(scriptStatus.message, scriptStatus.ok);
+}
+
 function renderNodeGraphHistoryControls() {
   const undo = document.getElementById("nodeUndoButton");
   const redo = document.getElementById("nodeRedoButton");
@@ -10754,6 +10760,7 @@ function initNodeGraphMvp() {
     .addEventListener("change", handleNodeGraphScriptFileLoad);
   for (const field of document.querySelectorAll("[data-patch-info-field]")) {
     field.addEventListener("input", handleNodeGraphSettingsInput);
+    field.addEventListener("change", commitNodeGraphSettingsHistory);
   }
   document.getElementById("toggleDebugButton").addEventListener("click", toggleDebugSections);
   document
