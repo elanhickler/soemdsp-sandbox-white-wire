@@ -9602,6 +9602,13 @@ function nodeGraphLivePlanStatusText(plan, serial = nodeGraphMvp.live.planSerial
   return `plan${serialText} ${plan.nodes.length} nodes / ${plan.connections.length} wires / ${plan.modulations.length} mods`;
 }
 
+function nodeGraphLiveBlockedStatusText(kind, error) {
+  const issues = Array.isArray(error?.issues) && error.issues.length
+    ? error.issues
+    : [error?.message || "unknown issue"];
+  return `${kind} blocked ${issues.length} ${issues.length === 1 ? "issue" : "issues"}`;
+}
+
 function nodeGraphLivePlanScheduleTitle(order = []) {
   return order.length
     ? `worklet order: ${order.join(" -> ")}`
@@ -9689,7 +9696,9 @@ function toggleNodeGraphLiveOutput() {
 function nodeGraphBuildLivePlan() {
   const compiled = compileNodeGraphExecutionPlan();
   if (!compiled.valid) {
-    throw new Error(compiled.issues.join(", "));
+    const error = new Error(compiled.issues.join(", "));
+    error.issues = [...compiled.issues];
+    throw error;
   }
 
   return {
@@ -10147,7 +10156,7 @@ function sendNodeGraphLivePlan() {
   } catch (error) {
     nodeGraphMvp.live.runtime = null;
     nodeGraphMvp.live.node?.port?.postMessage({ type: "stop" });
-    setNodeGraphLivePlanStatus("plan blocked", "warn");
+    setNodeGraphLivePlanStatus(nodeGraphLiveBlockedStatusText("plan", error), "warn");
     setNodeGraphLivePlanTitle(error.message);
     setNodeGraphLiveMeter();
     setNodeGraphLiveRouteStatus(`schedule blocked: ${error.message}`, "warn");
@@ -10185,7 +10194,7 @@ function sendNodeGraphLiveParameterUpdate() {
     }
     setNodeGraphLiveStatus("running", "good");
   } catch (error) {
-    setNodeGraphLivePlanStatus("params blocked", "warn");
+    setNodeGraphLivePlanStatus(nodeGraphLiveBlockedStatusText("params", error), "warn");
     setNodeGraphLivePlanTitle(error.message);
     setNodeGraphLiveStatus("error", "warn");
     document.getElementById("nodeLiveStatus").title = error.message;
