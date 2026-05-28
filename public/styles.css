@@ -200,41 +200,6 @@ audio {
   color: var(--accent);
 }
 
-.node-style-view {
-  margin-top: 16px;
-}
-
-.node-style-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.node-style-heading h3 {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.node-style-view textarea {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 420px;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #0f1216;
-  color: var(--text);
-  font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  resize: vertical;
-}
-
 .compact-heading {
   margin-bottom: 10px;
 }
