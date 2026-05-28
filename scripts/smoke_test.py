@@ -3938,6 +3938,8 @@ def require_node_graph_mvp_contract() -> None:
         ".node-header-actions",
         "grid-auto-columns: minmax(0, 1fr)",
         "grid-auto-flow: column",
+        ".node-header-actions > * + *",
+        "margin-left: -1px",
         ".node-header-title-row",
         ".node-header-title",
         ".node-parameter-row",

@@ -497,6 +497,11 @@ audio {
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
+  gap: 0;
+}
+
+.node-header-actions > * + * {
+  margin-left: -1px;
 }
 
 .node-header-title-row {
