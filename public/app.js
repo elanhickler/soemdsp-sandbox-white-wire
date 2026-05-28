@@ -6803,12 +6803,35 @@ function nodeGraphReadNodeNumber(node, key) {
     : nodeGraphParameterFallback(nodeGraphNodeType(node), key);
 }
 
+function nodeGraphReadPatchParameterValue(node, key) {
+  const patchNode = typeof node === "string" ? nodeGraphPatchNode(node) : node;
+  if (!patchNode) {
+    return nodeGraphParameterFallback(nodeGraphPatchNodeType(node), key);
+  }
+  const value = Number(patchNode.params?.[key]);
+  return Number.isFinite(value)
+    ? value
+    : nodeGraphParameterFallback(patchNode.type, key);
+}
+
 function nodeGraphParameterFallback(type, key) {
   const parameter = nodeGraphModuleDefinitions[type]?.parameters?.find(
     (candidate) => candidate.key === key,
   );
   const value = Number(parameter?.defaultValue);
   return Number.isFinite(value) ? value : 0;
+}
+
+function nodeGraphReadPatchParameterMetadata(node, key) {
+  const patchNode = typeof node === "string" ? nodeGraphPatchNode(node) : node;
+  const type = patchNode?.type || nodeGraphPatchNodeType(node);
+  return normalizeNodeGraphPatchParameterMetadata(
+    type,
+    key,
+    patchNode?.paramMeta?.[key],
+  ) || nodeGraphParameterDefinitionMetadata(
+    nodeGraphModuleDefinitions[type]?.parameters?.find((parameter) => parameter.key === key),
+  );
 }
 
 function nodeGraphReadNodeParameterMetadata(node, key) {
@@ -6907,6 +6930,17 @@ function nodeSliderChoiceLabel(slider) {
     return null;
   }
 
+  return metadata.choices[Math.max(0, Math.min(metadata.choices.length - 1, index))] ?? null;
+}
+
+function nodeGraphPatchChoiceLabel(metadata, value) {
+  if (!metadata?.displayChoices || !metadata.choices?.length) {
+    return null;
+  }
+  const index = Math.round(Number(value));
+  if (!Number.isFinite(index)) {
+    return null;
+  }
   return metadata.choices[Math.max(0, Math.min(metadata.choices.length - 1, index))] ?? null;
 }
 
@@ -8158,18 +8192,16 @@ function nodeGraphValidate() {
 function nodeGraphExecutionParameterSnapshot(order) {
   const parametersByNode = {};
   for (const nodeId of order) {
-    const type = nodeGraphNodeType(nodeId);
+    const patchNode = nodeGraphPatchNode(nodeId);
+    const type = patchNode?.type || nodeGraphNodeType(nodeId);
     const definition = nodeGraphModuleDefinitions[type];
     const parameters = {};
     for (const parameter of definition?.parameters || []) {
-      const slider = nodeGraphNodeElement(nodeId)?.querySelector(
-        `input[data-param="${CSS.escape(parameter.key)}"]`,
-      );
-      const value = nodeGraphReadNodeNumber(nodeId, parameter.key);
+      const metadata = nodeGraphReadPatchParameterMetadata(patchNode || nodeId, parameter.key);
+      const value = nodeGraphReadPatchParameterValue(patchNode || nodeId, parameter.key);
       parameters[parameter.key] = {
-        display: slider
-          ? nodeSliderChoiceLabel(slider) ?? formatNodeSliderCompactNumber(value)
-          : formatNodeSliderCompactNumber(value),
+        display: nodeGraphPatchChoiceLabel(metadata, value) ??
+          formatNodeSliderCompactNumber(value),
         value,
       };
     }
@@ -9496,11 +9528,11 @@ function nodeGraphBuildLivePlan() {
       const params = {};
       const paramMeta = {};
       for (const parameter of definition.parameters || []) {
-        const value = nodeGraphReadNodeNumber(node.id, parameter.key);
+        const value = nodeGraphReadPatchParameterValue(node, parameter.key);
         params[parameter.key] = Number.isFinite(value)
           ? value
           : nodeGraphParameterFallback(node.type, parameter.key);
-        paramMeta[parameter.key] = nodeGraphReadNodeParameterMetadata(node.id, parameter.key);
+        paramMeta[parameter.key] = nodeGraphReadPatchParameterMetadata(node, parameter.key);
       }
       return {
         id: node.id,
