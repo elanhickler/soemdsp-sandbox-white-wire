@@ -200,6 +200,41 @@ audio {
   color: var(--accent);
 }
 
+.node-style-view {
+  margin-top: 16px;
+}
+
+.node-style-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.node-style-heading h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.node-style-view textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 420px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #0f1216;
+  color: var(--text);
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
 .compact-heading {
   margin-bottom: 10px;
 }
@@ -418,10 +453,10 @@ audio {
   height: calc((var(--node-grid-size) * var(--node-grid-height-units, 4)) - (var(--node-module-grid-inset) * 2));
   min-height: calc((var(--node-grid-size) * var(--node-grid-height-units, 4)) - (var(--node-module-grid-inset) * 2));
   padding: 0;
-  border-radius: 8px;
-  outline: 1px solid rgba(243, 241, 236, 0.18);
-  background: rgba(27, 30, 34, 0.96);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+  border-radius: 5px;
+  outline: 1px solid rgba(243, 241, 236, 0.16);
+  background: #171a1f;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
   cursor: default;
   overflow: hidden;
   pointer-events: auto;
@@ -469,11 +504,11 @@ audio {
   min-width: 0;
   height: var(--node-header-height);
   display: grid;
-  grid-template-rows: minmax(0, 1fr) 21px;
-  gap: 1px;
-  padding: 3px 16px;
-  border-bottom: 1px solid rgba(243, 241, 236, 0.08);
-  background: rgba(243, 241, 236, 0.025);
+  grid-template-rows: minmax(0, 1fr) 22px;
+  gap: 2px;
+  padding: 4px 14px 3px;
+  border-bottom: 1px solid rgba(243, 241, 236, 0.1);
+  background: rgba(7, 10, 13, 0.28);
 }
 
 .dsp-node-body {
@@ -499,8 +534,8 @@ audio {
 }
 
 .node-header-title-row {
-  justify-content: center;
-  padding: 0 10px;
+  justify-content: flex-start;
+  padding: 0 4px;
 }
 
 .node-header-title {
@@ -509,9 +544,12 @@ audio {
   overflow: hidden;
   overflow-wrap: anywhere;
   font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 0.86rem;
   font-weight: 650;
-  text-align: center;
+  letter-spacing: 0;
+  text-align: left;
   text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -552,8 +590,9 @@ audio {
   height: 19px;
   min-height: 19px;
   padding: 0;
-  border-color: rgba(243, 241, 236, 0.18);
-  border-radius: 5px;
+  border-color: rgba(243, 241, 236, 0.2);
+  border-radius: 4px;
+  background: rgba(17, 20, 24, 0.88);
   color: var(--accent);
   cursor: move;
   font-size: 0.72rem;
@@ -596,13 +635,14 @@ audio {
 
 .node-parameter-row {
   display: grid;
-  grid-template-columns: 13px minmax(0, 1fr);
+  grid-template-columns: 14px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
-  column-gap: 10px;
+  column-gap: 8px;
   row-gap: 3px;
   min-height: 0;
-  padding: 0 13px 0 0;
+  padding: 2px 12px 2px 0;
+  border-top: 1px solid rgba(243, 241, 236, 0.035);
 }
 
 .node-parameter-name {
@@ -614,7 +654,7 @@ audio {
   font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
   font-size: 0.72rem;
   line-height: 1.1;
-  padding-left: 3px;
+  padding-left: 2px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -639,10 +679,10 @@ audio {
 .node-slider-readout-input {
   width: 100%;
   min-width: 0;
-  min-height: 30px;
+  min-height: 28px;
   padding: 0 8px;
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: 4px;
   background:
     linear-gradient(
       90deg,
@@ -650,7 +690,7 @@ audio {
       rgba(127, 199, 217, 0.42) calc(var(--value-position, 0%) - 4px) calc(var(--value-position, 0%) + 4px),
       transparent calc(var(--value-position, 0%) + 4px) 100%
     ),
-    #111418;
+    rgba(11, 14, 18, 0.96);
   color: var(--text);
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.78rem;

@@ -10802,16 +10802,20 @@ function setNodeGraphViewMode(mode) {
   }
   const settingsMode = mode === "settings";
   const scriptMode = mode === "script";
-  const modularMode = !settingsMode && !scriptMode;
+  const styleMode = mode === "style";
+  const modularMode = !settingsMode && !scriptMode && !styleMode;
   document.getElementById("nodeGraphWorkspace").hidden = !modularMode;
   document.getElementById("nodeScriptView").hidden = !scriptMode;
+  document.getElementById("nodeStyleView").hidden = !styleMode;
   document.getElementById("nodeSettingsView").hidden = !settingsMode;
   document.getElementById("nodeSettingsViewButton").classList.toggle("active", settingsMode);
   document.getElementById("nodeModularViewButton").classList.toggle("active", modularMode);
   document.getElementById("nodeScriptViewButton").classList.toggle("active", scriptMode);
+  document.getElementById("nodeStyleViewButton").classList.toggle("active", styleMode);
   document.getElementById("nodeSettingsViewButton").setAttribute("aria-pressed", String(settingsMode));
   document.getElementById("nodeModularViewButton").setAttribute("aria-pressed", String(modularMode));
   document.getElementById("nodeScriptViewButton").setAttribute("aria-pressed", String(scriptMode));
+  document.getElementById("nodeStyleViewButton").setAttribute("aria-pressed", String(styleMode));
   if (scriptMode) {
     syncNodeGraphScriptView();
   } else if (settingsMode) {
@@ -11033,7 +11037,12 @@ function nodeInteractionMouseHint(element) {
   if (element.id === "nodeZoomOutButton" || element.id === "nodeZoomInButton") {
     return "Mouse: click to zoom modular view.";
   }
-  if (element.id === "nodeSettingsViewButton" || element.id === "nodeModularViewButton" || element.id === "nodeScriptViewButton") {
+  if (
+    element.id === "nodeSettingsViewButton" ||
+    element.id === "nodeModularViewButton" ||
+    element.id === "nodeScriptViewButton" ||
+    element.id === "nodeStyleViewButton"
+  ) {
     return "Mouse: click to switch view.";
   }
   if (element.id === "nodeUndoButton" || element.id === "nodeRedoButton") {
@@ -12666,6 +12675,9 @@ function initNodeGraphMvp() {
   document
     .getElementById("nodeScriptViewButton")
     .addEventListener("click", () => setNodeGraphViewMode("script"));
+  document
+    .getElementById("nodeStyleViewButton")
+    .addEventListener("click", () => setNodeGraphViewMode("style"));
   document.getElementById("nodePatchScript").addEventListener("input", handleNodePatchScriptInput);
   document.getElementById("loadNodeGraphScriptButton").addEventListener("click", loadNodeGraphScript);
   document.getElementById("saveNodeGraphScriptButton").addEventListener("click", saveNodeGraphScript);
