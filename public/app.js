@@ -7676,6 +7676,7 @@ function markNodeGraphRenderPending(summary = "") {
   if (outputSummary) {
     outputSummary.textContent = summary || nodeGraphRenderPendingSummary();
   }
+  renderNodeGraphExecutionPlanDebug();
   drawNodeRenderedAudio();
 }
 

@@ -3317,6 +3317,7 @@ def require_node_graph_mvp_contract() -> None:
         "function nodeGraphLastRenderDebug()",
         "lastRender: nodeGraphLastRenderDebug()",
         "clipCount: Number(rendered.clipCount) || 0",
+        "renderNodeGraphExecutionPlanDebug();\n  drawNodeRenderedAudio();",
         "function serializeNodeGraphExecutionPlanDebug(plan)",
         "function serializeNodeGraphExecutionPlanApiDebug(plan)",
         "function installNodeGraphDebugApi()",
