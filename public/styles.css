@@ -1247,6 +1247,16 @@ audio {
   margin-top: 8px;
 }
 
+.node-runtime-sketch-heading {
+  margin-top: 12px;
+}
+
+.node-runtime-sketch {
+  max-height: 260px;
+  margin-top: 8px;
+  white-space: pre-wrap;
+}
+
 body.debug-collapsed .node-wiring-panel ~ .panel,
 body.debug-collapsed .node-wiring-panel ~ .grid {
   display: none;

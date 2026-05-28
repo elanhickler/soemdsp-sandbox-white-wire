@@ -9328,7 +9328,9 @@ function installNodeGraphDebugApi() {
 function renderNodeGraphExecutionPlanDebug(plan = compileNodeGraphExecutionPlan()) {
   const status = document.getElementById("nodeExecutionPlanStatus");
   const debug = document.getElementById("nodeExecutionPlanDebug");
-  if (!status || !debug) {
+  const sketch = document.getElementById("nodeRuntimeSketch");
+  const sketchStatus = document.getElementById("nodeRuntimeSketchStatus");
+  if (!status || !debug || !sketch || !sketchStatus) {
     return;
   }
   const stateReadCount = nodeGraphStateReadCount(plan);
@@ -9348,6 +9350,14 @@ function renderNodeGraphExecutionPlanDebug(plan = compileNodeGraphExecutionPlan(
   status.className = `pill ${plan.valid ? "good" : "warn"}`;
   renderNodeGraphExecutionPlanSummary(plan);
   renderNodeGraphExecutionOrderBadges(plan);
+  sketch.textContent = plan.valid
+    ? nodeGraphSoemdspRuntimeSketch(plan)
+    : `runtime sketch blocked: ${plan.issues.join(", ")}`;
+  sketchStatus.textContent = plan.valid ? "ready" : "blocked";
+  sketchStatus.title = plan.valid
+    ? "Caller-owned C++ runtime mapping sketch"
+    : plan.issues.join(", ");
+  sketchStatus.className = `pill ${plan.valid ? "good" : "warn"}`;
   debug.textContent = serializeNodeGraphExecutionPlanDebug(plan);
 }
 
