@@ -8391,17 +8391,27 @@ function createNodeGraphPort(node, type, port, io) {
   return button;
 }
 
-function createNodeGraphPortRail(node, type, ports, io) {
+function createNodeGraphIoColumn(node, type, ports, io) {
   if (!ports?.length) {
     return null;
   }
 
-  const rail = document.createElement("div");
-  rail.className = `node-port-rail ${io}`;
+  const column = document.createElement("div");
+  column.className = `node-io-column ${io}`;
   for (const port of ports) {
-    rail.append(createNodeGraphPort(node, type, port, io));
+    const row = document.createElement("div");
+    row.className = `node-io-row ${io}`;
+    const label = document.createElement("span");
+    label.className = "node-io-label";
+    label.textContent = port;
+    if (io === "input") {
+      row.append(createNodeGraphPort(node, type, port, io), label);
+    } else {
+      row.append(label, createNodeGraphPort(node, type, port, io));
+    }
+    column.append(row);
   }
-  return rail;
+  return column;
 }
 
 function createNodeParameterModulationPort(node, type, parameter) {
@@ -8472,7 +8482,7 @@ function nodeGraphModuleGridWidthUnits(type) {
 }
 
 function nodeGraphModuleGridHeightUnits(type) {
-  return 3 + Math.max(1, nodeGraphModuleBodyRowCount(type)) * 2;
+  return 4 + Math.max(1, nodeGraphModuleBodyRowCount(type)) * 2;
 }
 
 function createNodeGraphModuleElement(type, node) {
@@ -8533,18 +8543,26 @@ function createNodeGraphModuleElement(type, node) {
   titleRow.append(titleText);
   header.append(titleRow);
 
-  const inputRail = createNodeGraphPortRail(node, type, definition.inputs, "input");
-  const outputRail = createNodeGraphPortRail(node, type, definition.outputs, "output");
-  if (inputRail) {
-    header.append(inputRail);
-  }
   article.append(header);
+
+  const ioSection = document.createElement("div");
+  ioSection.className = "dsp-node-io-section";
+  const inputColumn = createNodeGraphIoColumn(node, type, definition.inputs, "input");
+  const outputColumn = createNodeGraphIoColumn(node, type, definition.outputs, "output");
+  if (inputColumn) {
+    ioSection.append(inputColumn);
+  } else {
+    ioSection.append(document.createElement("div"));
+  }
+  if (outputColumn) {
+    ioSection.append(outputColumn);
+  } else {
+    ioSection.append(document.createElement("div"));
+  }
+  article.append(ioSection);
 
   const body = document.createElement("div");
   body.className = "dsp-node-body";
-  if (outputRail) {
-    body.append(outputRail);
-  }
 
   for (const parameter of definition.parameters) {
     body.append(createNodeGraphParameter(node, type, parameter));

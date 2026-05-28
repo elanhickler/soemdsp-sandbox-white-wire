@@ -411,7 +411,7 @@ audio {
   left: var(--node-x);
   top: var(--node-y);
   display: grid;
-  grid-template-rows: var(--node-header-height) minmax(0, 1fr);
+  grid-template-rows: var(--node-header-height) auto minmax(0, 1fr);
   gap: 0;
   width: calc((var(--node-grid-size) * var(--node-grid-width-units, 7)) - (var(--node-module-grid-inset) * 2));
   min-width: calc((var(--node-grid-size) * var(--node-grid-width-units, 7)) - (var(--node-module-grid-inset) * 2));
@@ -477,7 +477,6 @@ audio {
 }
 
 .dsp-node-body {
-  position: relative;
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
@@ -525,6 +524,63 @@ audio {
   text-align: left;
   text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dsp-node-io-section {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  min-width: 0;
+  min-height: 34px;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(243, 241, 236, 0.08);
+  background: rgba(11, 14, 18, 0.46);
+}
+
+.node-io-column {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.node-io-column.input {
+  justify-items: start;
+}
+
+.node-io-column.output {
+  justify-items: end;
+}
+
+.node-io-row {
+  display: grid;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--muted);
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 0.66rem;
+  line-height: 1;
+}
+
+.node-io-row.input {
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-self: start;
+  text-align: left;
+}
+
+.node-io-row.output {
+  grid-template-columns: minmax(0, 1fr) auto;
+  justify-self: end;
+  text-align: right;
+}
+
+.node-io-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1010,34 +1066,6 @@ audio {
   cursor: crosshair;
   overflow: hidden;
   text-indent: -999px;
-}
-
-.node-port-rail {
-  position: absolute;
-  top: 50%;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-  pointer-events: none;
-  transform: translateY(-50%);
-}
-
-.node-port-rail.input {
-  left: 0;
-}
-
-.node-port-rail.output {
-  right: 0;
-}
-
-.node-port-rail .node-port {
-  pointer-events: auto;
-}
-
-.dsp-node.output-node .node-port-rail {
-  gap: 4px;
 }
 
 .node-port.output {
