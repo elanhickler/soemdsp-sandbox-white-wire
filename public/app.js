@@ -8198,10 +8198,12 @@ function nodeGraphBuildDependencyMap(patch = nodeGraphMvp.patch) {
   }
 
   return {
+    connections: (patch.connections || []).map((connection) => ({ ...connection })),
     dependencies,
     inputConnections,
     issues,
     modulationConnections,
+    modulations: (patch.modulations || []).map((modulation) => ({ ...modulation })),
     nodeMap,
     nodes: nodeList,
     orderDependencies,
@@ -8330,12 +8332,14 @@ function compileNodeGraphExecutionPlan(patch = nodeGraphMvp.patch) {
   const uniqueIssues = [...new Set(issues)];
 
   return {
+    connections: graph.connections,
     dependencies: graph.dependencies,
     feedbackConnections: feedback.feedbackConnections,
     feedbackModulations: feedback.feedbackModulations,
     inputConnections: graph.inputConnections,
     issues: uniqueIssues,
     modulationConnections: graph.modulationConnections,
+    modulations: graph.modulations,
     nodeMap: graph.nodeMap,
     nodes: graph.nodes,
     orderDependencies: graph.orderDependencies,
@@ -8386,14 +8390,14 @@ function nodeGraphFeedbackIdentitySets(plan) {
 function nodeGraphExecutionWireReads(plan) {
   const feedbackSets = nodeGraphFeedbackIdentitySets(plan);
   return {
-    modulations: (nodeGraphMvp.patch.modulations || []).map((modulation) => ({
+    modulations: (plan.modulations || []).map((modulation) => ({
       destination: `${modulation.destinationNode}.${modulation.destinationParam}`,
       mode: feedbackSets.modulation.has(nodeGraphModulationWireIdentity(modulation))
         ? "state-read"
         : "same-pass",
       source: `${modulation.sourceNode}.${modulation.sourcePort}`,
     })),
-    signals: (nodeGraphMvp.patch.connections || []).map((connection) => ({
+    signals: (plan.connections || []).map((connection) => ({
       destination: `${connection.destinationNode}.${connection.destinationPort}`,
       mode: feedbackSets.signal.has(nodeGraphSignalWireIdentity(connection))
         ? "state-read"
@@ -8472,6 +8476,7 @@ function serializeNodeGraphExecutionPlanDebug(plan) {
 
   return JSON.stringify(
     {
+      executionModel: "single-pass stored-output",
       feedbackModulations: plan.feedbackModulations.map((modulation) =>
         `${modulation.sourceNode}.${modulation.sourcePort} -> ${modulation.destinationNode}.${modulation.destinationParam}`,
       ),
@@ -8486,6 +8491,7 @@ function serializeNodeGraphExecutionPlanDebug(plan) {
       partialOrder: plan.valid ? [] : plan.order,
       signalInputs,
       sourceNodes: plan.sourceNodes,
+      storedOutputInitialValue: 0,
       valid: plan.valid,
       wireReads: nodeGraphExecutionWireReads(plan),
     },
