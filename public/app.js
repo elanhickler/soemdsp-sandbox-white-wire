@@ -7480,10 +7480,23 @@ function nodeGraphRenderPendingSummary() {
   }
 }
 
+function nodeGraphPlayBlockedTitle() {
+  try {
+    const validation = nodeGraphValidate();
+    return validation.valid
+      ? "Play blocked: render a sample first"
+      : `Play blocked: ${validation.issues.join(", ")}`;
+  } catch (_error) {
+    return "Play blocked: render a sample first";
+  }
+}
+
 function markNodeGraphRenderPending(summary = "") {
   stopNodeGraphRenderedPlayback();
   nodeGraphMvp.rendered = null;
-  document.getElementById("nodePlayButton").disabled = true;
+  const playButton = document.getElementById("nodePlayButton");
+  playButton.disabled = true;
+  playButton.title = nodeGraphPlayBlockedTitle();
   document.getElementById("nodeGraphRenderStatus").textContent = "render pending";
   document.getElementById("nodeGraphRenderStatus").className = "pill warn";
   const audioStats = document.getElementById("nodeAudioStats");
@@ -10456,6 +10469,7 @@ function renderNodeGraphAudio() {
   if (!validation.valid) {
     nodeGraphMvp.rendered = null;
     playButton.disabled = true;
+    playButton.title = `Play blocked: ${validation.issues.join(", ")}`;
     renderStatus.textContent = "render blocked";
     renderStatus.className = "pill warn";
     document.getElementById("nodeAudioStats").textContent = "peak 0 / rms 0";
@@ -10517,6 +10531,7 @@ function renderNodeGraphAudio() {
     sourceNodes: validation.sourceNodes,
   };
   playButton.disabled = false;
+  playButton.title = "Play rendered sample";
   renderStatus.textContent = "render ready";
   renderStatus.className = "pill good";
   document.getElementById("nodeAudioStats").textContent = `peak ${peak.toFixed(3)} / rms ${rms.toFixed(3)}`;
