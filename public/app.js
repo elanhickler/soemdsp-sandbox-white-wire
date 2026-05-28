@@ -7511,7 +7511,9 @@ function syncNodeSliderReadout(slider) {
   const unit = (slider.dataset.unit || "").trim();
   const choiceLabel = nodeSliderChoiceLabel(slider);
   if (labelText) {
-    labelText.textContent = readout.dataset.paramLabel || nodeSliderLabelText(slider);
+    labelText.textContent = formatNodeGraphCodeCommentName(
+      readout.dataset.paramLabel || nodeSliderLabelText(slider),
+    );
   }
   valueText.textContent = choiceLabel ?? formatNodeSliderNumber(slider.value, {
     reserveSignSpace: true,
@@ -7548,6 +7550,10 @@ function nodeSliderLabelText(slider) {
     }
   }
   return slider.id;
+}
+
+function formatNodeGraphCodeCommentName(name) {
+  return `/* ${String(name || "").trim()} */`;
 }
 
 function nodeSliderDebugPath(slider) {
@@ -8451,7 +8457,9 @@ function createNodeGraphModuleElement(type, node) {
   titleRow.className = "node-header-title-row";
   const titleText = document.createElement("span");
   titleText.className = "node-header-title";
-  titleText.textContent = node === type ? nodeGraphNodeLabels[type] : `${nodeGraphNodeLabels[type]} ${node.split("-").at(-1)}`;
+  titleText.textContent = formatNodeGraphCodeCommentName(
+    node === type ? nodeGraphNodeLabels[type] : `${nodeGraphNodeLabels[type]} ${node.split("-").at(-1)}`,
+  );
   titleRow.append(titleText);
   header.append(titleRow);
 
