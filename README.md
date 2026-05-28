@@ -81,6 +81,9 @@ stored-output:
 - patch scripts preserve the visual output renderer through `visual.mode`,
   `visual.style`, `visual.scale`, `visual.theme`, and `visual.trail`; this is
   authoring/display state, not DSP-node behavior
+- Play Render drives a visual-output playback cursor from the rendered Web
+  Audio buffer transport, so the static visual artifact can also be inspected as
+  a time-linked audiovisual proof
 
 Render Sample and Live Audio expose patch evidence for debugging:
 

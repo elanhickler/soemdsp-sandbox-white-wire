@@ -6423,6 +6423,16 @@ const nodeGraphMvp = {
   },
   patch: cloneNodeGraphPatch(nodeGraphDefaultPatch),
   rendered: null,
+  renderedPlayback: {
+    durationSeconds: 0,
+    frame: null,
+    frames: 0,
+    playing: false,
+    progress: 0,
+    startContextTime: 0,
+    startPerformanceTime: 0,
+    timer: 0,
+  },
   sceneContextPoint: null,
   sceneContextTargetNode: null,
   scriptCommitDelayMs: 250,
@@ -7716,7 +7726,75 @@ function closeNodeSceneContextMenu() {
   nodeGraphMvp.sceneContextTargetNode = null;
 }
 
+function resetNodeGraphRenderedPlaybackCursor(redraw = true) {
+  if (nodeGraphMvp.renderedPlayback?.timer) {
+    window.clearTimeout(nodeGraphMvp.renderedPlayback.timer);
+  }
+  nodeGraphMvp.renderedPlayback = {
+    durationSeconds: 0,
+    frame: null,
+    frames: nodeGraphMvp.rendered?.frames || 0,
+    playing: false,
+    progress: 0,
+    startContextTime: 0,
+    startPerformanceTime: 0,
+    timer: 0,
+  };
+  if (redraw) {
+    drawNodeRenderedVisualOutput();
+  }
+}
+
+function nodeGraphRenderedPlaybackFrame(maxFrames = 0) {
+  const frame = nodeGraphMvp.renderedPlayback?.frame;
+  if (!Number.isFinite(frame) || frame < 0 || !maxFrames) {
+    return null;
+  }
+  return Math.max(0, Math.min(maxFrames - 1, Math.round(frame)));
+}
+
+function tickNodeGraphRenderedPlaybackCursor() {
+  const playback = nodeGraphMvp.renderedPlayback;
+  const rendered = nodeGraphMvp.rendered;
+  if (!playback?.playing || !rendered?.frames) {
+    return;
+  }
+  const elapsed = Math.max(0, (Date.now() - playback.startPerformanceTime) / 1000);
+  const progress = playback.durationSeconds > 0
+    ? Math.min(1, elapsed / playback.durationSeconds)
+    : 0;
+  playback.progress = progress;
+  playback.frame = Math.min(rendered.frames - 1, Math.floor(progress * rendered.frames));
+  drawNodeRenderedVisualOutput();
+  if (progress < 1 && nodeGraphMvp.bufferSource) {
+    playback.timer = window.setTimeout(tickNodeGraphRenderedPlaybackCursor, 33);
+  } else {
+    resetNodeGraphRenderedPlaybackCursor(true);
+  }
+}
+
+function startNodeGraphRenderedPlaybackCursor() {
+  const rendered = nodeGraphMvp.rendered;
+  const context = nodeGraphMvp.audioContext;
+  if (!rendered?.frames || !context) {
+    return;
+  }
+  resetNodeGraphRenderedPlaybackCursor(false);
+  nodeGraphMvp.renderedPlayback = {
+    durationSeconds: rendered.durationSeconds || rendered.frames / nodeGraphMvp.sampleRate,
+    frame: 0,
+    frames: rendered.frames,
+    playing: true,
+    progress: 0,
+    startContextTime: context.currentTime,
+    startPerformanceTime: Date.now(),
+    timer: window.setTimeout(tickNodeGraphRenderedPlaybackCursor, 33),
+  };
+  drawNodeRenderedVisualOutput();
+}
+
 function stopNodeGraphRenderedPlayback() {
+  resetNodeGraphRenderedPlaybackCursor(true);
   const source = nodeGraphMvp.bufferSource;
   if (!source) {
     return;
@@ -11776,6 +11854,7 @@ function renderNodeGraphAudio() {
     markNodeGraphRenderScriptBlocked();
     return;
   }
+  stopNodeGraphRenderedPlayback();
   const validation = nodeGraphValidate();
   const renderStatus = document.getElementById("nodeGraphRenderStatus");
   const playButton = document.getElementById("nodePlayButton");
@@ -12013,6 +12092,9 @@ function drawNodeRenderedVisualOutput() {
     canvas.dataset.visualSource = "unavailable";
     canvas.dataset.visualMode = "waiting";
     canvas.dataset.visualFrames = "0";
+    canvas.dataset.visualPlaybackFrame = "";
+    canvas.dataset.visualPlaybackProgress = "0";
+    canvas.dataset.visualPlaybackState = "idle";
     canvas.title = "Node graph visual output waiting for Render Sample";
     renderNodeVisualOutputMeta({
       Frames: 0,
@@ -12088,9 +12170,28 @@ function drawNodeRenderedVisualOutput() {
     drawVisualTrace({ lineWidth: 1.3, strokeStyle: visualTheme.trace });
   }
 
+  const playbackFrame = nodeGraphRenderedPlaybackFrame(sourceSamples.length);
+  if (playbackFrame !== null) {
+    const point = visualPoint(playbackFrame);
+    context.save();
+    context.strokeStyle = "rgba(243, 241, 236, 0.94)";
+    context.fillStyle = "rgba(226, 168, 109, 0.92)";
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    context.stroke();
+    context.beginPath();
+    context.arc(point.x, point.y, 2.5, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  }
+
   canvas.dataset.visualSource = "node graph rendered audio";
   canvas.dataset.visualMode = visualMode;
   canvas.dataset.visualModeSetting = visualSettings.mode;
+  canvas.dataset.visualPlaybackFrame = playbackFrame === null ? "" : String(playbackFrame);
+  canvas.dataset.visualPlaybackProgress = String(nodeGraphMvp.renderedPlayback?.progress || 0);
+  canvas.dataset.visualPlaybackState = playbackFrame === null ? "idle" : "playing";
   canvas.dataset.visualScale = String(visualSettings.scale);
   canvas.dataset.visualStyle = visualSettings.style;
   canvas.dataset.visualTheme = visualSettings.theme;
@@ -12105,6 +12206,7 @@ function drawNodeRenderedVisualOutput() {
     Frames: sourceSamples.length,
     Mode: visualSettings.mode === "auto" ? `auto ${visualMode}` : visualMode,
     Peak: canvas.dataset.visualPeak,
+    Playback: playbackFrame === null ? "idle" : `frame ${playbackFrame}`,
     RMS: canvas.dataset.visualRms,
     Scale: visualSettings.scale,
     Source: canvas.dataset.visualSource,
@@ -12148,10 +12250,12 @@ async function playNodeGraphAudio() {
   source.onended = () => {
     if (nodeGraphMvp.bufferSource === source) {
       nodeGraphMvp.bufferSource = null;
+      resetNodeGraphRenderedPlaybackCursor(true);
     }
   };
   nodeGraphMvp.bufferSource = source;
   source.start();
+  startNodeGraphRenderedPlaybackCursor();
 }
 
 function initNodeGraphMvp() {
