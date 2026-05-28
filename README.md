@@ -85,7 +85,8 @@ Render Sample and Live Audio expose patch evidence for debugging:
 - Live Audio plan and parameter acknowledgements show the current patch
   fingerprint in the plan status pill
 - `window.soemdspSandboxDebug` exposes `compileExecutionPlan()`,
-  `currentPatchFingerprint()`, and `lastRender()` for direct inspection
+  `currentPatchFingerprint()`, `lastRender()`, and `live()` for direct
+  inspection
 
 That compiler is demo-scoped UI machinery, not a `soemdsp` runtime scheduler,
 not a Circuit-owned executor, and not a production project format. Feedback

@@ -6346,6 +6346,7 @@ const nodeGraphMvp = {
   live: {
     context: null,
     inputActive: false,
+    lastEvidence: null,
     meterGain: null,
     node: null,
     outputGain: null,
@@ -8879,6 +8880,9 @@ function installNodeGraphDebugApi() {
     lastRender() {
       return nodeGraphLastRenderDebug();
     },
+    live() {
+      return nodeGraphLiveDebug();
+    },
   });
 }
 
@@ -10336,6 +10340,33 @@ function setNodeGraphLivePlanTitle(text = "") {
   }
 }
 
+function setNodeGraphLiveEvidence(kind = "idle", details = {}) {
+  const patchFingerprint = String(details.patchFingerprint || "");
+  const currentPatchFingerprint = nodeGraphPatchFingerprint();
+  nodeGraphMvp.live.lastEvidence = {
+    active: Boolean(nodeGraphMvp.live.node || nodeGraphMvp.live.context),
+    currentPatchFingerprint,
+    engine: nodeGraphMvp.live.usesWorklet ? "worklet" : nodeGraphMvp.live.runtime ? "fallback" : "idle",
+    kind,
+    matchesCurrentPatch: patchFingerprint ? patchFingerprint === currentPatchFingerprint : false,
+    nodeCount: Number(details.nodeCount) || 0,
+    parameterCount: Number(details.parameterCount) || 0,
+    patchFingerprint,
+    planSerial: Number(details.planSerial) || nodeGraphMvp.live.planSerial || 0,
+    sessionId: nodeGraphMvp.live.sessionId,
+  };
+}
+
+function nodeGraphLiveDebug() {
+  return {
+    evidence: nodeGraphMvp.live.lastEvidence,
+    meter: document.getElementById("nodeLiveMeter")?.textContent || "",
+    planStatus: document.getElementById("nodeLivePlanStatus")?.textContent || "",
+    routeStatus: document.getElementById("nodeLiveRouteStatus")?.textContent || "",
+    status: document.getElementById("nodeLiveStatus")?.textContent || "",
+  };
+}
+
 function nodeGraphLivePlanStatusText(plan, serial = nodeGraphMvp.live.planSerial) {
   const serialText = serial ? ` #${serial}` : "";
   const feedbackCount = nodeGraphStateReadCount(plan);
@@ -10353,6 +10384,9 @@ function nodeGraphLiveBlockedStatusText(kind, error) {
 
 function setNodeGraphLiveBlockedError(kind, error, options = {}) {
   const message = error?.message || "unknown issue";
+  setNodeGraphLiveEvidence(`${kind}-blocked`, {
+    patchFingerprint: nodeGraphPatchFingerprint(),
+  });
   setNodeGraphLivePlanStatus(nodeGraphLiveBlockedStatusText(kind, error), "warn");
   setNodeGraphLivePlanTitle(message);
   setNodeGraphLiveMeter();
@@ -10923,6 +10957,7 @@ function handleNodeGraphLiveWorkletMessage(event) {
     ) {
       return;
     }
+    setNodeGraphLiveEvidence("plan-applied", message);
     setNodeGraphLivePlanStatus(nodeGraphLivePlanAppliedStatusText(message), "good");
     setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(message.order));
   } else if (message.type === "paramsApplied") {
@@ -10933,6 +10968,7 @@ function handleNodeGraphLiveWorkletMessage(event) {
     ) {
       return;
     }
+    setNodeGraphLiveEvidence("params-applied", message);
     setNodeGraphLivePlanStatus(nodeGraphLiveParametersAppliedStatusText(message), "good");
     setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(message.order));
   }
@@ -10948,6 +10984,11 @@ function sendNodeGraphLivePlan() {
     nodeGraphMvp.live.activeNodeIds = new Set(plan.order);
     nodeGraphMvp.live.planSerial += 1;
     if (nodeGraphMvp.live.usesWorklet) {
+      setNodeGraphLiveEvidence("plan-sent", {
+        nodeCount: plan.nodes.length,
+        patchFingerprint: plan.patchFingerprint,
+        planSerial: nodeGraphMvp.live.planSerial,
+      });
       setNodeGraphLivePlanStatus(nodeGraphLivePlanSentStatusText(), "warn");
       setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(plan.order));
       nodeGraphMvp.live.node?.port?.postMessage({
@@ -10959,10 +11000,20 @@ function sendNodeGraphLivePlan() {
       });
     } else if (nodeGraphMvp.live.runtime) {
       updateNodeGraphLiveRuntimePlan(nodeGraphMvp.live.runtime, plan);
+      setNodeGraphLiveEvidence("plan-applied", {
+        nodeCount: plan.nodes.length,
+        patchFingerprint: plan.patchFingerprint,
+        planSerial: nodeGraphMvp.live.planSerial,
+      });
       setNodeGraphLivePlanStatus(nodeGraphLivePlanStatusText(plan), "good");
       setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(plan.order));
     } else {
       nodeGraphMvp.live.runtime = createNodeGraphLiveRuntime(plan);
+      setNodeGraphLiveEvidence("plan-applied", {
+        nodeCount: plan.nodes.length,
+        patchFingerprint: plan.patchFingerprint,
+        planSerial: nodeGraphMvp.live.planSerial,
+      });
       setNodeGraphLivePlanStatus(nodeGraphLivePlanStatusText(plan), "good");
       setNodeGraphLivePlanTitle(nodeGraphLivePlanScheduleTitle(plan.order));
     }
@@ -10997,6 +11048,12 @@ function sendNodeGraphLiveParameterUpdate() {
     const patchFingerprint = nodeGraphPatchFingerprint();
     nodeGraphMvp.live.planSerial += 1;
     if (nodeGraphMvp.live.usesWorklet) {
+      setNodeGraphLiveEvidence("params-sent", {
+        nodeCount: nodes.length,
+        parameterCount: nodeGraphLiveParameterCount(nodes),
+        patchFingerprint,
+        planSerial: nodeGraphMvp.live.planSerial,
+      });
       setNodeGraphLivePlanStatus(nodeGraphLiveParametersSentStatusText(nodes), "warn");
       nodeGraphMvp.live.node?.port?.postMessage({
         nodes,
@@ -11007,6 +11064,12 @@ function sendNodeGraphLiveParameterUpdate() {
       });
     } else if (nodeGraphMvp.live.runtime) {
       updateNodeGraphLiveRuntimeParameters(nodeGraphMvp.live.runtime, nodes);
+      setNodeGraphLiveEvidence("params-applied", {
+        nodeCount: nodes.length,
+        parameterCount: nodeGraphLiveParameterCount(nodes),
+        patchFingerprint,
+        planSerial: nodeGraphMvp.live.planSerial,
+      });
       setNodeGraphLivePlanStatus(
         nodeGraphLiveParametersAppliedStatusText({
           nodeCount: nodes.length,
@@ -11077,6 +11140,7 @@ async function stopNodeGraphLiveAudio() {
   nodeGraphMvp.live.meterGain = null;
   nodeGraphMvp.live.outputGain = null;
   nodeGraphMvp.live.activeNodeIds = new Set();
+  nodeGraphMvp.live.lastEvidence = null;
   nodeGraphMvp.live.planSerial = 0;
   nodeGraphMvp.live.runtime = null;
   nodeGraphMvp.live.scriptNode = null;
@@ -11095,6 +11159,7 @@ async function stopNodeGraphLiveAudio() {
     await liveContext.close();
   }
   setNodeGraphLiveStatus("stopped");
+  setNodeGraphLiveEvidence("stopped");
   setNodeGraphLiveEngineStatus();
   setNodeGraphLiveEngineTitle();
   setNodeGraphLivePlanStatus();
