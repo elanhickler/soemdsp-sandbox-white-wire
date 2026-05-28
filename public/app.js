@@ -7445,10 +7445,15 @@ function markNodeGraphRenderPending(summary = "waiting for render") {
   document.getElementById("nodePlayButton").disabled = true;
   document.getElementById("nodeGraphRenderStatus").textContent = "render pending";
   document.getElementById("nodeGraphRenderStatus").className = "pill warn";
+  const audioStats = document.getElementById("nodeAudioStats");
+  if (audioStats) {
+    audioStats.textContent = "peak 0 / rms 0";
+  }
   const outputSummary = document.getElementById("nodeOutputSummary");
   if (outputSummary) {
     outputSummary.textContent = summary;
   }
+  drawNodeRenderedAudio();
 }
 
 function readNodeMetadataEditorValues(slider) {
@@ -9237,7 +9242,6 @@ function clearNodeGraphWires() {
   setNodeGraphSelection(null);
   markNodeGraphRenderPending();
   commitNodeGraphPatch(patch, { status: "wires cleared" });
-  drawNodeRenderedAudio();
 }
 
 function renderNodeVisibility() {
