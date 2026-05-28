@@ -6467,6 +6467,16 @@ function serializeNodeGraphPatch(patch = nodeGraphMvp.patch) {
   );
 }
 
+function nodeGraphPatchFingerprint(patch = nodeGraphMvp.patch) {
+  const text = typeof patch === "string" ? patch : serializeNodeGraphPatch(patch);
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
 function normalizeNodeGraphPatchParameter(type, key, value, metadata = null) {
   const parameter = nodeGraphModuleDefinitions[type]?.parameters?.find(
     (candidate) => candidate.key === key,
@@ -8744,10 +8754,14 @@ function nodeGraphLastRenderDebug() {
   if (!rendered) {
     return null;
   }
+  const currentPatchFingerprint = nodeGraphPatchFingerprint();
   return {
     clipCount: Number(rendered.clipCount) || 0,
+    currentPatchFingerprint,
     durationSeconds: Number(rendered.durationSeconds) || 0,
     frames: Number(rendered.frames) || 0,
+    matchesCurrentPatch: rendered.patchFingerprint === currentPatchFingerprint,
+    patchFingerprint: rendered.patchFingerprint || "",
     peak: Number(rendered.peak) || 0,
     rms: Number(rendered.rms) || 0,
     sampleRate: Number(rendered.sampleRate) || nodeGraphMvp.sampleRate,
@@ -11188,6 +11202,7 @@ function renderNodeGraphAudio() {
   }
 
   const frames = Math.floor(nodeGraphMvp.sampleRate * nodeGraphMvp.seconds);
+  const patchFingerprint = nodeGraphPatchFingerprint();
   const samples = new Float32Array(frames);
   const leftSamples = new Float32Array(frames);
   const rightSamples = new Float32Array(frames);
@@ -11233,6 +11248,7 @@ function renderNodeGraphAudio() {
     frames,
     peak,
     leftSamples,
+    patchFingerprint,
     rightSamples,
     rms,
     sampleRate: nodeGraphMvp.sampleRate,
