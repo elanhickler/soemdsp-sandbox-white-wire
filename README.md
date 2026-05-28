@@ -74,6 +74,8 @@ stored-output:
 - cycle-closing signal or modulation edges are allowed as state reads
 - each node starts with stored output `0`
 - each node overwrites its stored output when it runs
+- disconnected modules remain in the editable patch but are omitted from the
+  audio runtime plan until they become reachable from Output
 
 That compiler is demo-scoped UI machinery, not a `soemdsp` runtime scheduler,
 not a Circuit-owned executor, and not a production project format. Feedback

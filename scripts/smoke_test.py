@@ -3666,6 +3666,7 @@ def require_readme_scheduler_contract() -> None:
         "acyclic edges are evaluated as same-pass dependencies",
         "cycle-closing signal or modulation edges are allowed as state reads",
         "each node starts with stored output `0`",
+        "disconnected modules remain in the editable patch but are omitted from the audio runtime plan",
         "Feedback routing is intentionally simple stateful patch behavior",
     ]:
         require(snippet in readme_text, f"README scheduler contract missing {snippet}")
