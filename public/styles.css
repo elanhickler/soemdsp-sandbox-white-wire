@@ -27,9 +27,10 @@ body {
 }
 
 .shell {
-  width: min(1180px, calc(100vw - 32px));
-  margin: 0 auto;
-  padding: 28px 0 40px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 20px 16px 40px;
 }
 
 .topbar {
