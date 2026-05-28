@@ -6168,6 +6168,10 @@ const nodeGraphDefaultPatch = Object.freeze({
     theme: "cyan-violet",
     trail: 0.35,
   },
+  windows: {
+    metadata: { left: null, top: null },
+    moduleActions: { left: null, top: null },
+  },
   grid: { ...nodeGraphGrid },
   nodes: nodeGraphDefaultNodeConfigs.map((node) => ({ ...node })),
   connections: nodeGraphDefaultConnections.map((connection) => ({ ...connection })),
@@ -6330,6 +6334,23 @@ function normalizeNodeGraphPatchVisual(visual = {}) {
   };
 }
 
+function normalizeNodeGraphWindowPosition(position = {}) {
+  const source = position && typeof position === "object" ? position : {};
+  const left = source.left === null || source.left === undefined ? NaN : Number(source.left);
+  const top = source.top === null || source.top === undefined ? NaN : Number(source.top);
+  return {
+    left: Number.isFinite(left) ? Math.max(0, left) : null,
+    top: Number.isFinite(top) ? Math.max(0, top) : null,
+  };
+}
+
+function normalizeNodeGraphPatchWindows(windows = {}) {
+  return {
+    metadata: normalizeNodeGraphWindowPosition(windows.metadata),
+    moduleActions: normalizeNodeGraphWindowPosition(windows.moduleActions),
+  };
+}
+
 function nodeGraphVisualThemeColors(theme = "cyan-violet") {
   switch (theme) {
     case "ember-gold":
@@ -6379,6 +6400,7 @@ function cloneNodeGraphPatch(patch) {
       params: { ...(node.params || {}) },
     })),
     visual: normalizeNodeGraphPatchVisual(patch.visual),
+    windows: normalizeNodeGraphPatchWindows(patch.windows),
   };
 }
 
@@ -6413,6 +6435,8 @@ const nodeGraphMvp = {
   metadataDragging: null,
   metadataEditorTarget: null,
   metadataPopoverPosition: null,
+  moduleActionDragging: null,
+  moduleActionWindowPosition: null,
   modulations: nodeGraphDefaultPatch.modulations.map((modulation) => ({ ...modulation })),
   nodeDragging: null,
   nodeTypeCounts: {
@@ -6517,6 +6541,12 @@ function syncNodeGraphRuntimeFromPatch() {
   nodeGraphMvp.activeNodes = new Set(nodeGraphMvp.patch.nodes.map((node) => node.id));
   nodeGraphMvp.connections = nodeGraphMvp.patch.connections.map((connection) => ({ ...connection }));
   nodeGraphMvp.modulations = nodeGraphMvp.patch.modulations.map((modulation) => ({ ...modulation }));
+  nodeGraphMvp.metadataPopoverPosition = normalizeNodeGraphWindowPosition(
+    nodeGraphMvp.patch.windows?.metadata,
+  );
+  nodeGraphMvp.moduleActionWindowPosition = normalizeNodeGraphWindowPosition(
+    nodeGraphMvp.patch.windows?.moduleActions,
+  );
   nodeGraphMvp.nodeTypeCounts = nextNodeGraphTypeCounts();
 }
 
@@ -6531,6 +6561,7 @@ function serializeNodeGraphPatch(patch = nodeGraphMvp.patch) {
       modulations: patch.modulations || [],
       nodes: patch.nodes,
       visual: normalizeNodeGraphPatchVisual(patch.visual),
+      windows: normalizeNodeGraphPatchWindows(patch.windows),
     },
     null,
     2,
@@ -6729,6 +6760,7 @@ function validateNodeGraphPatch(patch) {
     modulations,
     nodes,
     visual: normalizeNodeGraphPatchVisual(patch.visual),
+    windows: normalizeNodeGraphPatchWindows(patch.windows),
   };
 }
 
@@ -7566,7 +7598,19 @@ function positionNodeMetadataPopover(popover, x, y, remember = false) {
   popover.style.top = `${top}px`;
   if (remember) {
     nodeGraphMvp.metadataPopoverPosition = { left, top };
+    syncNodeGraphPatchWindowPosition("metadata", { left, top });
   }
+}
+
+function syncNodeGraphPatchWindowPosition(key, position) {
+  if (!nodeGraphMvp.patch) {
+    return;
+  }
+  nodeGraphMvp.patch.windows = {
+    ...normalizeNodeGraphPatchWindows(nodeGraphMvp.patch.windows),
+    [key]: normalizeNodeGraphWindowPosition(position),
+  };
+  syncNodeGraphScriptView("window moved", true);
 }
 
 function beginNodeMetadataPopoverDrag(event) {
@@ -7730,6 +7774,10 @@ function closeNodeMetadataPopover() {
 function closeNodeSceneContextMenu() {
   const menu = document.getElementById("nodeSceneContextMenu");
   menu.hidden = true;
+  if (nodeGraphMvp.moduleActionDragging?.handle) {
+    nodeGraphMvp.moduleActionDragging.handle.classList.remove("dragging");
+  }
+  nodeGraphMvp.moduleActionDragging = null;
   nodeGraphMvp.sceneContextPoint = null;
   nodeGraphMvp.sceneContextTargetNode = null;
 }
@@ -10473,7 +10521,7 @@ function endNodeGraphMarqueeSelection(event) {
   event.stopPropagation();
 }
 
-function positionNodeSceneContextMenu(menu, x, y) {
+function positionNodeSceneContextMenu(menu, x, y, remember = false) {
   const margin = 12;
   menu.hidden = false;
   const rect = menu.getBoundingClientRect();
@@ -10481,6 +10529,68 @@ function positionNodeSceneContextMenu(menu, x, y) {
   const top = Math.max(margin, Math.min(window.innerHeight - rect.height - margin, y));
   menu.style.left = `${left}px`;
   menu.style.top = `${top}px`;
+  if (remember) {
+    nodeGraphMvp.moduleActionWindowPosition = { left, top };
+    syncNodeGraphPatchWindowPosition("moduleActions", { left, top });
+  }
+}
+
+function beginNodeSceneContextMenuDrag(event) {
+  if (event.button > 0) {
+    return;
+  }
+
+  const menu = document.getElementById("nodeSceneContextMenu");
+  if (menu.hidden) {
+    return;
+  }
+
+  const rect = menu.getBoundingClientRect();
+  nodeGraphMvp.moduleActionDragging = {
+    handle: event.currentTarget,
+    offsetX: event.clientX - rect.left,
+    offsetY: event.clientY - rect.top,
+    pointerId: event.pointerId ?? null,
+  };
+  event.currentTarget.classList.add("dragging");
+  if (event.pointerId !== undefined) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  event.preventDefault();
+}
+
+function dragNodeSceneContextMenu(event) {
+  const drag = nodeGraphMvp.moduleActionDragging;
+  if (
+    !drag ||
+    (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId)
+  ) {
+    return;
+  }
+
+  positionNodeSceneContextMenu(
+    document.getElementById("nodeSceneContextMenu"),
+    event.clientX - drag.offsetX,
+    event.clientY - drag.offsetY,
+    true,
+  );
+  event.preventDefault();
+}
+
+function endNodeSceneContextMenuDrag(event) {
+  const drag = nodeGraphMvp.moduleActionDragging;
+  if (
+    !drag ||
+    (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId)
+  ) {
+    return;
+  }
+
+  drag.handle.classList.remove("dragging");
+  if (event.pointerId !== undefined && drag.handle.hasPointerCapture?.(event.pointerId)) {
+    drag.handle.releasePointerCapture(event.pointerId);
+  }
+  nodeGraphMvp.moduleActionDragging = null;
 }
 
 function configureNodeSceneContextMenu(mode) {
@@ -10526,11 +10636,12 @@ function openNodeModuleActionMenu(event) {
   nodeGraphMvp.sceneContextPoint = null;
   nodeGraphMvp.sceneContextTargetNode = node.dataset.node;
   configureNodeSceneContextMenu("module");
+  const savedPosition = nodeGraphMvp.moduleActionWindowPosition;
   const rect = button.getBoundingClientRect();
   positionNodeSceneContextMenu(
     document.getElementById("nodeSceneContextMenu"),
-    rect.right,
-    rect.bottom,
+    savedPosition?.left ?? rect.right,
+    savedPosition?.top ?? rect.bottom,
   );
   event.preventDefault();
   event.stopPropagation();
@@ -12644,6 +12755,9 @@ function initNodeGraphMvp() {
   document.addEventListener("pointermove", dragNodeMetadataPopover);
   document.addEventListener("pointerup", endNodeMetadataPopoverDrag);
   document.addEventListener("pointercancel", endNodeMetadataPopoverDrag);
+  document.addEventListener("pointermove", dragNodeSceneContextMenu);
+  document.addEventListener("pointerup", endNodeSceneContextMenuDrag);
+  document.addEventListener("pointercancel", endNodeSceneContextMenuDrag);
   document.addEventListener("keydown", handleNodeGraphKeydown);
   document.getElementById("nodeRenderButton").addEventListener("click", renderNodeGraphAudio);
   document.getElementById("nodePlayButton").addEventListener("click", playNodeGraphAudio);
@@ -12713,6 +12827,9 @@ function initNodeGraphMvp() {
   document
     .getElementById("nodeSceneCloseMenu")
     .addEventListener("click", closeNodeSceneContextMenu);
+  document
+    .getElementById("nodeSceneDragHandle")
+    .addEventListener("pointerdown", beginNodeSceneContextMenuDrag);
 
   document.addEventListener("pointermove", dragNodeSlider);
   document.addEventListener("pointerup", endNodeSliderDrag);

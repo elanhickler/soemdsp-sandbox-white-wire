@@ -882,7 +882,7 @@ audio {
 
 .scene-context-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
 }
@@ -923,6 +923,24 @@ audio {
   font-family: Consolas, "Courier New", monospace;
   letter-spacing: 0;
   text-align: center;
+}
+
+.node-scene-context-menu .scene-context-drag-handle {
+  min-width: 28px;
+  min-height: 28px;
+  justify-content: center;
+  padding: 0;
+  cursor: move;
+  font-size: 0.82rem;
+  line-height: 1;
+  text-align: center;
+  user-select: none;
+}
+
+.node-scene-context-menu .scene-context-drag-handle:active,
+.node-scene-context-menu .scene-context-drag-handle.dragging {
+  border-color: rgba(226, 168, 109, 0.72);
+  color: var(--accent-2);
 }
 
 .node-scene-context-menu button[hidden] {
