@@ -1182,7 +1182,7 @@ audio {
   transform: translate(-50%, -50%);
   color: #ffec99;
   font-family: Consolas, "Courier New", monospace;
-  font-size: 0.78rem;
+  font-size: calc(0.78rem * var(--zap-scale, 1));
   font-weight: 700;
   line-height: 1;
   text-shadow: 0 0 10px rgba(247, 183, 88, 0.6);
@@ -1192,11 +1192,11 @@ audio {
 @keyframes node-zap-burst {
   0% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(0.82);
+    transform: translate(-50%, -50%) rotate(var(--zap-rotate, 0deg)) scale(calc(0.82 * var(--zap-scale, 1)));
   }
   100% {
     opacity: 0;
-    transform: translate(calc(-50% + var(--zap-x, 0px)), calc(-50% + var(--zap-y, -24px))) scale(1.12);
+    transform: translate(calc(-50% + var(--zap-x, 0px)), calc(-50% + var(--zap-y, -24px))) rotate(calc(var(--zap-rotate, 0deg) + 92deg)) scale(calc(1.12 * var(--zap-scale, 1)));
   }
 }
 

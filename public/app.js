@@ -10577,15 +10577,16 @@ function burstNodeGraphZap(point) {
   if (!surface || !point) {
     return;
   }
-  const texts = ["ZAP", "!!", "*", "~", "Z"];
   for (let index = 0; index < 8; index += 1) {
     const particle = document.createElement("span");
     particle.className = "node-zap-particle";
-    particle.textContent = texts[index % texts.length];
+    particle.textContent = "⌁";
     particle.style.left = `${point.x}px`;
     particle.style.top = `${point.y}px`;
     particle.style.setProperty("--zap-x", `${(index % 4 - 1.5) * 18}px`);
     particle.style.setProperty("--zap-y", `${-18 - Math.floor(index / 4) * 14}px`);
+    particle.style.setProperty("--zap-rotate", `${index * 43 - 96}deg`);
+    particle.style.setProperty("--zap-scale", `${0.72 + (index % 5) * 0.17}`);
     particle.style.animationDelay = `${index * 14}ms`;
     particle.addEventListener("animationend", () => particle.remove(), { once: true });
     surface.append(particle);
@@ -11552,7 +11553,7 @@ function nodeInteractionMouseHint(element) {
     return alias ? `Alias: ${alias}\n${action}` : action;
   }
   if (element.classList.contains("node-param-port")) {
-    const action = "Mouse: drop an output here to modulate this parameter. Input wires zap.";
+    const action = "Mouse: drop an output here to modulate this parameter. Input wires burst.";
     return alias ? `Alias: ${alias}\n${action}` : action;
   }
   if (element.classList.contains("node-wire-hit-path") || element.classList.contains("node-wire-path")) {
