@@ -171,13 +171,15 @@ audio {
 }
 
 .node-patch-header-field.name {
-  color: var(--muted);
-  font-size: 0.78rem;
+  color: var(--text);
+  font-size: 1.45rem;
+  font-weight: 650;
 }
 
 .node-patch-header-field.tags {
-  font-size: 1.45rem;
-  font-weight: 650;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 400;
 }
 
 .node-patch-header-field:focus {
