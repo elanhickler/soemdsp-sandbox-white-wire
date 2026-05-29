@@ -10602,6 +10602,7 @@ function nodeGraphWireEndpointFromElement(element) {
     return {
       io: element.dataset.io,
       node: element.dataset.node,
+      parameterOutput: element.classList.contains("parameter-output"),
       port: element.dataset.port,
     };
   }
@@ -10619,9 +10620,15 @@ function nodeGraphConnectWireEndpoints(a, b) {
     return connectNodeGraphPorts(b.node, b.port, a.node, a.port);
   }
   if (a.io === "output" && b.io === "modulation") {
+    if (a.parameterOutput) {
+      return false;
+    }
     return connectNodeGraphModulation(a.node, a.port, b.node, b.param);
   }
   if (a.io === "modulation" && b.io === "output") {
+    if (b.parameterOutput) {
+      return false;
+    }
     return connectNodeGraphModulation(b.node, b.port, a.node, a.param);
   }
   return false;
@@ -10632,7 +10639,9 @@ function nodeGraphWireEndpointsShouldBurst(a, b) {
     a &&
     b &&
     ((a.io === "output" && b.io === "output") ||
-      (a.io === "input" && b.io === "input")),
+      (a.io === "input" && b.io === "input") ||
+      (a.io === "output" && a.parameterOutput && b.io === "modulation") ||
+      (a.io === "modulation" && b.io === "output" && b.parameterOutput)),
   );
 }
 
