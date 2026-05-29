@@ -6607,6 +6607,7 @@ const nodeGraphMvp = {
   historyIndex: -1,
   historyLimit: 100,
   historySnapshots: [],
+  pan: { x: 0, y: 0 },
   live: {
     context: null,
     inputActive: false,
@@ -10255,6 +10256,27 @@ function zoomNodeGraphBy(delta) {
   setNodeGraphZoom(nodeGraphZoom() + delta);
 }
 
+function applyNodeGraphPan() {
+  const workspace = document.getElementById("nodeGraphWorkspace");
+  if (!workspace) {
+    return;
+  }
+  const pan = nodeGraphMvp.pan || { x: 0, y: 0 };
+  workspace.style.setProperty("--node-graph-pan-x", `${pan.x}px`);
+  workspace.style.setProperty("--node-graph-pan-y", `${pan.y}px`);
+  workspace.dataset.panX = String(Math.round(pan.x));
+  workspace.dataset.panY = String(Math.round(pan.y));
+  drawNodeGraphWires();
+}
+
+function setNodeGraphPan(x, y) {
+  nodeGraphMvp.pan = {
+    x: Number.isFinite(Number(x)) ? Number(x) : 0,
+    y: Number.isFinite(Number(y)) ? Number(y) : 0,
+  };
+  applyNodeGraphPan();
+}
+
 function nodeGraphPortCenter(node, port, io) {
   const surface = nodeGraphZoomSurface();
   const element = surface.querySelector(nodeGraphPortSelector(node, port, io));
@@ -11162,6 +11184,64 @@ function endNodeGraphWorkspaceResize(event) {
   });
 }
 
+function beginNodeGraphWorkspacePan(event) {
+  if (event.button !== 1) {
+    return;
+  }
+
+  const workspace = document.getElementById("nodeGraphWorkspace");
+  const pan = nodeGraphMvp.pan || { x: 0, y: 0 };
+  nodeGraphMvp.workspacePanning = {
+    pointerId: event.pointerId,
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    startPanX: pan.x,
+    startPanY: pan.y,
+  };
+  workspace.classList.add("panning");
+  workspace.setPointerCapture(event.pointerId);
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function dragNodeGraphWorkspacePan(event) {
+  const drag = nodeGraphMvp.workspacePanning;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return;
+  }
+
+  setNodeGraphPan(
+    drag.startPanX + event.clientX - drag.startClientX,
+    drag.startPanY + event.clientY - drag.startClientY,
+  );
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function endNodeGraphWorkspacePan(event) {
+  const drag = nodeGraphMvp.workspacePanning;
+  if (!drag || drag.pointerId !== event.pointerId) {
+    return;
+  }
+
+  const workspace = document.getElementById("nodeGraphWorkspace");
+  if (workspace?.hasPointerCapture?.(event.pointerId)) {
+    workspace.releasePointerCapture(event.pointerId);
+  }
+  workspace?.classList.remove("panning");
+  nodeGraphMvp.workspacePanning = null;
+  drawNodeGraphWires();
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function preventNodeGraphMiddleMouseAuxClick(event) {
+  if (event.button === 1 && event.target.closest("#nodeGraphWorkspace")) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}
+
 function renderNodeGraphMarqueeSelection() {
   const marquee = document.getElementById("nodeSelectionMarquee");
   const drag = nodeGraphMvp.marqueeSelection;
@@ -11909,7 +11989,7 @@ function nodeInteractionHelpText(target) {
     return "";
   }
   const helpTarget = target.closest(
-    "[data-interaction-help], button, input, textarea, select, .node-slider-readout, .node-port, .node-param-port, .node-wire-hit-path, .node-wire-path, .node-execution-order-badge, .node-execution-order li[data-node]",
+    "[data-interaction-help], button, input, textarea, select, .node-slider-readout, .node-port, .node-param-port, .node-wire-hit-path, .node-wire-path, .node-execution-order-badge, .node-execution-order li[data-node], #nodeGraphZoomSurface, #nodeGraphWorkspace",
   );
   if (!helpTarget) {
     return "";
@@ -11919,6 +11999,9 @@ function nodeInteractionHelpText(target) {
 
 function nodeInteractionMouseHint(element) {
   const alias = element.dataset.alias || "";
+  if (element.id === "nodeGraphWorkspace" || element.id === "nodeGraphZoomSurface") {
+    return "Mouse: middle-drag to move the modular view.";
+  }
   if (element.classList.contains("node-drag-handle")) {
     return "Mouse: click to select. Drag to move selected module(s).";
   }
@@ -13872,6 +13955,12 @@ function initNodeGraphMvp() {
     .addEventListener("contextmenu", openNodeSceneContextMenu);
   document
     .getElementById("nodeGraphWorkspace")
+    .addEventListener("auxclick", preventNodeGraphMiddleMouseAuxClick);
+  document
+    .getElementById("nodeGraphWorkspace")
+    .addEventListener("pointerdown", beginNodeGraphWorkspacePan, true);
+  document
+    .getElementById("nodeGraphWorkspace")
     .addEventListener("pointerdown", beginNodeGraphMarqueeSelection);
   document
     .getElementById("nodeGraphWorkspace")
@@ -13892,6 +13981,9 @@ function initNodeGraphMvp() {
   document.addEventListener("pointermove", dragNodeGraphWorkspaceResize);
   document.addEventListener("pointerup", endNodeGraphWorkspaceResize);
   document.addEventListener("pointercancel", endNodeGraphWorkspaceResize);
+  document.addEventListener("pointermove", dragNodeGraphWorkspacePan);
+  document.addEventListener("pointerup", endNodeGraphWorkspacePan);
+  document.addEventListener("pointercancel", endNodeGraphWorkspacePan);
   document.addEventListener("pointermove", dragNodeMetadataPopover);
   document.addEventListener("pointerup", endNodeMetadataPopoverDrag);
   document.addEventListener("pointercancel", endNodeMetadataPopoverDrag);
