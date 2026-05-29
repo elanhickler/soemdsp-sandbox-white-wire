@@ -4062,8 +4062,6 @@ def require_node_graph_mvp_contract() -> None:
         "height: 100%",
         "margin: -4px -14px 0",
         "overflow: hidden",
-        ".node-header-actions > * + *",
-        "border-left: 1px solid rgba(243, 241, 236, 0.16)",
         ".node-header-title-row",
         ".node-header-title",
         ".node-parameter-row",
