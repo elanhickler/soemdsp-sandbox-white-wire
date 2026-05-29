@@ -7847,6 +7847,7 @@ function syncNodeSliderReadout(slider) {
   const choices = parseNodeMetadataChoices(slider.dataset.choices || "");
   const usesChoices = nodeSliderShouldDisplayChoices(slider) && choices.length > 0;
   const dividesChoices = usesChoices && nodeSliderShouldDivideChoicesVisibly(slider);
+  const usesNumericReadout = !choiceLabel;
   if (labelText) {
     labelText.textContent = readout.dataset.paramLabel || nodeSliderLabelText(slider);
   }
@@ -7861,6 +7862,7 @@ function syncNodeSliderReadout(slider) {
   readout.dataset.unit = unit;
   readout.dataset.choiceCount = usesChoices ? String(choices.length) : "0";
   readout.classList.toggle("choices-divided", dividesChoices);
+  readout.classList.toggle("reserves-sign-column", usesNumericReadout);
   readout.removeAttribute("title");
   if (dividesChoices) {
     const choiceIndex = Math.max(0, Math.min(choices.length - 1, Math.round(Number(slider.value))));

@@ -875,6 +875,7 @@ audio {
 
 .node-slider-readout-label {
   grid-column: 1 / -1;
+  box-sizing: border-box;
   min-width: 0;
   overflow: hidden;
   color: var(--muted);
@@ -884,6 +885,10 @@ audio {
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.node-slider-readout.reserves-sign-column .node-slider-readout-label {
+  padding-left: 1ch;
 }
 
 .node-slider-readout-value {
