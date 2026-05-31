@@ -21,6 +21,7 @@ from wave import open as open_wave
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
 DEFAULT_UI_SETTINGS = PUBLIC / "presets" / "useruisettings.json"
+DEFAULT_UI_SETTINGS_SCRIPT = PUBLIC / "presets" / "useruisettings.js"
 DEFAULT_MANIFEST = (
     ROOT.parent / "soemdsp" / "runtime_dsp_object_bound_wav_resync_demo.manifest.json"
 )
@@ -553,6 +554,7 @@ def require_shell_contract(html: str) -> None:
             "./public/node-graph-default-buttons.js",
             "./public/node-graph-file-actions.js",
             "./public/node-graph-wires.js",
+            "./public/presets/useruisettings.js",
             "./public/signal-plot-settings.js",
             "./public/ui-label-utils.js",
         },
@@ -1879,6 +1881,7 @@ def require_read_only_method_rejections(base_url: str) -> None:
 
 def require_user_ui_settings_update_contract(base_url: str) -> None:
     original = DEFAULT_UI_SETTINGS.read_bytes()
+    original_script = DEFAULT_UI_SETTINGS_SCRIPT.read_bytes()
     payload = json.loads(original.decode("utf-8"))
     payload["format"] = {
         "kind": "soemdsp-sandbox-user-ui-settings",
@@ -1904,8 +1907,22 @@ def require_user_ui_settings_update_contract(base_url: str) -> None:
             saved_payload.get("view", {}).get("gridVisible") is False,
             "UI settings update did not preserve view.gridVisible",
         )
+        saved_script = DEFAULT_UI_SETTINGS_SCRIPT.read_text(encoding="utf-8")
+        require(
+            "window.nodeUiDevBundledDefaultSettings" in saved_script,
+            "UI settings update did not write bundled script preset",
+        )
+        require(
+            "document.documentElement.dataset.nodeUiDevBundledDefaultSettings" in saved_script,
+            "UI settings update did not write DOM-readable bundled script preset",
+        )
+        require(
+            '"gridVisible": false' in saved_script,
+            "bundled UI settings script did not preserve view.gridVisible",
+        )
     finally:
         DEFAULT_UI_SETTINGS.write_bytes(original)
+        DEFAULT_UI_SETTINGS_SCRIPT.write_bytes(original_script)
 
 
 def require_root_shell(base_url: str) -> None:
@@ -1936,6 +1953,7 @@ def require_static_assets(base_url: str) -> None:
         ("/public/format-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "format-utils.js"),
         ("/public/node-graph-default-buttons.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-default-buttons.js"),
         ("/public/node-graph-file-actions.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-file-actions.js"),
+        ("/public/presets/useruisettings.js", ("application/javascript", "text/javascript"), DEFAULT_UI_SETTINGS_SCRIPT),
         ("/public/signal-plot-settings.js", ("application/javascript", "text/javascript"), PUBLIC / "signal-plot-settings.js"),
         ("/public/ui-label-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "ui-label-utils.js"),
         (
@@ -3015,11 +3033,12 @@ def require_node_graph_mvp_contract() -> None:
     wire_source = (PUBLIC / "node-graph-wires.js").read_text(encoding="utf-8")
     file_actions_source = (PUBLIC / "node-graph-file-actions.js").read_text(encoding="utf-8")
     default_buttons_source = (PUBLIC / "node-graph-default-buttons.js").read_text(encoding="utf-8")
+    user_ui_settings_source = DEFAULT_UI_SETTINGS_SCRIPT.read_text(encoding="utf-8")
     server_source = (ROOT / "server.py").read_text(encoding="utf-8")
     node_graph_source = (
         f"{app_source}\n{audio_source}\n{format_source}\n"
         f"{signal_plot_settings_source}\n{ui_label_source}\n{wire_source}\n"
-        f"{file_actions_source}\n{default_buttons_source}\n{server_source}"
+        f"{file_actions_source}\n{default_buttons_source}\n{user_ui_settings_source}\n{server_source}"
     )
     style_source = (PUBLIC / "styles.css").read_text(encoding="utf-8")
     tooltip_source = (PUBLIC / "tooltips.json").read_text(encoding="utf-8")
@@ -4682,13 +4701,17 @@ def require_node_graph_mvp_contract() -> None:
         "function dragNodeUserUiSettings(event)",
         "function endNodeUserUiSettingsDrag(event)",
         "const nodeUiDevDefaultSettingsUrl = \"./public/presets/useruisettings.json\"",
-        "const nodeUiDevDefaultSettingsStorageKey = \"soemdsp-sandbox.userUiSettings\"",
+        "const nodeUiDevDefaultSettingsStorageKey = \"soemdsp-sandbox.userUiSettings.startup.v2\"",
         "soemdsp-sandbox-user-ui-settings",
         "settings_format.get(\"version\") not in (1, 2)",
         "ui settings view must be an object",
         "function serializeNodeUiDevSettings()",
         "function loadNodeUiDevSettingsFromScript(text)",
         "function applyNodeUiDevSettings(settings)",
+        "function loadNodeUiDevBundledDefaultSettings()",
+        "window.nodeUiDevBundledDefaultSettings",
+        "document.documentElement.dataset.nodeUiDevBundledDefaultSettings",
+        "./public/presets/useruisettings.js",
         "function loadNodeUiDevDefaultSettings()",
         "function copyNodeUiDevSettingsToClipboard()",
         "function saveNodeUiDevSettingsFile()",
@@ -4696,6 +4719,8 @@ def require_node_graph_mvp_contract() -> None:
         "function handleNodeUiDevSettingsFileLoad(event)",
         "function updateDefaultNodeUiDevSettingsPreset()",
         "function handleUpdateDefaultNodeUiDevSettingsPresetClick(event)",
+        "function handleSaveNodeUserUiSettingsDefaultClick(event)",
+        "saveNodeUiDevLocalDefaultSettings(text);",
         'fetch("/api/presets/useruisettings"',
         "\"useruisettings.json\"",
         "let nodeLiveToggleTextResizeObserver = null",
@@ -4747,7 +4772,7 @@ def require_node_graph_mvp_contract() -> None:
         'getElementById("nodeUiDevSettingsFileInput")',
         'getElementById("nodeUserUiSettingsButton").addEventListener("click", toggleNodeUserUiSettings)',
         'getElementById("nodeUserUiSettingsSaveDefault")',
-        '.addEventListener("click", handleUpdateDefaultNodeUiDevSettingsPresetClick)',
+        '.addEventListener("click", handleSaveNodeUserUiSettingsDefaultClick)',
         'getElementById("nodeUserUiSettingsClose").addEventListener("click", () => setNodeUserUiSettingsVisible(false))',
         'getElementById("nodeUserUiSettingsDragHandle")',
         'getElementById("nodeUserUiSettingsHeading")',

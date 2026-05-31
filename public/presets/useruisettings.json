@@ -70,7 +70,7 @@
     "settingsHeaderHighlights": false
   },
   "view": {
-    "gridVisible": false
+    "gridVisible": true
   },
   "nodeColors": {
     "--node-module-fill": "#171a1f",

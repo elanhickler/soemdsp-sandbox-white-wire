@@ -5905,7 +5905,7 @@ const nodeGraphDefaultPatch = Object.freeze({
 const nodeGraphDefaultPresetUrl = "./public/presets/default.json";
 const nodeGraphDefaultPresetStorageKey = "soemdsp-sandbox.defaultPatch";
 const nodeUiDevDefaultSettingsUrl = "./public/presets/useruisettings.json";
-const nodeUiDevDefaultSettingsStorageKey = "soemdsp-sandbox.userUiSettings";
+const nodeUiDevDefaultSettingsStorageKey = "soemdsp-sandbox.userUiSettings.startup.v2";
 
 const nodeUiDevFontFamilyOptions = Object.freeze([
   {
@@ -15006,6 +15006,25 @@ function loadNodeUiDevLocalDefaultSettings() {
   }
 }
 
+function loadNodeUiDevBundledDefaultSettings() {
+  let bundled = window.nodeUiDevBundledDefaultSettings;
+  if (!bundled) {
+    try {
+      bundled = JSON.parse(document.documentElement.dataset.nodeUiDevBundledDefaultSettings || "null");
+    } catch {
+      bundled = null;
+    }
+  }
+  if (!bundled) {
+    return null;
+  }
+  try {
+    return loadNodeUiDevSettingsFromScript(JSON.stringify(bundled));
+  } catch {
+    return null;
+  }
+}
+
 function saveNodeUiDevLocalDefaultSettings(text) {
   if (!nodeGraphLocalDefaultPresetAllowed()) {
     return false;
@@ -15022,17 +15041,25 @@ async function loadNodeUiDevDefaultSettings() {
   const storedSettings = loadNodeUiDevLocalDefaultSettings();
   if (storedSettings) {
     applyNodeUiDevSettings(storedSettings);
+    document.documentElement.dataset.nodeUiDevSettingsSource = "local";
     return;
   }
-  try {
-    const response = await fetch(nodeUiDevDefaultSettingsUrl, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+  if (typeof fetch === "function") {
+    try {
+      const response = await fetch(nodeUiDevDefaultSettingsUrl, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      applyNodeUiDevSettings(loadNodeUiDevSettingsFromScript(await response.text()));
+      document.documentElement.dataset.nodeUiDevSettingsSource = "fetch";
+      return;
+    } catch {
+      // Fall through to the bundled preset for browser surfaces without request APIs.
     }
-    applyNodeUiDevSettings(loadNodeUiDevSettingsFromScript(await response.text()));
-  } catch {
-    applyNodeUiDevSettings(readNodeUiDevSettingsFromControls());
   }
+  const bundledSettings = loadNodeUiDevBundledDefaultSettings();
+  document.documentElement.dataset.nodeUiDevSettingsSource = bundledSettings ? "bundled" : "controls";
+  applyNodeUiDevSettings(bundledSettings || readNodeUiDevSettingsFromControls());
 }
 
 async function copyNodeUiDevSettingsToClipboard() {
@@ -15100,6 +15127,7 @@ async function updateDefaultNodeUiDevSettingsPreset() {
     if (!response.ok || result.ok === false) {
       throw new Error(result.error || `HTTP ${response.status}`);
     }
+    saveNodeUiDevLocalDefaultSettings(text);
     setNodeUiDevSettingsStatus("default ui settings updated", true);
     return true;
   } catch (error) {
@@ -15120,6 +15148,13 @@ async function handleUpdateDefaultNodeUiDevSettingsPresetClick(event) {
   }
   flashNodeGraphDefaultButtonSaved(event.currentTarget);
   await updateDefaultNodeUiDevSettingsPreset();
+}
+
+async function handleSaveNodeUserUiSettingsDefaultClick(event) {
+  const saved = await updateDefaultNodeUiDevSettingsPreset();
+  if (saved) {
+    flashNodeGraphDefaultButtonSaved(event.currentTarget);
+  }
 }
 
 function syncNodeUiDevNodeColorControls() {
@@ -18220,7 +18255,7 @@ async function initNodeGraphMvp() {
   document.getElementById("nodeUserUiSettingsButton").addEventListener("click", toggleNodeUserUiSettings);
   document
     .getElementById("nodeUserUiSettingsSaveDefault")
-    .addEventListener("click", handleUpdateDefaultNodeUiDevSettingsPresetClick);
+    .addEventListener("click", handleSaveNodeUserUiSettingsDefaultClick);
   document.getElementById("nodeUserUiSettingsClose").addEventListener("click", () => setNodeUserUiSettingsVisible(false));
   document
     .getElementById("nodeUserUiSettingsDragHandle")

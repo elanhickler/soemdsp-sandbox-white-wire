@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parent
 PUBLIC = ROOT / "public"
 DEFAULT_PRESET = PUBLIC / "presets" / "default.json"
 DEFAULT_UI_SETTINGS = PUBLIC / "presets" / "useruisettings.json"
+DEFAULT_UI_SETTINGS_SCRIPT = PUBLIC / "presets" / "useruisettings.js"
 MAX_PRESET_BYTES = 512 * 1024
 DEFAULT_SOEMDSP_ROOT = ROOT.parent / "soemdsp"
 DEFAULT_MANIFEST = (
@@ -205,6 +206,16 @@ NODE_METADATA_KIND_TEMPLATES = {
         "unit": "momentary",
     },
 }
+
+
+def ui_settings_script_text(payload: dict) -> str:
+    payload_text = json.dumps(payload, indent=2, sort_keys=False)
+    return (
+        "(function (settings) {\n"
+        "  window.nodeUiDevBundledDefaultSettings = settings;\n"
+        "  document.documentElement.dataset.nodeUiDevBundledDefaultSettings = JSON.stringify(settings);\n"
+        f"}})({payload_text});\n"
+    )
 
 
 class SandboxServer(BaseHTTPRequestHandler):
@@ -448,6 +459,10 @@ class SandboxServer(BaseHTTPRequestHandler):
         DEFAULT_UI_SETTINGS.parent.mkdir(parents=True, exist_ok=True)
         DEFAULT_UI_SETTINGS.write_text(
             f"{json.dumps(payload, indent=2, sort_keys=False)}\n",
+            encoding="utf-8",
+        )
+        DEFAULT_UI_SETTINGS_SCRIPT.write_text(
+            ui_settings_script_text(payload),
             encoding="utf-8",
         )
         self.send_json(
