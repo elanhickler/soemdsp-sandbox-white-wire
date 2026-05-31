@@ -5906,43 +5906,6 @@ function loadNodeGraphPatchFromScript(text) {
   }
 }
 
-function handleNodeGraphSettingsInput() {
-  const patch = cloneNodeGraphPatch(nodeGraphMvp.patch);
-  patch.audio = readNodeGraphAudioSettingsView();
-  patch.grid = readNodeGraphGridSettingsView();
-  patch.info = readNodeGraphSettingsView();
-  patch.visual = readNodeGraphVisualSettingsView();
-  commitNodeGraphPatch(patch, {
-    markPending: false,
-    record: false,
-    status: "settings synced",
-  });
-  drawNodeRenderedVisualOutput();
-}
-
-function commitNodeGraphSettingsHistory() {
-  recordNodeGraphHistory();
-  const scriptStatus = nodeGraphPatchScriptStatus("settings saved", true);
-  syncNodeGraphScriptView(scriptStatus.message, scriptStatus.ok);
-}
-
-function handleNodeGraphHeaderInfoInput(event) {
-  const field = event.currentTarget?.dataset?.patchHeaderInfoField;
-  if (!["name", "tags"].includes(field)) {
-    return;
-  }
-  const patch = cloneNodeGraphPatch(nodeGraphMvp.patch);
-  patch.info = normalizeNodeGraphPatchInfo({
-    ...patch.info,
-    [field]: event.currentTarget.value,
-  });
-  commitNodeGraphPatch(patch, {
-    markPending: false,
-    record: false,
-    status: "settings synced",
-  });
-}
-
 function nodeGraphModuleShouldBeVisible(node) {
   const type = typeof node === "string" ? nodeGraphPatchNodeType(node) : node?.type;
   return type !== "audioInput" || Boolean(nodeGraphMvp.live.inputActive);
