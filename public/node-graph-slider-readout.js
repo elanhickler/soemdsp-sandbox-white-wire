@@ -185,7 +185,7 @@ function syncNodeSliderChoiceDebugSquares(readout, choices, enabled) {
     const strokeLeft = cell.left <= 0 ? strokeInset : cell.left;
     const strokeTop = cell.top <= 0 ? strokeInset : cell.top;
     const strokeRight = cell.left + cell.width >= layerRect.width ? cell.left + cell.width - strokeInset : cell.left + cell.width;
-    const strokeBottom = cell.top + cell.height >= layerRect.height ? cell.top + cell.height - strokeInset : cell.top + cell.height;
+    const strokeBottom = cell.top + cell.height;
     const marker = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     marker.setAttribute("class", "node-choice-debug-square node-choice-debug-cell node-choice-debug-cell-stroke");
     marker.setAttribute("data-choice-index", String(index));
