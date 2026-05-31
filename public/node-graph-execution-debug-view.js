@@ -148,3 +148,11 @@ function renderNodeGraphExecutionSummarySelection() {
     );
   }
 }
+
+function toggleDebugSections() {
+  const collapsed = !document.body.classList.contains("debug-collapsed");
+  document.body.classList.toggle("debug-collapsed", collapsed);
+  const button = document.getElementById("toggleDebugButton");
+  button.textContent = collapsed ? "Show Evidence" : "Hide Evidence";
+  button.setAttribute("aria-pressed", String(!collapsed));
+}
