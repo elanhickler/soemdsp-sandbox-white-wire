@@ -112,6 +112,15 @@ function organizeNodeUiDevSections() {
       ],
     },
     {
+      title: "choice slider slide element",
+      ids: [
+        "nodeUiDevChoiceSlideEmptyBorder",
+        "nodeUiDevChoiceSlideEdgeBrightness",
+        "nodeUiDevChoiceSlideGlowLevel",
+        "nodeUiDevChoiceSlideColor",
+      ],
+    },
+    {
       title: "bypass",
       ids: [
         "nodeUiDevBypassIconSize",

@@ -66,6 +66,14 @@ function syncNodeUiDevSettingsHeaderControls() {
   const wirePatchPointSizeValue = document.getElementById("nodeUiDevWirePatchPointSizeValue");
   const wireThicknessInput = document.getElementById("nodeUiDevWireThickness");
   const wireThicknessValue = document.getElementById("nodeUiDevWireThicknessValue");
+  const choiceSlideEmptyBorderInput = document.getElementById("nodeUiDevChoiceSlideEmptyBorder");
+  const choiceSlideEmptyBorderValue = document.getElementById("nodeUiDevChoiceSlideEmptyBorderValue");
+  const choiceSlideEdgeBrightnessInput = document.getElementById("nodeUiDevChoiceSlideEdgeBrightness");
+  const choiceSlideEdgeBrightnessValue = document.getElementById("nodeUiDevChoiceSlideEdgeBrightnessValue");
+  const choiceSlideGlowLevelInput = document.getElementById("nodeUiDevChoiceSlideGlowLevel");
+  const choiceSlideGlowLevelValue = document.getElementById("nodeUiDevChoiceSlideGlowLevelValue");
+  const choiceSlideColorInput = document.getElementById("nodeUiDevChoiceSlideColor");
+  const choiceSlideColorValue = document.getElementById("nodeUiDevChoiceSlideColorValue");
   const bypassIconSizeInput = document.getElementById("nodeUiDevBypassIconSize");
   const bypassIconSizeValue = document.getElementById("nodeUiDevBypassIconSizeValue");
   const bypassIconPreview = document.getElementById("nodeUiDevBypassIconPreview");
@@ -133,6 +141,14 @@ function syncNodeUiDevSettingsHeaderControls() {
     !wirePatchPointSizeValue ||
     !wireThicknessInput ||
     !wireThicknessValue ||
+    !choiceSlideEmptyBorderInput ||
+    !choiceSlideEmptyBorderValue ||
+    !choiceSlideEdgeBrightnessInput ||
+    !choiceSlideEdgeBrightnessValue ||
+    !choiceSlideGlowLevelInput ||
+    !choiceSlideGlowLevelValue ||
+    !choiceSlideColorInput ||
+    !choiceSlideColorValue ||
     !bypassIconSizeInput ||
     !bypassIconSizeValue ||
     !bypassIconPreview ||
@@ -188,6 +204,13 @@ function syncNodeUiDevSettingsHeaderControls() {
   const nodeGlowSizePercent = Math.max(0, Math.min(200, Number(nodeGlowSizeInput.value) || 0));
   const wirePatchPointSizePercent = Math.max(0, Math.min(200, Number(wirePatchPointSizeInput.value) || 0));
   const wireThicknessPercent = Math.max(0, Math.min(100, Number(wireThicknessInput.value) || 0));
+  const choiceSlideEmptyBorderPx = Math.max(0, Math.min(8, Number(choiceSlideEmptyBorderInput.value) || 0));
+  const choiceSlideEdgeBrightnessPercent = Math.max(
+    0,
+    Math.min(100, Number(choiceSlideEdgeBrightnessInput.value) || 0),
+  );
+  const choiceSlideGlowLevelPercent = Math.max(0, Math.min(100, Number(choiceSlideGlowLevelInput.value) || 0));
+  const choiceSlideColor = normalizeNodeUiDevColor(choiceSlideColorInput.value, "#7fc7d9");
   const bypassIconSizePercent = Math.max(0, Math.min(100, Number(bypassIconSizeInput.value) || 0));
   const bypassIconGlowSpreadPercent = Math.max(
     0,
@@ -266,6 +289,18 @@ function syncNodeUiDevSettingsHeaderControls() {
     ?.style.setProperty("--node-wire-thickness-ratio", String(wireThicknessPercent / 100));
   document
     .getElementById("nodeGraphWorkspace")
+    ?.style.setProperty("--node-choice-slide-empty-border", `${choiceSlideEmptyBorderPx}`);
+  document
+    .getElementById("nodeGraphWorkspace")
+    ?.style.setProperty("--node-choice-slide-edge-brightness", String(choiceSlideEdgeBrightnessPercent / 100));
+  document
+    .getElementById("nodeGraphWorkspace")
+    ?.style.setProperty("--node-choice-slide-glow-level", String(choiceSlideGlowLevelPercent / 100));
+  document
+    .getElementById("nodeGraphWorkspace")
+    ?.style.setProperty("--node-choice-slide-color", choiceSlideColor);
+  document
+    .getElementById("nodeGraphWorkspace")
     ?.style.setProperty("--node-bypass-icon-size-ratio", String(bypassIconSizePercent / 100));
   document
     .getElementById("nodeGraphWorkspace")
@@ -309,6 +344,11 @@ function syncNodeUiDevSettingsHeaderControls() {
   nodeGlowSizeValue.textContent = `${nodeGlowSizePercent}%`;
   wirePatchPointSizeValue.textContent = `${wirePatchPointSizePercent}%`;
   wireThicknessValue.textContent = `${wireThicknessPercent}%`;
+  choiceSlideEmptyBorderValue.textContent = `${choiceSlideEmptyBorderPx}px`;
+  choiceSlideEdgeBrightnessValue.textContent = `${choiceSlideEdgeBrightnessPercent}%`;
+  choiceSlideGlowLevelValue.textContent = `${choiceSlideGlowLevelPercent}%`;
+  choiceSlideColorInput.value = choiceSlideColor;
+  choiceSlideColorValue.textContent = choiceSlideColor;
   bypassIconSizeValue.textContent = `${bypassIconSizePercent}%`;
   bypassIconGlowSpreadValue.textContent = `${bypassIconGlowSpreadPercent}%`;
   bypassIconGlowColorInput.value = bypassIconGlowColor;

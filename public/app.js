@@ -8063,6 +8063,22 @@ async function initNodeGraphMvp() {
     .getElementById("nodeUiDevWireThickness")
     .addEventListener("input", syncNodeUiDevSettingsHeaderControls);
   document
+    .getElementById("nodeUiDevChoiceSlideEmptyBorder")
+    .addEventListener("input", syncNodeUiDevSettingsHeaderControls);
+  document
+    .getElementById("nodeUiDevChoiceSlideEdgeBrightness")
+    .addEventListener("input", syncNodeUiDevSettingsHeaderControls);
+  document
+    .getElementById("nodeUiDevChoiceSlideGlowLevel")
+    .addEventListener("input", syncNodeUiDevSettingsHeaderControls);
+  for (const colorInputId of [
+    "nodeUiDevChoiceSlideColor",
+  ]) {
+    const colorInput = document.getElementById(colorInputId);
+    colorInput.addEventListener("input", syncNodeUiDevSettingsHeaderControls);
+    colorInput.addEventListener("change", syncNodeUiDevSettingsHeaderControls);
+  }
+  document
     .getElementById("nodeUiDevBypassIconSize")
     .addEventListener("input", syncNodeUiDevSettingsHeaderControls);
   document

@@ -2809,8 +2809,10 @@ audio {
 
 .node-choice-debug-square,
 .node-choice-debug-cell {
-  fill: rgba(255, 55, 55, 0.14);
-  stroke: rgba(255, 55, 55, 0.92);
+  fill: var(--node-choice-slide-color, #7fc7d9);
+  fill-opacity: 0.21;
+  stroke: var(--node-choice-slide-color, #7fc7d9);
+  stroke-opacity: var(--node-choice-slide-edge-brightness, 0.82);
   stroke-width: 1px;
   vector-effect: non-scaling-stroke;
   shape-rendering: crispEdges;

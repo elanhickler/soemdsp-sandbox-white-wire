@@ -36,7 +36,46 @@ function nodeSliderChoiceDividerBackground(readout, choices) {
   return dividerLayers.join(", ") || "none";
 }
 
-function nodeSliderChoiceCellRects(width, height, choices) {
+function nodeSliderReadCssNumber(element, property, fallback, min = -Infinity, max = Infinity) {
+  const value = Number.parseFloat(getComputedStyle(element).getPropertyValue(property));
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, value));
+}
+
+function nodeSliderReadCssColor(element, property, fallback) {
+  const value = getComputedStyle(element).getPropertyValue(property).trim();
+  return value || fallback;
+}
+
+function nodeSliderHexToRgba(color, alpha) {
+  const normalized = color.trim();
+  const match = /^#?([0-9a-f]{6})$/i.exec(normalized);
+  if (!match) {
+    return normalized;
+  }
+  const value = match[1];
+  const red = Number.parseInt(value.slice(0, 2), 16);
+  const green = Number.parseInt(value.slice(2, 4), 16);
+  const blue = Number.parseInt(value.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function nodeSliderChoiceSlideStyle(readout) {
+  const color = nodeSliderReadCssColor(readout, "--node-choice-slide-color", "#7fc7d9");
+  const edgeBrightness = nodeSliderReadCssNumber(readout, "--node-choice-slide-edge-brightness", 0.85, 0, 1);
+  const glowLevel = nodeSliderReadCssNumber(readout, "--node-choice-slide-glow-level", 0.45, 0, 1);
+  return {
+    color,
+    edgeBrightness,
+    fillOpacity: Math.min(0.42, 0.12 + glowLevel * 0.2),
+    glowAlpha: glowLevel * 0.62,
+    glowRadius: glowLevel * 8,
+  };
+}
+
+function nodeSliderChoiceCellRects(width, height, choices, emptyPixelBorder = 0) {
   const layoutWidth = Math.floor(width);
   const layoutHeight = Math.round(height);
   const count = choices.length;
@@ -44,11 +83,11 @@ function nodeSliderChoiceCellRects(width, height, choices) {
     return [];
   }
 
-  const emptyPixelBorder = 0;
+  const boundedEmptyPixelBorder = Math.max(0, Math.min(8, Number(emptyPixelBorder) || 0));
   const strokeWidth = 1;
   const strokeInset = strokeWidth / 2;
-  const wallRectPadding = emptyPixelBorder + strokeInset;
-  const dividerRectPadding = emptyPixelBorder + strokeWidth + strokeInset;
+  const wallRectPadding = boundedEmptyPixelBorder + strokeInset;
+  const dividerRectPadding = boundedEmptyPixelBorder + strokeWidth + strokeInset;
   const trailingRectPadding = wallRectPadding;
   const verticalRectPadding = wallRectPadding;
   const contentHeight = Math.max(0, layoutHeight - verticalRectPadding * 2);
@@ -117,6 +156,8 @@ function syncNodeSliderChoiceDebugSquares(readout, choices, enabled) {
   }
 
   const layerRect = layer.getBoundingClientRect();
+  const emptyPixelBorder = nodeSliderReadCssNumber(readout, "--node-choice-slide-empty-border", 0, 0, 8);
+  const slideStyle = nodeSliderChoiceSlideStyle(readout);
   layer.setAttribute("viewBox", `0 0 ${layerRect.width.toFixed(3)} ${layerRect.height.toFixed(3)}`);
   layer.setAttribute("preserveAspectRatio", "none");
   const dividers = nodeSliderChoiceDividerLines(layerRect.width, layerRect.height, choices).map((divider, index) => {
@@ -130,7 +171,7 @@ function syncNodeSliderChoiceDebugSquares(readout, choices, enabled) {
     marker.setAttribute("y2", divider.height.toFixed(3));
     return marker;
   });
-  const cells = nodeSliderChoiceCellRects(layerRect.width, layerRect.height, choices).map((cell, index) => {
+  const cells = nodeSliderChoiceCellRects(layerRect.width, layerRect.height, choices, emptyPixelBorder).map((cell, index) => {
     const marker = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     marker.setAttribute("class", "node-choice-debug-square node-choice-debug-cell");
     marker.setAttribute("data-choice-index", String(index));
@@ -138,6 +179,13 @@ function syncNodeSliderChoiceDebugSquares(readout, choices, enabled) {
     marker.setAttribute("y", cell.top.toFixed(3));
     marker.setAttribute("width", cell.width.toFixed(3));
     marker.setAttribute("height", cell.height.toFixed(3));
+    marker.style.fill = slideStyle.color;
+    marker.style.fillOpacity = String(slideStyle.fillOpacity);
+    marker.style.stroke = slideStyle.color;
+    marker.style.strokeOpacity = String(slideStyle.edgeBrightness);
+    marker.style.filter = slideStyle.glowLevel <= 0
+      ? "none"
+      : `drop-shadow(0 0 ${slideStyle.glowRadius.toFixed(2)}px ${nodeSliderHexToRgba(slideStyle.color, slideStyle.glowAlpha.toFixed(3))})`;
     return marker;
   });
   layer.replaceChildren(...dividers, ...cells);
