@@ -559,6 +559,7 @@ def require_shell_contract(html: str) -> None:
             "./public/node-graph-text-box-utils.js",
             "./public/node-graph-ui-settings-definitions.js",
             "./public/node-graph-ui-settings-utils.js",
+            "./public/node-graph-visual-utils.js",
             "./public/node-graph-wires.js",
             "./public/presets/useruisettings.js",
             "./public/signal-plot-settings.js",
@@ -1965,6 +1966,7 @@ def require_static_assets(base_url: str) -> None:
         ("/public/node-graph-text-box-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-text-box-utils.js"),
         ("/public/node-graph-ui-settings-definitions.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-ui-settings-definitions.js"),
         ("/public/node-graph-ui-settings-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-ui-settings-utils.js"),
+        ("/public/node-graph-visual-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-visual-utils.js"),
         ("/public/presets/useruisettings.js", ("application/javascript", "text/javascript"), DEFAULT_UI_SETTINGS_SCRIPT),
         ("/public/signal-plot-settings.js", ("application/javascript", "text/javascript"), PUBLIC / "signal-plot-settings.js"),
         ("/public/ui-label-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "ui-label-utils.js"),
@@ -3054,6 +3056,7 @@ def require_node_graph_mvp_contract() -> None:
     text_box_utils_source = (PUBLIC / "node-graph-text-box-utils.js").read_text(encoding="utf-8")
     ui_settings_definitions_source = (PUBLIC / "node-graph-ui-settings-definitions.js").read_text(encoding="utf-8")
     ui_settings_utils_source = (PUBLIC / "node-graph-ui-settings-utils.js").read_text(encoding="utf-8")
+    visual_utils_source = (PUBLIC / "node-graph-visual-utils.js").read_text(encoding="utf-8")
     user_ui_settings_source = DEFAULT_UI_SETTINGS_SCRIPT.read_text(encoding="utf-8")
     server_source = (ROOT / "server.py").read_text(encoding="utf-8")
     node_graph_source = (
@@ -3061,6 +3064,7 @@ def require_node_graph_mvp_contract() -> None:
         f"{signal_plot_settings_source}\n{ui_label_source}\n{wire_source}\n"
         f"{file_actions_source}\n{default_buttons_source}\n"
         f"{module_definitions_source}\n{metadata_defaults_source}\n{text_box_utils_source}\n"
+        f"{visual_utils_source}\n"
         f"{ui_settings_definitions_source}\n{ui_settings_utils_source}\n"
         f"{user_ui_settings_source}\n{server_source}"
     )
