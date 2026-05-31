@@ -556,6 +556,7 @@ def require_shell_contract(html: str) -> None:
             "./public/node-graph-file-actions.js",
             "./public/node-graph-module-definitions.js",
             "./public/node-graph-metadata-defaults.js",
+            "./public/node-graph-patch-normalizers.js",
             "./public/node-graph-text-box-utils.js",
             "./public/node-graph-ui-settings-definitions.js",
             "./public/node-graph-ui-settings-utils.js",
@@ -1963,6 +1964,7 @@ def require_static_assets(base_url: str) -> None:
         ("/public/node-graph-file-actions.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-file-actions.js"),
         ("/public/node-graph-module-definitions.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-module-definitions.js"),
         ("/public/node-graph-metadata-defaults.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-metadata-defaults.js"),
+        ("/public/node-graph-patch-normalizers.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-patch-normalizers.js"),
         ("/public/node-graph-text-box-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-text-box-utils.js"),
         ("/public/node-graph-ui-settings-definitions.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-ui-settings-definitions.js"),
         ("/public/node-graph-ui-settings-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-ui-settings-utils.js"),
@@ -3053,6 +3055,7 @@ def require_node_graph_mvp_contract() -> None:
     default_buttons_source = (PUBLIC / "node-graph-default-buttons.js").read_text(encoding="utf-8")
     module_definitions_source = (PUBLIC / "node-graph-module-definitions.js").read_text(encoding="utf-8")
     metadata_defaults_source = (PUBLIC / "node-graph-metadata-defaults.js").read_text(encoding="utf-8")
+    patch_normalizers_source = (PUBLIC / "node-graph-patch-normalizers.js").read_text(encoding="utf-8")
     text_box_utils_source = (PUBLIC / "node-graph-text-box-utils.js").read_text(encoding="utf-8")
     ui_settings_definitions_source = (PUBLIC / "node-graph-ui-settings-definitions.js").read_text(encoding="utf-8")
     ui_settings_utils_source = (PUBLIC / "node-graph-ui-settings-utils.js").read_text(encoding="utf-8")
@@ -3063,7 +3066,8 @@ def require_node_graph_mvp_contract() -> None:
         f"{app_source}\n{audio_source}\n{format_source}\n"
         f"{signal_plot_settings_source}\n{ui_label_source}\n{wire_source}\n"
         f"{file_actions_source}\n{default_buttons_source}\n"
-        f"{module_definitions_source}\n{metadata_defaults_source}\n{text_box_utils_source}\n"
+        f"{module_definitions_source}\n{metadata_defaults_source}\n"
+        f"{patch_normalizers_source}\n{text_box_utils_source}\n"
         f"{visual_utils_source}\n"
         f"{ui_settings_definitions_source}\n{ui_settings_utils_source}\n"
         f"{user_ui_settings_source}\n{server_source}"
