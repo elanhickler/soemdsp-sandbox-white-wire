@@ -593,6 +593,7 @@ def require_shell_contract(html: str) -> None:
             "./public/node-graph-user-ui-settings-controls.js",
             "./public/node-graph-ui-settings-panels.js",
             "./public/node-graph-ui-settings-persistence.js",
+            "./public/node-graph-ui-settings-sync.js",
             "./public/node-graph-visual-utils.js",
             "./public/node-graph-wires.js",
             "./public/presets/useruisettings.js",
@@ -2034,6 +2035,7 @@ def require_static_assets(base_url: str) -> None:
         ("/public/node-graph-user-ui-settings-controls.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-user-ui-settings-controls.js"),
         ("/public/node-graph-ui-settings-panels.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-ui-settings-panels.js"),
         ("/public/node-graph-ui-settings-persistence.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-ui-settings-persistence.js"),
+        ("/public/node-graph-ui-settings-sync.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-ui-settings-sync.js"),
         ("/public/node-graph-visual-utils.js", ("application/javascript", "text/javascript"), PUBLIC / "node-graph-visual-utils.js"),
         ("/public/presets/useruisettings.js", ("application/javascript", "text/javascript"), DEFAULT_UI_SETTINGS_SCRIPT),
         ("/public/signal-plot-settings.js", ("application/javascript", "text/javascript"), PUBLIC / "signal-plot-settings.js"),
@@ -3158,6 +3160,7 @@ def require_node_graph_mvp_contract() -> None:
     user_ui_settings_controls_source = (PUBLIC / "node-graph-user-ui-settings-controls.js").read_text(encoding="utf-8")
     ui_settings_panels_source = (PUBLIC / "node-graph-ui-settings-panels.js").read_text(encoding="utf-8")
     ui_settings_persistence_source = (PUBLIC / "node-graph-ui-settings-persistence.js").read_text(encoding="utf-8")
+    ui_settings_sync_source = (PUBLIC / "node-graph-ui-settings-sync.js").read_text(encoding="utf-8")
     visual_utils_source = (PUBLIC / "node-graph-visual-utils.js").read_text(encoding="utf-8")
     user_ui_settings_source = DEFAULT_UI_SETTINGS_SCRIPT.read_text(encoding="utf-8")
     server_source = (ROOT / "server.py").read_text(encoding="utf-8")
@@ -3181,7 +3184,8 @@ def require_node_graph_mvp_contract() -> None:
         f"{text_box_utils_source}\n{text_box_rendering_source}\n"
         f"{tooltip_utils_source}\n{visual_utils_source}\n"
         f"{ui_settings_definitions_source}\n{ui_settings_utils_source}\n"
-        f"{user_ui_settings_controls_source}\n{ui_settings_panels_source}\n{ui_settings_persistence_source}\n"
+        f"{user_ui_settings_controls_source}\n{ui_settings_panels_source}\n"
+        f"{ui_settings_persistence_source}\n{ui_settings_sync_source}\n"
         f"{user_ui_settings_source}\n{server_source}"
     )
     style_source = (PUBLIC / "styles.css").read_text(encoding="utf-8")
