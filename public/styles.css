@@ -380,6 +380,7 @@ audio {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  white-space: nowrap;
 }
 
 .node-zoom-buttons button + button {
@@ -445,6 +446,13 @@ audio {
 .node-zoom-buttons button {
   font-size: clamp(1.5rem, 2vw, 2rem);
   line-height: 1;
+}
+
+#nodeZoomResetButton {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 .node-toolbar-hsl-control {

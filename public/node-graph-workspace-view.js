@@ -168,7 +168,10 @@ function applyNodeGraphZoom() {
     zoomOutButton.disabled = nodeGraphZoom() <= nodeGraphZoomLimits.min + 0.001;
   }
   if (zoomResetButton) {
-    zoomResetButton.disabled = Math.abs(nodeGraphZoom() - 1) < 0.001;
+    const zoomLabel = nodeGraphZoom().toFixed(2);
+    zoomResetButton.textContent = zoomLabel;
+    zoomResetButton.setAttribute("aria-label", `Current zoom ${zoomLabel}. Reset graph zoom to 1:1`);
+    zoomResetButton.title = nodeGraphTooltipText("view.zoomReset", { zoom: zoomLabel });
   }
   if (zoomInButton) {
     zoomInButton.disabled = nodeGraphZoom() >= nodeGraphZoomLimits.max - 0.001;
