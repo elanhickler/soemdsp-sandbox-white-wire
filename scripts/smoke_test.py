@@ -3442,6 +3442,7 @@ def require_node_graph_mvp_contract() -> None:
         "menu events": script_sources["./public/node-graph-scene-menu-event-bindings.js"],
         "context menu": script_sources["./public/node-graph-context-menu.js"],
         "keyboard": script_sources["./public/node-graph-keyboard-shortcuts.js"],
+        "runtime": script_sources["./public/node-graph-live-runtime.js"],
         "sizing": script_sources["./public/node-graph-module-sizing.js"],
         "state": script_sources["./public/node-graph-state.js"],
         "style": style_source,
@@ -3451,7 +3452,17 @@ def require_node_graph_mvp_contract() -> None:
         (
             "definitions",
             graph_contract_sources["definitions"],
-            ['graph: "Graph"', "graph: {", 'inputs: ["In"]', 'layout: "graph"', 'outputs: ["Out"]'],
+            [
+                'graph: "Graph"',
+                "graph: {",
+                'inputs: ["In"]',
+                'layout: "graph"',
+                'outputs: ["Out"]',
+                'choices: ["Input", "LFO"]',
+                'key: "mode"',
+                'key: "rate"',
+                'key: "phase"',
+            ],
         ),
         (
             "store",
@@ -3665,8 +3676,17 @@ def require_node_graph_mvp_contract() -> None:
         ),
         (
             "script and type count",
-            "\n".join([graph_contract_sources["index"], graph_contract_sources["state"]]),
-            ["node-graph-graph-utils.js", "graphNodeDragging: null", "graphSelectedNodeIndices: new Map()", "graph: 0"],
+            "\n".join([graph_contract_sources["index"], graph_contract_sources["state"], graph_contract_sources["runtime"]]),
+            [
+                "editable-graph-lfo-1",
+                "node-graph-graph-utils.js",
+                "graphNodeDragging: null",
+                "graphSelectedNodeIndices: new Map()",
+                "graph: 0",
+                "runtime.absoluteFrameCursor",
+                "runtime.absoluteFrame = blockStartFrame + frame",
+                "runtime.absoluteFrameCursor = blockStartFrame + frames",
+            ],
         ),
     ]:
         for snippet in snippets:
@@ -8743,7 +8763,12 @@ def require_node_graph_mvp_contract() -> None:
         "readNodeGraphRuntimePortOutput(",
         "modulation.sourcePort",
         'node?.type === "graph"',
-        "nodeGraphGraphValueAt(node.graph, mixInput(nodeId))",
+        "const graphSampleX = (node, nodeId) => {",
+        'readNodeGraphLiveEffectiveParam(runtime, node, "mode", 0',
+        'readNodeGraphLiveEffectiveParam(runtime, node, "rate", 1',
+        'readNodeGraphLiveEffectiveParam(runtime, node, "phase", 0',
+        "wrapNodeSliderValue((absoluteFrame / safeRate) * rate + phase, 0, 1)",
+        "nodeGraphGraphValueAt(node.graph, graphSampleX(node, nodeId))",
         "const outputVolume = outputNode",
         'const outputMono = mixInput(runtime.outputNode || "output", "Mono")',
         'left: (outputMono + mixInput(runtime.outputNode || "output", "Left")) * outputVolume',
@@ -9725,7 +9750,7 @@ def require_node_graph_mvp_contract() -> None:
         "nodeSceneLedColor",
         'node?.type === "led"',
         '"led input"',
-        "./public/node-live-audio-worklet.js?v=clock-pulse-output-1",
+        "./public/node-live-audio-worklet.js?v=editable-graph-lfo-1",
     ]:
         require(snippet in node_graph_source, f"LED module contract missing {snippet}")
 
@@ -11210,7 +11235,12 @@ def require_node_graph_mvp_contract() -> None:
         "graphExponentialCurve(position, contour = 0)",
         "graphValueAt(graphValue, xValue)",
         'node?.type === "graph"',
-        "this.graphValueAt(node.graph, mixInput(nodeId))",
+        "const graphSampleX = (node, nodeId) => {",
+        'this.readEffectiveParameter(node, "mode", 0',
+        'this.readEffectiveParameter(node, "rate", 1',
+        'this.readEffectiveParameter(node, "phase", 0',
+        "this.wrapValue((Number(inputFrame) / safeRate) * rateValue + phaseValue, 0, 1)",
+        "this.graphValueAt(node.graph, graphSampleX(node, nodeId))",
         'this.readEffectiveParameter(node, "frequency", 1000',
         "readEffectiveParameter(node, key, fallback, frame, frames, frameValues)",
         "evaluateFrame(frame, frames, inputs = [], rate = this.engineSampleRate || sampleRate, inputFrame = frame)",

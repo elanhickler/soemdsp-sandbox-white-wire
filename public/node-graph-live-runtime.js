@@ -355,7 +355,11 @@ function renderNodeGraphLiveScriptBlock(event) {
       ? event.inputBuffer.getChannelData(1)
       : null,
   };
+  const blockStartFrame = Number.isFinite(runtime.absoluteFrameCursor)
+    ? runtime.absoluteFrameCursor
+    : 0;
   for (let frame = 0; frame < frames; frame += 1) {
+    runtime.absoluteFrame = blockStartFrame + frame;
     const inputLeft = Number(runtime.externalInput.left?.[frame]) || 0;
     const inputRight = Number(runtime.externalInput.right?.[frame]) || inputLeft;
     nodeGraphMvp.live.inputMeterPeak = Math.max(
@@ -395,6 +399,7 @@ function renderNodeGraphLiveScriptBlock(event) {
       output.getChannelData(channel)[frame] = channel === 0 ? left : right;
     }
   }
+  runtime.absoluteFrameCursor = blockStartFrame + frames;
   runtime.externalInput = null;
   nodeGraphSetVisualControls(runtime.visualControls || { screenShake: 0 });
   if (nodeGraphMvp.live.lastEvidence) {
@@ -844,7 +849,7 @@ async function createNodeGraphLiveWorkletNode(context) {
   if (!context.audioWorklet || typeof AudioWorkletNode === "undefined") {
     throw new Error("AudioWorklet unavailable");
   }
-  await context.audioWorklet.addModule("./public/node-live-audio-worklet.js?v=clock-pulse-output-1");
+  await context.audioWorklet.addModule("./public/node-live-audio-worklet.js?v=editable-graph-lfo-1");
   const workletNode = new AudioWorkletNode(
     context,
     "node-live-audio-processor",

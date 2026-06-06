@@ -3429,6 +3429,15 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
         ? Math.max(0, Number(sourceNode.params?.rate) || 0)
         : 0;
     };
+    const graphSampleX = (node, nodeId) => {
+      const mode = Math.round(this.readEffectiveParameter(node, "mode", 0, frame, frames, frameValues));
+      if (mode <= 0) {
+        return mixInput(nodeId);
+      }
+      const rateValue = Math.max(0, this.readEffectiveParameter(node, "rate", 1, frame, frames, frameValues));
+      const phaseValue = this.readEffectiveParameter(node, "phase", 0, frame, frames, frameValues);
+      return this.wrapValue((Number(inputFrame) / safeRate) * rateValue + phaseValue, 0, 1);
+    };
 
     for (const nodeId of this.order) {
       const node = this.nodes.get(nodeId);
@@ -3858,7 +3867,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       } else if (node?.type === "codeblock") {
         value = this.evaluateCodeblock(node, mixInput, frame, frames, safeRate, inputFrame);
       } else if (node?.type === "graph") {
-        value = this.graphValueAt(node.graph, mixInput(nodeId));
+        value = this.graphValueAt(node.graph, graphSampleX(node, nodeId));
       } else if (node?.type === "bias") {
         value = mixInput(nodeId) +
           this.readEffectiveParameter(node, "offset", 0, frame, frames, frameValues);

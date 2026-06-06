@@ -91,7 +91,11 @@ const nodeGraphModuleDefinitions = Object.freeze({
     inputs: ["In"],
     layout: "graph",
     outputs: ["Out"],
-    parameters: [],
+    parameters: [
+      { choices: ["Input", "LFO"], defaultValue: "0", displayChoices: true, divideChoicesVisibly: true, key: "mode", label: "Mode", linearSmoothing: false, max: "1", mid: "0", min: "0", nonlinearSlider: false, step: "1" },
+      { defaultValue: "1", key: "rate", kind: "frequency", label: "Rate", max: "40", maxDigits: 5, mid: "1", min: "0", step: "any", unit: "Hz" },
+      { defaultValue: "0", key: "phase", kind: "phase", label: "Phase", max: "1", mid: "0.5", min: "0", nonlinearSlider: false, step: "0.01", unit: "cycle", wraparound: true },
+    ],
   },
   groupInput: {
     outputs: ["Out"],

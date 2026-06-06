@@ -1503,6 +1503,18 @@ function evaluateNodeGraphPlanFrame(runtime, sampleRate, frame, frames) {
     0,
   );
 
+  const graphSampleX = (node, nodeId) => {
+    const mode = Math.round(readNodeGraphLiveEffectiveParam(runtime, node, "mode", 0, frame, frames, frameValues));
+    if (mode <= 0) {
+      return mixInput(nodeId);
+    }
+    const safeRate = Math.max(1, Number(sampleRate) || nodeGraphMvp.sampleRate || 44100);
+    const absoluteFrame = Number.isFinite(runtime.absoluteFrame) ? runtime.absoluteFrame : frame;
+    const rate = Math.max(0, readNodeGraphLiveEffectiveParam(runtime, node, "rate", 1, frame, frames, frameValues));
+    const phase = readNodeGraphLiveEffectiveParam(runtime, node, "phase", 0, frame, frames, frameValues);
+    return wrapNodeSliderValue((absoluteFrame / safeRate) * rate + phase, 0, 1);
+  };
+
   for (const nodeId of runtime.order || []) {
     const node = runtime.nodes.get(nodeId);
     let value = 0;
@@ -2068,7 +2080,7 @@ function evaluateNodeGraphPlanFrame(runtime, sampleRate, frame, frames) {
     } else if (node?.type === "codeblock") {
       value = nodeGraphEvaluateCodeblock(runtime, node, mixInput, sampleRate, frame, frames);
     } else if (node?.type === "graph") {
-      value = nodeGraphGraphValueAt(node.graph, mixInput(nodeId));
+      value = nodeGraphGraphValueAt(node.graph, graphSampleX(node, nodeId));
     } else if (node?.type === "bias") {
       value = mixInput(nodeId) + readNodeGraphLiveEffectiveParam(
         runtime,
