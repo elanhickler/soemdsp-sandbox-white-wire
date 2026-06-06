@@ -4,6 +4,7 @@ async function bindNodeGraphMvpEvents() {
   document.addEventListener("keydown", handleNodeGraphKeydown);
   bindNodeGraphRenderLiveControlEvents();
   bindNodeGraphHeaderControlEvents();
+  bindNodeGraphUiViewEvents();
   await bindNodeGraphUiDevSettingsEvents();
   bindNodeGraphSettingsFormEvents();
   bindNodeGraphSceneMenuEvents();

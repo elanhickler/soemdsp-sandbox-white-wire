@@ -2,6 +2,142 @@ function nodeGraphUiItemTypeForNode(node) {
   return node?.type === "graph" ? "graphEditor" : "moduleControl";
 }
 
+function nodeGraphUiItemsPatchClone() {
+  const patch = cloneNodeGraphPatch(nodeGraphMvp.patch);
+  patch.uiItems = normalizeNodeGraphPatchUiItems(patch.uiItems, {
+    nodeIds: new Set(patch.nodes.map((node) => node.id)),
+  });
+  return patch;
+}
+
+function updateNodeGraphUiItem(itemId, updates, status = "ui item changed") {
+  const patch = nodeGraphUiItemsPatchClone();
+  const item = patch.uiItems.find((entry) => entry.id === itemId);
+  if (!item) {
+    return false;
+  }
+  Object.assign(item, updates);
+  patch.uiItems = normalizeNodeGraphPatchUiItems(patch.uiItems, {
+    nodeIds: new Set(patch.nodes.map((node) => node.id)),
+  });
+  commitNodeGraphPatch(patch, { status });
+  if (!document.getElementById("nodeUiView")?.hidden) {
+    renderNodeGraphUiView();
+  }
+  return true;
+}
+
+function nodeGraphUiItemFromElement(element) {
+  const itemId = element?.closest?.(".node-ui-item")?.dataset?.uiItem || "";
+  return normalizeNodeGraphPatchUiItems(nodeGraphMvp.patch.uiItems).find((item) => item.id === itemId) || null;
+}
+
+function beginNodeGraphUiItemDrag(event) {
+  if (event.button !== undefined && event.button !== 0) {
+    return;
+  }
+  const itemElement = event.currentTarget?.closest?.(".node-ui-item");
+  const item = nodeGraphUiItemFromElement(itemElement);
+  if (!item) {
+    return;
+  }
+  nodeGraphMvp.uiItemDragging = {
+    h: item.h,
+    id: item.id,
+    mode: "move",
+    pointerId: event.pointerId ?? null,
+    startX: event.clientX,
+    startY: event.clientY,
+    w: item.w,
+    x: item.x,
+    y: item.y,
+  };
+  itemElement.classList.add("dragging");
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function beginNodeGraphUiItemResize(event) {
+  if (event.button !== undefined && event.button !== 0) {
+    return;
+  }
+  const itemElement = event.currentTarget?.closest?.(".node-ui-item");
+  const item = nodeGraphUiItemFromElement(itemElement);
+  if (!item) {
+    return;
+  }
+  nodeGraphMvp.uiItemDragging = {
+    h: item.h,
+    id: item.id,
+    mode: "resize",
+    pointerId: event.pointerId ?? null,
+    startX: event.clientX,
+    startY: event.clientY,
+    w: item.w,
+    x: item.x,
+    y: item.y,
+  };
+  itemElement.classList.add("resizing");
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function dragNodeGraphUiItem(event) {
+  const drag = nodeGraphMvp.uiItemDragging;
+  if (!drag || (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId)) {
+    return;
+  }
+  const itemElement = document.querySelector(`.node-ui-item[data-ui-item="${CSS.escape(drag.id)}"]`);
+  if (!itemElement) {
+    return;
+  }
+  const dx = Math.round(event.clientX - drag.startX);
+  const dy = Math.round(event.clientY - drag.startY);
+  if (drag.mode === "resize") {
+    const w = Math.max(180, Math.min(720, drag.w + dx));
+    const h = Math.max(120, Math.min(420, drag.h + dy));
+    itemElement.style.width = `${w}px`;
+    itemElement.style.height = `${h}px`;
+  } else {
+    const x = Math.max(0, Math.min(2000, drag.x + dx));
+    const y = Math.max(0, Math.min(2000, drag.y + dy));
+    itemElement.style.left = `${x}px`;
+    itemElement.style.top = `${y}px`;
+  }
+  event.preventDefault();
+}
+
+function endNodeGraphUiItemDrag(event) {
+  const drag = nodeGraphMvp.uiItemDragging;
+  if (!drag || (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId)) {
+    return;
+  }
+  const itemElement = document.querySelector(`.node-ui-item[data-ui-item="${CSS.escape(drag.id)}"]`);
+  itemElement?.classList.remove("dragging", "resizing");
+  nodeGraphMvp.uiItemDragging = null;
+  const dx = Math.round(event.clientX - drag.startX);
+  const dy = Math.round(event.clientY - drag.startY);
+  const updates = drag.mode === "resize"
+    ? {
+        h: Math.max(120, Math.min(420, drag.h + dy)),
+        w: Math.max(180, Math.min(720, drag.w + dx)),
+      }
+    : {
+        x: Math.max(0, Math.min(2000, drag.x + dx)),
+        y: Math.max(0, Math.min(2000, drag.y + dy)),
+      };
+  updateNodeGraphUiItem(drag.id, updates, drag.mode === "resize" ? "ui item resized" : "ui item moved");
+  event.preventDefault();
+}
+
+function bindNodeGraphUiViewEvents() {
+  document.addEventListener("pointermove", dragNodeGraphUiItem);
+  document.addEventListener("pointerup", endNodeGraphUiItemDrag);
+  document.addEventListener("pointercancel", endNodeGraphUiItemDrag);
+}
+
 function createNodeGraphUiItemElement(item) {
   const sourceNode = nodeGraphPatchNode(item.sourceNodeId);
   const article = document.createElement("article");
@@ -15,6 +151,7 @@ function createNodeGraphUiItemElement(item) {
 
   const header = document.createElement("div");
   header.className = "node-ui-item-header";
+  header.addEventListener("pointerdown", beginNodeGraphUiItemDrag);
   const title = document.createElement("strong");
   title.textContent = sourceNode ? nodeGraphPatchNodeTitle(sourceNode) : item.label;
   const meta = document.createElement("span");
@@ -40,6 +177,12 @@ function createNodeGraphUiItemElement(item) {
     body.append(empty);
   }
   article.append(body);
+  const resize = document.createElement("button");
+  resize.className = "node-ui-item-resize";
+  resize.type = "button";
+  resize.setAttribute("aria-label", `Resize ${item.label}`);
+  resize.addEventListener("pointerdown", beginNodeGraphUiItemResize);
+  article.append(resize);
   return article;
 }
 

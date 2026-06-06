@@ -133,6 +133,7 @@ const nodeGraphMvp = {
   graphNodeDragging: null,
   graphClipboard: null,
   graphSelectedNodeIndices: new Map(),
+  uiItemDragging: null,
   nodeDragging: null,
   nodeTypeCounts: {
     audioInput: 0,

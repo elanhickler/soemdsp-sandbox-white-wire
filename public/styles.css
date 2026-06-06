@@ -4697,12 +4697,22 @@ audio {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.025) inset;
 }
 
+.node-ui-item.dragging,
+.node-ui-item.resizing {
+  border-color: rgba(226, 168, 109, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(226, 168, 109, 0.12) inset,
+    0 0 18px rgba(226, 168, 109, 0.12);
+}
+
 .node-ui-item-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
+  cursor: default;
+  user-select: none;
 }
 
 .node-ui-item-header strong {
@@ -4723,6 +4733,30 @@ audio {
 
 .node-ui-item-body {
   min-height: 0;
+}
+
+.node-ui-item-resize {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 18px;
+  height: 18px;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid rgba(127, 199, 217, 0.22);
+  border-radius: 3px;
+  background:
+    linear-gradient(135deg, transparent 0 42%, rgba(127, 199, 217, 0.32) 42% 52%, transparent 52%),
+    rgba(3, 8, 10, 0.86);
+  color: transparent;
+}
+
+.node-ui-item-resize:hover,
+.node-ui-item-resize:focus-visible {
+  border-color: rgba(226, 168, 109, 0.6);
+  background:
+    linear-gradient(135deg, transparent 0 42%, rgba(226, 168, 109, 0.52) 42% 52%, transparent 52%),
+    rgba(8, 10, 10, 0.94);
 }
 
 .node-ui-graph-display {
