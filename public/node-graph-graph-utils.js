@@ -411,6 +411,23 @@ function renderNodeGraphGraphDisplay(element, graphValue, selectedIndex = null) 
     x: "8",
     y: "8",
   }));
+  [0.25, 0.5, 0.75].forEach((gridValue) => {
+    const gridPoint = nodeGraphGraphPointToSvg(gridValue, gridValue);
+    svg.append(createNodeGraphGraphSvgElement("line", {
+      class: `node-module-graph-grid-line${gridValue === 0.5 ? " major" : ""}`,
+      x1: gridPoint.x.toFixed(3),
+      x2: gridPoint.x.toFixed(3),
+      y1: "8",
+      y2: "92",
+    }));
+    svg.append(createNodeGraphGraphSvgElement("line", {
+      class: `node-module-graph-grid-line${gridValue === 0.5 ? " major" : ""}`,
+      x1: "8",
+      x2: "92",
+      y1: gridPoint.y.toFixed(3),
+      y2: gridPoint.y.toFixed(3),
+    }));
+  });
   svg.append(createNodeGraphGraphSvgElement("line", {
     class: "node-module-graph-axis",
     x1: "8",

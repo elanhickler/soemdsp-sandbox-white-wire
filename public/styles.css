@@ -6731,6 +6731,16 @@ audio {
   stroke-width: 0.8;
 }
 
+.node-module-graph-grid-line {
+  stroke: rgba(112, 206, 200, 0.08);
+  stroke-width: 0.45;
+}
+
+.node-module-graph-grid-line.major {
+  stroke: rgba(218, 235, 226, 0.11);
+  stroke-width: 0.55;
+}
+
 .node-module-graph-axis {
   stroke: rgba(218, 235, 226, 0.14);
   stroke-width: 0.6;
