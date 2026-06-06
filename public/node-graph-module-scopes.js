@@ -190,9 +190,18 @@ function nodeGraphModuleScopeShaderOutputPortForSlot(slot) {
   return outputs[Number(match[1])] || "";
 }
 
+function nodeGraphModuleScopeShaderAssignmentValue(source, dotName, key) {
+  const safeDotName = dotName === "dot2" ? "dot2" : "dot1";
+  const safeKey = String(key || "").replace(/[^\w]/g, "");
+  if (!safeKey) {
+    return "";
+  }
+  const match = String(source || "").match(new RegExp(`\\b${safeDotName}\\.${safeKey}\\s*=\\s*([^;]+)\\s*;`));
+  return String(match?.[1] || "").trim();
+}
+
 function nodeGraphModuleScopeShaderColor(source, dotName, fallback) {
-  const match = String(source || "").match(new RegExp(`\\b${dotName}\\.color\\s*=\\s*([^;]+)\\s*;`));
-  const value = String(match?.[1] || "").trim();
+  const value = nodeGraphModuleScopeShaderAssignmentValue(source, dotName, "color");
   if (/^#[0-9a-fA-F]{3,8}$/.test(value)) {
     return nodeGraphNormalizeScopeTraceColor(value);
   }
@@ -216,8 +225,12 @@ function nodeGraphModuleScopeShaderGlobalColor(dotName) {
 }
 
 function nodeGraphModuleScopeShaderNumber(source, dotName, key, fallback) {
-  const match = String(source || "").match(new RegExp(`\\b${dotName}\\.${key}\\s*=\\s*([^;]+)\\s*;`));
-  const value = nodeGraphModuleScopeShaderExpressionValue(match?.[1], dotName, key, fallback);
+  const value = nodeGraphModuleScopeShaderExpressionValue(
+    nodeGraphModuleScopeShaderAssignmentValue(source, dotName, key),
+    dotName,
+    key,
+    fallback,
+  );
   return Number.isFinite(value) ? value : fallback;
 }
 

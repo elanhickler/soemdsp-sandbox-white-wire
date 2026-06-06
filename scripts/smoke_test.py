@@ -8917,6 +8917,8 @@ def require_node_graph_mvp_contract() -> None:
         "return nodeGraphModuleScopeDefaultDotCores.traceColor",
         "function nodeGraphScopeHexColorToRgb(color)",
         "function nodeGraphModuleScopeDefaultDotCore(dotName)",
+        "function nodeGraphModuleScopeShaderAssignmentValue(source, dotName, key)",
+        "const safeDotName = dotName === \"dot2\" ? \"dot2\" : \"dot1\"",
         "function nodeGraphModuleScopeShaderColor(source, dotName, fallback)",
         "function nodeGraphModuleScopeShaderGlobalColor(dotName)",
         "^${dotName}\\\\.(?:global|globals)\\\\.color$",
