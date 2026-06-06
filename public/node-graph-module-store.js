@@ -1,6 +1,7 @@
 const nodeGraphModuleStoreTypes = Object.freeze([
   "osc",
   "additiveOsc",
+  "gpuAdditiveOsc",
   "distortionOscillator",
   "dsfOscillator",
   "ellipsoid",
@@ -251,6 +252,12 @@ const nodeGraphModuleStoreCatalog = Object.freeze({
     category: "Additive Engines",
     description: "Harmonic additive tone source using SOEMDSP waveform partial recipes.",
     notes: ["harmonic sum", "waveform selector", "band-limited partials"],
+  },
+  gpuAdditiveOsc: {
+    category: "Additive Engines",
+    description: "Buffered GPU additive engine proof module. Reuses the CPU additive path in live audio and prepares WebGPU chunk rendering with fallback.",
+    label: "GPU Additive",
+    notes: ["WebGPU proof", "buffered backend", "CPU fallback"],
   },
   distortionOscillator: {
     category: "Oscillator",

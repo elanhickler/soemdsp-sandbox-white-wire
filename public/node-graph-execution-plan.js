@@ -420,6 +420,7 @@ function compileNodeGraphExecutionPlan(patch = nodeGraphMvp.patch) {
       type !== "moduleGroup" &&
       type !== "noiseGenerator" &&
       type !== "additiveOsc" &&
+      type !== "gpuAdditiveOsc" &&
       type !== "osc" &&
       type !== "pluckEnvelope" &&
       type !== "randomWalk" &&
@@ -451,6 +452,7 @@ function compileNodeGraphExecutionPlan(patch = nodeGraphMvp.patch) {
       type === "midiOut" ||
       type === "noiseGenerator" ||
       type === "additiveOsc" ||
+      type === "gpuAdditiveOsc" ||
       type === "osc" ||
       type === "randomWalk" ||
       type === "spiral" ||

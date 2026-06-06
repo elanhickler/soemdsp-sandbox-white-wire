@@ -35,6 +35,7 @@ function nextNodeGraphTypeCounts(nodes = nodeGraphMvp.patch.nodes) {
   }
   return {
     additiveOsc: counts.additiveOsc || 0,
+    gpuAdditiveOsc: counts.gpuAdditiveOsc || 0,
     audioInput: counts.audioInput || 0,
     badvalMonitor: counts.badvalMonitor || 0,
     bandpass: counts.bandpass || 0,

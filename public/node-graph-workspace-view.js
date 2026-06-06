@@ -437,13 +437,16 @@ function dragNodeGraphWorkspaceResize(event) {
   if (!drag || drag.pointerId !== event.pointerId) {
     return;
   }
+  const zoom = nodeGraphZoom();
+  const renderedGridWidth = nodeGraphGridWidth() * zoom;
+  const renderedGridHeight = nodeGraphGridHeight() * zoom;
   const widthGu = Math.max(
     nodeGraphWorkspaceViewLimits.minWidthGu,
-    drag.startWidthGu + Math.round((event.clientX - drag.startClientX) / nodeGraphGridWidth()) * 2,
+    drag.startWidthGu + Math.round((event.clientX - drag.startClientX) / renderedGridWidth) * 2,
   );
   const heightGu = Math.max(
     nodeGraphWorkspaceViewLimits.minHeightGu,
-    drag.startHeightGu + Math.round((event.clientY - drag.startClientY) / nodeGraphGridHeight()),
+    drag.startHeightGu + Math.round((event.clientY - drag.startClientY) / renderedGridHeight),
   );
   if (widthGu === drag.widthGu && heightGu === drag.heightGu) {
     return;

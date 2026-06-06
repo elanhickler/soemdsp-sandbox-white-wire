@@ -131,7 +131,6 @@ const css = `
     border-radius: min(16cqh, 5px);
     box-shadow: none;
     color: inherit;
-    cursor: default;
     display: block;
     height: 100%;
     min-height: 0;

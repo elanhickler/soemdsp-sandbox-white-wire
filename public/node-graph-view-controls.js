@@ -126,6 +126,11 @@ function normalizeNodeGraphModuleScopeOverdrawPoints(value) {
   return Number.isFinite(number) ? clampNodeSliderValue(Math.round(number), 1, 2048) : 1;
 }
 
+function normalizeNodeGraphModuleScopeOverdrawFade(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? clampNodeSliderValue(number, 0, 1) : 0.5;
+}
+
 function normalizeNodeGraphModuleScopeFramesPerSecond(value) {
   const number = Number(value);
   return Number.isFinite(number) ? clampNodeSliderValue(Math.round(number), 1, 240) : 60;
@@ -212,6 +217,7 @@ function renderNodeGraphModuleScopeBrightnessControl() {
     nodeGraphMvp.moduleScopeDiscontinuitySkipSamples ?? 1,
   );
   const overdrawPoints = normalizeNodeGraphModuleScopeOverdrawPoints(nodeGraphMvp.moduleScopeOverdrawPoints ?? 1);
+  const overdrawFade = normalizeNodeGraphModuleScopeOverdrawFade(nodeGraphMvp.moduleScopeOverdrawFade ?? 0.5);
   nodeGraphMvp.moduleScopeBurn = burn;
   nodeGraphMvp.moduleScopeBackgroundColor = backgroundColor;
   nodeGraphMvp.moduleScopeDotCore1Size = dotCore1Size;
@@ -224,6 +230,7 @@ function renderNodeGraphModuleScopeBrightnessControl() {
   nodeGraphMvp.moduleScopeLineThickness = lineThickness;
   nodeGraphMvp.moduleScopeDiscontinuitySkipSamples = discontinuitySkipSamples;
   nodeGraphMvp.moduleScopeOverdrawPoints = overdrawPoints;
+  nodeGraphMvp.moduleScopeOverdrawFade = overdrawFade;
   const burnInput = document.getElementById("nodeMasterScopeBurn");
   const backgroundInput = document.getElementById("nodeMasterScopeBackgroundColor");
   const dotCore1SizeInput = document.getElementById("nodeMasterScopeDotCore1Size");
@@ -236,6 +243,7 @@ function renderNodeGraphModuleScopeBrightnessControl() {
   const lineInput = document.getElementById("nodeMasterScopeLineThickness");
   const skipSamplesInput = document.getElementById("nodeMasterScopeDiscontinuitySkipSamples");
   const overdrawInput = document.getElementById("nodeMasterScopeOverdrawPoints");
+  const overdrawFadeInput = document.getElementById("nodeMasterScopeOverdrawFade");
   if (burnInput && document.activeElement !== burnInput) {
     burnInput.value = burn.toFixed(2);
   }
@@ -300,6 +308,9 @@ function renderNodeGraphModuleScopeBrightnessControl() {
   }
   if (overdrawInput && document.activeElement !== overdrawInput) {
     overdrawInput.value = String(overdrawPoints);
+  }
+  if (overdrawFadeInput && document.activeElement !== overdrawFadeInput) {
+    overdrawFadeInput.value = overdrawFade.toFixed(2);
   }
   const globalScopeMenu = document.getElementById("nodeGlobalScopeMenu");
   document.getElementById("nodeGlobalScopeMenuButton")
@@ -412,6 +423,14 @@ function handleNodeGraphModuleScopeDiscontinuitySkipSamplesInput(event) {
 
 function setNodeGraphModuleScopeOverdrawPoints(value) {
   nodeGraphMvp.moduleScopeOverdrawPoints = normalizeNodeGraphModuleScopeOverdrawPoints(value);
+  renderNodeGraphModuleScopeBrightnessControl();
+  if (typeof scheduleNodeGraphModuleScopeDraw === "function") {
+    scheduleNodeGraphModuleScopeDraw();
+  }
+}
+
+function setNodeGraphModuleScopeOverdrawFade(value) {
+  nodeGraphMvp.moduleScopeOverdrawFade = normalizeNodeGraphModuleScopeOverdrawFade(value);
   renderNodeGraphModuleScopeBrightnessControl();
   if (typeof scheduleNodeGraphModuleScopeDraw === "function") {
     scheduleNodeGraphModuleScopeDraw();

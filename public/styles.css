@@ -322,7 +322,6 @@ button {
   border-radius: 6px;
   background: var(--panel-2);
   color: var(--text);
-  cursor: default;
 }
 
 button:hover {
@@ -330,7 +329,6 @@ button:hover {
 }
 
 button:disabled {
-  cursor: not-allowed;
   opacity: 0.62;
 }
 
@@ -550,11 +548,9 @@ body.node-slider-dragging::after {
   color: var(--text);
   font: inherit;
   font-size: 0.78rem;
-  cursor: pointer;
 }
 
 .node-clap-host-strip button:disabled {
-  cursor: default;
   opacity: 0.62;
 }
 
@@ -1222,7 +1218,6 @@ audio {
 }
 
 .node-midi-keyboard-surface [data-midi] {
-  cursor: default;
   user-select: none;
 }
 
@@ -1422,7 +1417,6 @@ audio {
     ),
     rgba(17, 20, 24, 0.58);
   color: rgba(160, 167, 176, 0.78);
-  cursor: not-allowed;
 }
 
 .node-under-construction-control:hover,
@@ -1596,7 +1590,6 @@ audio {
 .node-scope-master-brightness-control {
   flex-direction: column;
   gap: 3px;
-  cursor: default;
   text-transform: uppercase;
 }
 
@@ -1794,7 +1787,6 @@ audio {
   min-height: 42px;
   border-bottom: 1px solid rgba(127, 199, 217, 0.16);
   background: rgba(3, 5, 7, 0.46);
-  cursor: move;
   user-select: none;
 }
 
@@ -2065,7 +2057,6 @@ audio {
   border: 1px solid color-mix(in srgb, var(--node-constraint-color) 42%, transparent);
   border-radius: 4px;
   background: color-mix(in srgb, var(--node-constraint-color) 13%, rgba(3, 5, 7, 0.82));
-  cursor: pointer;
   user-select: none;
   white-space: nowrap;
 }
@@ -2083,10 +2074,6 @@ audio {
   height: 0.86rem;
   margin: 0;
   accent-color: var(--node-constraint-color);
-}
-
-[data-constraint-toggle] {
-  cursor: pointer;
 }
 
 .node-constraint-chip[data-constraint="ram"] {
@@ -2326,12 +2313,6 @@ audio {
   user-select: none;
 }
 
-.node-graph-workspace *,
-.node-graph-workspace *::before,
-.node-graph-workspace *::after {
-  cursor: default !important;
-}
-
 .node-wiring-panel {
   --node-text-light-color-rgb: 243 241 236;
   --node-text-light-level: 0.18;
@@ -2415,7 +2396,6 @@ audio {
 }
 
 .node-graph-workspace.panning {
-  cursor: grabbing;
 }
 
 .node-graph-workspace.resizing {
@@ -2477,7 +2457,6 @@ audio {
   border-color: rgba(243, 241, 236, 0.24);
   border-radius: 2px;
   background: rgba(17, 20, 24, 0.88);
-  cursor: nwse-resize;
   touch-action: none;
 }
 
@@ -3772,7 +3751,6 @@ audio {
 
 .node-code-screen-build-summary button[data-code-screen-build-summary-section] {
   min-height: 48px;
-  cursor: pointer;
 }
 
 .node-code-screen-build-summary button[data-code-screen-build-summary-section]:hover {
@@ -4505,7 +4483,6 @@ audio {
 }
 
 .node-code-screen-json-preview summary {
-  cursor: pointer;
   color: rgba(127, 199, 217, 0.82);
   font-size: 0.68rem;
   text-transform: uppercase;
@@ -4711,7 +4688,6 @@ audio {
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  cursor: default;
   user-select: none;
 }
 
@@ -5112,7 +5088,6 @@ audio {
 }
 
 .node-module-department-search-placeholder input:disabled {
-  cursor: default;
   opacity: 1;
 }
 
@@ -5644,7 +5619,6 @@ audio {
   min-height: 30px;
   padding: 0 8px;
   color: var(--accent);
-  cursor: default;
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.72rem;
   list-style: none;
@@ -6244,7 +6218,6 @@ audio {
     translate(var(--node-visual-shake-x), var(--node-visual-shake-y))
     scale(var(--node-graph-zoom));
   transform-origin: 0 0;
-  cursor: default;
 }
 
 .node-camera-overlay-layer {
@@ -6271,7 +6244,6 @@ audio {
     0 0 0 1px rgba(5, 7, 9, 0.84),
     0 0 24px color-mix(in srgb, var(--camera-frame-color, #ff3333) 36%, transparent);
   pointer-events: auto;
-  cursor: move;
 }
 
 .node-camera-frame:not(.active) {
@@ -6301,14 +6273,14 @@ audio {
   box-shadow: 0 0 10px color-mix(in srgb, var(--camera-frame-color, #ff3333) 54%, transparent);
 }
 
-.node-camera-frame-handle[data-camera-handle="nw"] { left: -7px; top: -7px; cursor: nwse-resize; }
-.node-camera-frame-handle[data-camera-handle="n"] { left: calc(50% - 6px); top: -7px; cursor: ns-resize; }
-.node-camera-frame-handle[data-camera-handle="ne"] { right: -7px; top: -7px; cursor: nesw-resize; }
-.node-camera-frame-handle[data-camera-handle="e"] { right: -7px; top: calc(50% - 6px); cursor: ew-resize; }
-.node-camera-frame-handle[data-camera-handle="se"] { right: -7px; bottom: -7px; cursor: nwse-resize; }
-.node-camera-frame-handle[data-camera-handle="s"] { left: calc(50% - 6px); bottom: -7px; cursor: ns-resize; }
-.node-camera-frame-handle[data-camera-handle="sw"] { left: -7px; bottom: -7px; cursor: nesw-resize; }
-.node-camera-frame-handle[data-camera-handle="w"] { left: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+.node-camera-frame-handle[data-camera-handle="nw"] { left: -7px; top: -7px; }
+.node-camera-frame-handle[data-camera-handle="n"] { left: calc(50% - 6px); top: -7px; }
+.node-camera-frame-handle[data-camera-handle="ne"] { right: -7px; top: -7px; }
+.node-camera-frame-handle[data-camera-handle="e"] { right: -7px; top: calc(50% - 6px); }
+.node-camera-frame-handle[data-camera-handle="se"] { right: -7px; bottom: -7px; }
+.node-camera-frame-handle[data-camera-handle="s"] { left: calc(50% - 6px); bottom: -7px; }
+.node-camera-frame-handle[data-camera-handle="sw"] { left: -7px; bottom: -7px; }
+.node-camera-frame-handle[data-camera-handle="w"] { left: -7px; top: calc(50% - 6px); }
 
 .node-graph-workspace.grid-visible {
   background-color: var(--node-workspace-bg);
@@ -6427,10 +6399,6 @@ audio {
 
 .node-graph-workspace.shader-enabled .node-modular-shader-canvas {
   display: block;
-}
-
-.node-graph-workspace.panning .node-graph-zoom-surface {
-  cursor: grabbing;
 }
 
 .node-wire-svg {
@@ -6570,7 +6538,6 @@ audio {
   outline: 1px solid color-mix(in srgb, var(--node-module-stroke) 16%, transparent);
   background: var(--node-module-fill);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
-  cursor: default;
   overflow: visible;
   pointer-events: auto;
 }
@@ -6666,7 +6633,6 @@ audio {
   background:
     radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.82) 0 42%, rgba(0, 0, 0, 0.28) 70%, transparent 100%),
     rgba(3, 7, 10, 0.84);
-  cursor: default;
 }
 
 .node-led-face .node-port.input {
@@ -6836,7 +6802,6 @@ audio {
   min-height: calc(var(--node-module-scope-height) + var(--node-scope-port-band-overlap));
   overflow: hidden;
   background: var(--node-scope-background, #000);
-  cursor: context-menu;
   pointer-events: auto;
 }
 
@@ -7606,7 +7571,6 @@ audio {
   font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
   font-size: 0.84rem;
   line-height: 1;
-  cursor: default;
   user-select: none;
 }
 
@@ -7723,7 +7687,6 @@ audio {
   border-radius: 0;
   background: transparent;
   color: color-mix(in srgb, var(--accent) 58%, rgba(160, 167, 176, 0.5));
-  cursor: default;
   font-size: clamp(1.18rem, calc(var(--node-header-height) * 0.28), 1.7rem);
   line-height: 1;
 }
@@ -7744,7 +7707,6 @@ audio {
   padding: 0;
   background: var(--node-bypass-off-bg);
   color: transparent;
-  cursor: default;
   font-size: calc(var(--node-header-height) * var(--node-bypass-icon-size-ratio) * 0.34);
 }
 
@@ -7784,10 +7746,6 @@ audio {
   text-shadow:
     0 0 calc(100cqh * var(--node-bypass-icon-glow-spread-ratio) * 0.18) color-mix(in srgb, var(--node-bypass-icon-glow-color) 68%, transparent),
     0 0 calc(100cqh * var(--node-bypass-icon-glow-spread-ratio) * 0.42) color-mix(in srgb, var(--node-bypass-icon-glow-color) 42%, transparent);
-}
-
-.node-action-button {
-  cursor: default;
 }
 
 .node-drag-handle:active,
@@ -8421,7 +8379,6 @@ audio {
   flex: 0 0 30px;
   width: 30px;
   padding: 0;
-  cursor: default;
   font-size: calc(var(--node-move-symbol-size-ratio, 0.6) * 1.44rem);
   line-height: 1;
   user-select: none;
@@ -8944,7 +8901,6 @@ button.saved-default,
   min-height: 28px;
   justify-content: center;
   padding: 0;
-  cursor: default;
   font-size: calc(var(--node-move-symbol-size-ratio, 0.6) * 1.37rem);
   line-height: 1;
   text-align: center;
@@ -9477,19 +9433,6 @@ button.saved-default,
   box-shadow:
     0 18px 54px rgba(0, 0, 0, 0.48),
     0 0 34px rgba(76, 220, 224, 0.1);
-  cursor: grab;
-}
-
-.node-shader-script-dialog.dragging .node-shader-script-panel {
-  cursor: grabbing;
-}
-
-.node-shader-script-panel button,
-.node-shader-script-panel textarea,
-.node-shader-script-panel input,
-.node-shader-script-panel select,
-.node-shader-script-editor {
-  cursor: auto;
 }
 
 .node-shader-script-heading {
@@ -9552,7 +9495,6 @@ button.saved-default,
 
 .node-shader-script-size-controls button:disabled {
   color: rgba(127, 199, 217, 0.26);
-  cursor: default;
 }
 
 #nodeShaderScriptSyntaxColorsButton {
@@ -9779,11 +9721,6 @@ button.saved-default,
     0 0 18px rgba(76, 220, 224, 0.08);
 }
 
-.node-shader-script-token-widget input,
-.node-shader-script-token-widget button {
-  cursor: auto;
-}
-
 .node-shader-script-token-widget[hidden],
 .node-shader-script-token-widget-section[hidden] {
   display: none;
@@ -9970,7 +9907,6 @@ button.saved-default,
   color: transparent;
   font-family: Consolas, "Courier New", monospace;
   font-size: 0;
-  cursor: default;
   overflow: hidden;
   text-indent: -999px;
   border-color: color-mix(in srgb, var(--node-port-idle-stroke) 34%, transparent);
@@ -10043,7 +9979,6 @@ body.node-slider-dragging .node-param-port {
   border-radius: 0;
   background: transparent;
   color: transparent;
-  cursor: default;
   overflow: visible;
   text-indent: -999px;
 }
@@ -10121,12 +10056,22 @@ body.node-slider-dragging .node-param-port {
 }
 
 .node-param-port.parameter-output.connected-port::before {
+  right: 0;
+  width: var(--node-port-area-size);
+  min-width: var(--node-port-area-size);
   border-color: color-mix(in srgb, var(--node-param-output-stroke) 62%, transparent);
-  background: color-mix(in srgb, var(--node-param-output-fill) 28%, transparent);
+  border-radius: 6px 0 0 6px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--node-param-output-fill) 8%, transparent),
+    color-mix(in srgb, var(--node-param-output-fill) 34%, transparent)
+  );
   box-shadow:
-    1px 0 0 color-mix(in srgb, var(--node-param-output-fill) 28%, transparent),
-    2px 0 0 color-mix(in srgb, var(--node-param-output-fill) 18%, transparent),
-    0 0 0 1px color-mix(in srgb, var(--node-param-output-fill) 24%, transparent) inset;
+    1px 0 0 color-mix(in srgb, var(--node-param-output-fill) 34%, transparent),
+    2px 0 0 color-mix(in srgb, var(--node-param-output-fill) 24%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--node-param-output-fill) 30%, transparent) inset,
+    0 0 var(--node-hover-glow-size) color-mix(in srgb, var(--node-param-output-fill) 18%, transparent);
+  transform: translateY(-50%);
 }
 
 .node-port.input.connected-port {
@@ -10705,11 +10650,6 @@ body.node-slider-dragging .node-param-port {
   white-space: nowrap;
 }
 
-.node-execution-order li[role="button"],
-.node-execution-wire-modes li[role="button"] {
-  cursor: default;
-}
-
 .node-execution-order li.selected,
 .node-execution-wire-modes li.selected {
   border-color: rgba(247, 183, 88, 0.62);
@@ -10889,7 +10829,6 @@ body.debug-collapsed .status-strip {
 }
 
 .view-toggle:disabled {
-  cursor: default;
   opacity: 0.52;
 }
 
@@ -11050,13 +10989,8 @@ body.debug-collapsed .status-strip {
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #14171a;
-  cursor: default;
   touch-action: none;
   user-select: none;
-}
-
-.waveform.dragging {
-  cursor: grabbing;
 }
 
 .level-envelope {

@@ -13,12 +13,20 @@ const nodeGraphShaderScriptBlendModes = Object.freeze(["laser", "led", "light", 
 const nodeGraphShaderScriptBlendModePatternSource = nodeGraphShaderScriptBlendModes
   .map((mode) => mode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
   .join("|");
+const nodeGraphShaderScriptScopeModes = Object.freeze(["1d_full", "1d_scan"]);
+const nodeGraphShaderScriptScopeModePatternSource = nodeGraphShaderScriptScopeModes
+  .map((mode) => mode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  .join("|");
+const nodeGraphShaderScriptScopeSyncModes = Object.freeze(["inherit", "on", "off"]);
+const nodeGraphShaderScriptScopeSyncPatternSource = nodeGraphShaderScriptScopeSyncModes
+  .map((mode) => mode.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+  .join("|");
 const nodeGraphShaderScriptHighlightTokenPattern = new RegExp(
-  `#[0-9a-fA-F]{3,8}\\b|\\b(?:dot[12]\\.(?:global|globals)\\.(?:size|brightness|color)|(?:dot[12]|blend|video)\\.[a-zA-Z_]\\w*|globalsize|global\\.size)\\b|\\b(?:${nodeGraphShaderScriptBlendModePatternSource}|none|output\\d+)\\b|~|-?\\d+(?:\\.\\d+)?\\b|[=*]`,
+  `#[0-9a-fA-F]{3,8}\\b|\\b(?:dot[12]\\.(?:global|globals)\\.(?:size|brightness|color)|(?:dot[12]|blend|video|scope)\\.[a-zA-Z_]\\w*|globalsize|global\\.size)\\b|\\b(?:${nodeGraphShaderScriptBlendModePatternSource}|${nodeGraphShaderScriptScopeModePatternSource}|${nodeGraphShaderScriptScopeSyncPatternSource}|none|output\\d+)\\b|~|-?\\d+(?:\\.\\d+)?\\b|[=*]`,
   "g",
 );
 const nodeGraphShaderScriptEditableTokenPattern = new RegExp(
-  `#[0-9a-fA-F]{3,8}\\b|-?\\d+(?:\\.\\d+)?\\b|\\b(?:${nodeGraphShaderScriptBlendModePatternSource})\\b`,
+  `#[0-9a-fA-F]{3,8}\\b|-?\\d+(?:\\.\\d+)?\\b|\\b(?:${nodeGraphShaderScriptBlendModePatternSource}|${nodeGraphShaderScriptScopeModePatternSource}|${nodeGraphShaderScriptScopeSyncPatternSource})\\b`,
   "g",
 );
 const nodeGraphShaderScriptDefaultSyntaxColors = Object.freeze({
@@ -598,16 +606,60 @@ function escapeNodeGraphShaderScriptHtml(text = "") {
     .replace(/>/g, "&gt;");
 }
 
+function compactNodeGraphShaderScriptSource(source = "") {
+  return String(source || "").replace(/\n{3,}/g, "\n").trim();
+}
+
 function nodeGraphShaderScriptIsModeToken(token) {
-  return nodeGraphShaderScriptIsBlendModeToken(token) || token === "~" || token === "none" || /^output\d+$/.test(token);
+  return Boolean(nodeGraphShaderScriptModeTokenKind(token)) ||
+    token === "~" ||
+    token === "none" ||
+    /^output\d+$/.test(token);
 }
 
 function nodeGraphShaderScriptIsBlendModeToken(token) {
   return nodeGraphShaderScriptBlendModes.includes(token);
 }
 
+function nodeGraphShaderScriptModeTokenKind(token) {
+  const text = String(token || "").trim();
+  if (nodeGraphShaderScriptBlendModes.includes(text)) {
+    return "blend";
+  }
+  if (nodeGraphShaderScriptScopeModes.includes(text)) {
+    return "scope";
+  }
+  if (nodeGraphShaderScriptScopeSyncModes.includes(text)) {
+    return "sync";
+  }
+  return "";
+}
+
+function nodeGraphShaderScriptModeOptionsForKind(kind) {
+  if (kind === "scope") {
+    return {
+      label: "scope mode",
+      options: nodeGraphShaderScriptScopeModes,
+    };
+  }
+  if (kind === "sync") {
+    return {
+      label: "sync",
+      options: nodeGraphShaderScriptScopeSyncModes,
+    };
+  }
+  return {
+    label: "blend",
+    options: nodeGraphShaderScriptBlendModes,
+  };
+}
+
 function nodeGraphShaderScriptIsPropertyToken(token) {
-  return token.startsWith("dot") || token.startsWith("blend") || token.startsWith("video") || token.startsWith("global");
+  return token.startsWith("dot") ||
+    token.startsWith("blend") ||
+    token.startsWith("video") ||
+    token.startsWith("scope") ||
+    token.startsWith("global");
 }
 
 function colorizeNodeGraphShaderScriptLine(line = "", lineStart = 0) {
@@ -634,7 +686,7 @@ function colorizeNodeGraphShaderScriptLine(line = "", lineStart = 0) {
       ? "color"
       : className === "node-shader-token-number"
         ? "number"
-        : className === "node-shader-token-mode" && nodeGraphShaderScriptIsBlendModeToken(token)
+        : className === "node-shader-token-mode" && nodeGraphShaderScriptModeTokenKind(token)
           ? "mode"
         : "";
     const tokenAttributes = tokenType
@@ -804,11 +856,12 @@ function findNodeGraphShaderScriptEditableTokenAt(index) {
       }
       return {
         end,
+        modeKind: nodeGraphShaderScriptModeTokenKind(match[0]),
         start,
         token: match[0],
         type: match[0].startsWith("#")
           ? "color"
-          : nodeGraphShaderScriptIsBlendModeToken(match[0])
+          : nodeGraphShaderScriptModeTokenKind(match[0])
             ? "mode"
             : "number",
       };
@@ -913,11 +966,7 @@ function beginNodeGraphShaderScriptNumberTokenDrag(event) {
 
 function dragNodeGraphShaderScriptNumberToken(event) {
   const drag = nodeGraphShaderScriptState.numberTokenDrag;
-  const source = document.getElementById("nodeShaderScriptSource");
   if (!drag) {
-    if (source) {
-      source.style.cursor = findNodeGraphShaderScriptNumberTokenAtPoint(event, { refresh: false }) ? "ew-resize" : "";
-    }
     return;
   }
   if (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId) {
@@ -944,9 +993,6 @@ function endNodeGraphShaderScriptNumberTokenDrag(event) {
   }
   const source = document.getElementById("nodeShaderScriptSource");
   source?.releasePointerCapture?.(event.pointerId);
-  if (source) {
-    source.style.cursor = "";
-  }
   nodeGraphShaderScriptState.numberTokenDrag = null;
   event.preventDefault();
   event.stopPropagation();
@@ -979,8 +1025,32 @@ function openNodeGraphShaderScriptTokenWidget(token, event) {
   modeSection.hidden = token.type !== "mode";
   if (token.type === "color") {
     mountNodeGraphShaderScriptColorWidget(token);
+  } else if (token.type === "mode") {
+    populateNodeGraphShaderScriptModeWidget(token);
   }
   positionNodeGraphShaderScriptTokenWidget(event);
+}
+
+function populateNodeGraphShaderScriptModeWidget(token) {
+  const modeSection = document.getElementById("nodeShaderScriptModeWidget");
+  const kind = token?.modeKind || nodeGraphShaderScriptModeTokenKind(token?.token);
+  const config = nodeGraphShaderScriptModeOptionsForKind(kind);
+  if (!modeSection) {
+    return;
+  }
+  modeSection.replaceChildren();
+  const label = document.createElement("span");
+  label.textContent = config.label;
+  modeSection.append(label);
+  for (const option of config.options) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.shaderModeKind = kind || "blend";
+    button.dataset.shaderModeOption = option;
+    button.textContent = option;
+    button.setAttribute("aria-pressed", String(option === token?.token));
+    modeSection.append(button);
+  }
 }
 
 function handleNodeGraphShaderScriptSourcePointer(event) {
@@ -1141,10 +1211,10 @@ function nodeGraphShaderScriptDialogScopeSource() {
   if (node && !Object.hasOwn(node, "scopeShader")) {
     const moduleDefault = nodeGraphScopeShaderModuleDefaultSource(node);
     if (moduleDefault) {
-      return moduleDefault;
+      return compactNodeGraphShaderScriptSource(moduleDefault);
     }
   }
-  return normalizeNodeGraphScopeShader(node?.scopeShader).source;
+  return compactNodeGraphShaderScriptSource(normalizeNodeGraphScopeShader(node?.scopeShader).source);
 }
 
 function nodeGraphShaderScriptDialogScopeVideoInput() {
@@ -1179,7 +1249,7 @@ function replaceNodeGraphShaderScriptVideoInputLine(value) {
   if (linePattern.test(text)) {
     source.value = text.replace(linePattern, (match, prefix) => `${prefix}video.input     = ${nextValue};`);
   } else {
-    source.value = `video.input     = ${nextValue};\n\n${text}`;
+    source.value = `video.input     = ${nextValue};\n${text}`;
   }
   updateNodeGraphShaderScriptHighlight();
   syncNodeGraphShaderScriptVideoInputControls();
@@ -1739,11 +1809,6 @@ function bindNodeGraphShaderScriptEvents() {
   source?.addEventListener("scroll", updateNodeGraphShaderScriptHighlight);
   source?.addEventListener("pointerdown", beginNodeGraphShaderScriptNumberTokenDrag);
   source?.addEventListener("pointermove", dragNodeGraphShaderScriptNumberToken);
-  source?.addEventListener("pointerleave", () => {
-    if (!nodeGraphShaderScriptState.numberTokenDrag) {
-      source.style.cursor = "";
-    }
-  });
   source?.addEventListener("pointercancel", endNodeGraphShaderScriptNumberTokenDrag);
   source?.addEventListener("pointerup", endNodeGraphShaderScriptNumberTokenDrag);
   source?.addEventListener("pointerup", handleNodeGraphShaderScriptSourcePointer);
@@ -1757,13 +1822,18 @@ function bindNodeGraphShaderScriptEvents() {
       }
     }
   });
-  document.querySelectorAll("[data-shader-blend-mode]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const mode = button.dataset.shaderBlendMode;
-      if (nodeGraphShaderScriptIsBlendModeToken(mode)) {
-        replaceNodeGraphShaderScriptToken(mode);
-      }
-    });
+  document.getElementById("nodeShaderScriptModeWidget")?.addEventListener("click", (event) => {
+    const button = event.target?.closest?.("[data-shader-mode-option]");
+    if (!button) {
+      return;
+    }
+    const token = nodeGraphShaderScriptState.tokenWidget;
+    const option = button.dataset.shaderModeOption;
+    const optionKind = button.dataset.shaderModeKind || "";
+    if (token?.type === "mode" && optionKind === token.modeKind && nodeGraphShaderScriptModeTokenKind(option) === optionKind) {
+      replaceNodeGraphShaderScriptToken(option);
+      populateNodeGraphShaderScriptModeWidget(nodeGraphShaderScriptState.tokenWidget);
+    }
   });
   const panel = document.querySelector("#nodeShaderScriptDialog .node-shader-script-panel");
   panel?.addEventListener("pointerdown", beginNodeGraphShaderScriptDialogDrag);

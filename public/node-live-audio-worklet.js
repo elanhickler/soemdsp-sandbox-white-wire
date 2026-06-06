@@ -51,6 +51,9 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     this.delayedTriggerStates = new Map();
     this.expAdsrStates = new Map();
     this.fractalBrownianNoiseStates = new Map();
+    this.gpuAdditiveQueues = new Map();
+    this.gpuAdditiveStatusCounter = 0;
+    this.gpuAdditiveUnderruns = 0;
     this.flowerChildEnvelopeFollowerStates = new Map();
     this.highpassStates = new Map();
     this.ladderFilterStates = new Map();
@@ -208,6 +211,10 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       this.setParams(message.nodes, message);
       return;
     }
+    if (message.type === "gpuAdditiveChunk") {
+      this.pushGpuAdditiveChunk(message);
+      return;
+    }
     if (message.type === "setMidiKeyboardSignal") {
       this.setMidiKeyboardSignal(message.signal);
       return;
@@ -257,6 +264,9 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     this.delayedTriggerStates = new Map();
     this.expAdsrStates = new Map();
     this.fractalBrownianNoiseStates = new Map();
+    this.gpuAdditiveQueues = new Map();
+    this.gpuAdditiveStatusCounter = 0;
+    this.gpuAdditiveUnderruns = 0;
     this.flowerChildEnvelopeFollowerStates = new Map();
     this.highpassStates = new Map();
     this.ladderFilterStates = new Map();
@@ -282,6 +292,71 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     this.vactrolEnvelopeStates = new Map();
     this.visualSinks = [];
     this.resetVisualControls();
+  }
+
+  pushGpuAdditiveChunk(message = {}) {
+    if (message.sessionId !== this.sessionId || message.planSerial !== this.planSerial) {
+      return;
+    }
+    const nodeId = String(message.nodeId || "");
+    const samples = message.samples instanceof Float32Array
+      ? message.samples
+      : new Float32Array(message.samples || []);
+    if (!nodeId || samples.length <= 0) {
+      return;
+    }
+    const queue = this.gpuAdditiveQueues.get(nodeId) || {
+      chunks: [],
+      readIndex: 0,
+      version: "",
+    };
+    const version = String(message.version || "");
+    if (queue.version !== version) {
+      queue.chunks = [];
+      queue.readIndex = 0;
+      queue.version = version;
+    }
+    queue.chunks.push(samples);
+    while (queue.chunks.length > 12) {
+      queue.chunks.shift();
+      queue.readIndex = 0;
+    }
+    this.gpuAdditiveQueues.set(nodeId, queue);
+  }
+
+  readGpuAdditiveQueuedSample(nodeId) {
+    const queue = this.gpuAdditiveQueues.get(nodeId);
+    if (!queue?.chunks?.length) {
+      this.gpuAdditiveUnderruns += 1;
+      return null;
+    }
+    const chunk = queue.chunks[0];
+    const sample = Number(chunk[queue.readIndex]) || 0;
+    queue.readIndex += 1;
+    if (queue.readIndex >= chunk.length) {
+      queue.chunks.shift();
+      queue.readIndex = 0;
+    }
+    return sample;
+  }
+
+  postGpuAdditiveStatus() {
+    const queues = [];
+    for (const [nodeId, queue] of this.gpuAdditiveQueues) {
+      queues.push({
+        nodeId,
+        chunks: queue.chunks.length,
+        samples: queue.chunks.reduce((sum, chunk) => sum + chunk.length, 0) - queue.readIndex,
+        version: queue.version,
+      });
+    }
+    this.port.postMessage({
+      queues,
+      sessionId: this.sessionId,
+      type: "gpuAdditiveStatus",
+      underruns: this.gpuAdditiveUnderruns,
+    });
+    this.gpuAdditiveUnderruns = 0;
   }
 
   setPlan(plan, message = {}) {
@@ -3558,7 +3633,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
           nodeId,
           this.wrapValue(phase + Math.PI * 2 * phaseIncrement, 0, Math.PI * 2),
         );
-      } else if (node?.type === "additiveOsc") {
+      } else if (node?.type === "additiveOsc" || node?.type === "gpuAdditiveOsc") {
         const resetState = this.oscResetStates.get(nodeId) || this.createOscResetState();
         this.oscResetStates.set(nodeId, resetState);
         const resetValue = this.safeFilterNumber(mixInput(nodeId, "Reset"), resetState);
@@ -3584,24 +3659,29 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
         const pitchedFrequency = Math.max(0, frequency * (2 ** (pitchInput / 0.1)));
         const incrementInput = this.safeFilterNumber(mixInput(nodeId, "Increment"), null);
         const phaseIncrement = (pitchedFrequency / safeRate) + incrementInput;
-        const additiveSample = this.additiveOscillatorSample(
-          phase + phaseOffset,
-          {
-            frequency: pitchedFrequency,
-            dampingAlgorithm: this.readEffectiveParameter(node, "dampingAlgorithm", 0, frame, frames, frameValues),
-            dampingCurve: this.readEffectiveParameter(node, "dampingCurve", 0, frame, frames, frameValues),
-            dampingFilterFrequency: this.readEffectiveParameter(node, "dampingFilterFrequency", 20000, frame, frames, frameValues),
-            harmonics: this.readEffectiveParameter(node, "harmonics", 32, frame, frames, frameValues),
-            harmonicPhaseAdd: this.readEffectiveParameter(node, "harmonicPhaseAdd", 0, frame, frames, frameValues),
-            harmonicPhaseAlgorithm: this.readEffectiveParameter(node, "harmonicPhaseAlgorithm", 0, frame, frames, frameValues),
-            harmonicPhaseCurve: this.readEffectiveParameter(node, "harmonicPhaseCurve", 1, frame, frames, frameValues),
-            harmonicPhaseMultiply: this.readEffectiveParameter(node, "harmonicPhaseMultiply", 0, frame, frames, frameValues),
-            level: this.readEffectiveParameter(node, "level", 0.35, frame, frames, frameValues),
-            modA: this.readEffectiveParameter(node, "modA", 0.5, frame, frames, frameValues),
-            waveform: this.readEffectiveParameter(node, "waveform", 1, frame, frames, frameValues),
-          },
-          safeRate,
-        );
+        const queuedAdditiveSample = node?.type === "gpuAdditiveOsc"
+          ? this.readGpuAdditiveQueuedSample(nodeId)
+          : null;
+        const additiveSample = queuedAdditiveSample !== null
+          ? queuedAdditiveSample
+          : this.additiveOscillatorSample(
+            phase + phaseOffset,
+            {
+              frequency: pitchedFrequency,
+              dampingAlgorithm: this.readEffectiveParameter(node, "dampingAlgorithm", 0, frame, frames, frameValues),
+              dampingCurve: this.readEffectiveParameter(node, "dampingCurve", 0, frame, frames, frameValues),
+              dampingFilterFrequency: this.readEffectiveParameter(node, "dampingFilterFrequency", 20000, frame, frames, frameValues),
+              harmonics: this.readEffectiveParameter(node, "harmonics", 32, frame, frames, frameValues),
+              harmonicPhaseAdd: this.readEffectiveParameter(node, "harmonicPhaseAdd", 0, frame, frames, frameValues),
+              harmonicPhaseAlgorithm: this.readEffectiveParameter(node, "harmonicPhaseAlgorithm", 0, frame, frames, frameValues),
+              harmonicPhaseCurve: this.readEffectiveParameter(node, "harmonicPhaseCurve", 1, frame, frames, frameValues),
+              harmonicPhaseMultiply: this.readEffectiveParameter(node, "harmonicPhaseMultiply", 0, frame, frames, frameValues),
+              level: this.readEffectiveParameter(node, "level", 0.35, frame, frames, frameValues),
+              modA: this.readEffectiveParameter(node, "modA", 0.5, frame, frames, frameValues),
+              waveform: this.readEffectiveParameter(node, "waveform", 1, frame, frames, frameValues),
+            },
+            safeRate,
+          );
         value = { Out: additiveSample };
         this.phases.set(
           nodeId,
@@ -4357,6 +4437,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       this.meterPeak = Math.max(this.meterPeak, Math.abs(left), Math.abs(right));
       this.meterSquareSum += (left * left + right * right) * 0.5;
       this.meterSamples += 1;
+      this.gpuAdditiveStatusCounter += 1;
       for (let channelIndex = 0; channelIndex < output.length; channelIndex += 1) {
         output[channelIndex][frame] = channelIndex === 0 ? left : right;
       }
@@ -4391,6 +4472,10 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       this.meterProtectionMuteCount = 0;
       this.meterSamples = 0;
       this.meterSquareSum = 0;
+    }
+    if (this.gpuAdditiveStatusCounter >= sampleRate / 2) {
+      this.gpuAdditiveStatusCounter = 0;
+      this.postGpuAdditiveStatus();
     }
     return true;
   }

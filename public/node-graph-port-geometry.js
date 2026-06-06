@@ -65,20 +65,54 @@ function nodeGraphElementPatchPointClientCenter(element, io = null) {
     return { x: 0, y: 0 };
   }
   const rect = element.getBoundingClientRect();
+  if (element.classList?.contains("node-param-port")) {
+    return nodeGraphParameterPatchPointClientCenter(element, rect, io);
+  }
+  return nodeGraphCssPatchPointClientCenter(element, rect, io);
+}
+
+function nodeGraphCssPatchPointClientCenter(element, rect, io = null) {
   const style = getComputedStyle(element);
   const cssX = style.getPropertyValue("--node-patch-point-x").trim();
   const percentMatch = cssX.match(/^(-?\d+(?:\.\d+)?)%$/);
+  const pixelMatch = cssX.match(/^(-?\d+(?:\.\d+)?)px$/);
+  const fallbackRatio = io === "output"
+    ? 1
+    : io === "input" || io === "modulation"
+      ? 0
+      : 0.5;
   const xRatio = percentMatch
     ? Number(percentMatch[1]) / 100
-    : io === "output"
-      ? 1
-      : io === "input" || io === "modulation"
-        ? 0
-        : 0.5;
+    : fallbackRatio;
   return {
-    x: rect.left + rect.width * Math.max(0, Math.min(1, Number.isFinite(xRatio) ? xRatio : 0.5)),
+    x: pixelMatch
+      ? rect.left + Number(pixelMatch[1])
+      : rect.left + rect.width * Math.max(0, Math.min(1, Number.isFinite(xRatio) ? xRatio : 0.5)),
     y: rect.top + rect.height * 0.5,
   };
+}
+
+function nodeGraphParameterPatchPointClientCenter(element, rect, io = null) {
+  const side = nodeGraphParameterPatchPointSide(element, io);
+  const x = side === "right"
+    ? rect.right
+    : side === "left"
+      ? rect.left
+      : rect.left + rect.width * 0.5;
+  return {
+    x,
+    y: rect.top + rect.height * 0.5,
+  };
+}
+
+function nodeGraphParameterPatchPointSide(element, io = null) {
+  if (element.classList.contains("parameter-output") || io === "output") {
+    return "right";
+  }
+  if (element.classList.contains("modulation-input") || io === "modulation") {
+    return "left";
+  }
+  return null;
 }
 
 function nodeGraphCssColor(property, fallback) {

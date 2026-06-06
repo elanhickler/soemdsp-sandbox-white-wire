@@ -50,23 +50,27 @@ function normalizeNodeGraphPatchGrid(grid = {}) {
 }
 
 const nodeGraphScopeShaderDefaultSource = `video.input     = ~;
-
-
+scope.mode      = 1d_full;
+scope.sync      = inherit;
+scope.cycles    = 1.7639;
+scope.zoom      = 1.0;
+scope.syncSpeed = 1.0;
 dot1.color      = dot1.global.color;
 dot1.size       = 1.0 * dot1.global.size;
 dot1.blur       = 0.00;
 dot1.brightness = 4.50;
-
-
 dot2.color      = dot2.global.color;
 dot2.size       = 1.0 * dot2.global.size;
 dot2.blur       = 0.00;
 dot2.brightness = 0.45;
-
-
+// Scope modes: 1d_full, 1d_scan
+// Sync options: inherit, on, off
 // Blend options: laser, led, light, paint, solid
 // Change the word after = to switch modes.
 blend.mode      = laser;`;
+
+const nodeGraphScopeShaderModes = Object.freeze(["1d_full", "1d_scan"]);
+const nodeGraphScopeShaderSyncModes = Object.freeze(["inherit", "on", "off"]);
 
 function normalizeNodeGraphScopeShaderVideoInput(value = "~") {
   const text = String(value || "~").trim().toLowerCase();
@@ -84,6 +88,45 @@ function parseNodeGraphScopeShaderVideoInput(source = "") {
   return normalizeNodeGraphScopeShaderVideoInput(match?.[1] || "~");
 }
 
+function normalizeNodeGraphScopeShaderMode(value = "1d_full") {
+  const text = String(value || "1d_full").trim().toLowerCase();
+  return nodeGraphScopeShaderModes.includes(text) ? text : "1d_full";
+}
+
+function parseNodeGraphScopeShaderMode(source = "") {
+  const match = String(source || "").match(/(?:^|\n)\s*scope\.mode\s*=\s*(1d_full|1d_scan)\s*;/i);
+  return normalizeNodeGraphScopeShaderMode(match?.[1] || "1d_full");
+}
+
+function normalizeNodeGraphScopeShaderSync(value = "inherit") {
+  const text = String(value || "inherit").trim().toLowerCase();
+  return nodeGraphScopeShaderSyncModes.includes(text) ? text : "inherit";
+}
+
+function parseNodeGraphScopeShaderSync(source = "") {
+  const match = String(source || "").match(/(?:^|\n)\s*scope\.sync\s*=\s*(inherit|on|off)\s*;/i);
+  return normalizeNodeGraphScopeShaderSync(match?.[1] || "inherit");
+}
+
+function normalizeNodeGraphScopeShaderNumber(value, fallback, min, max) {
+  const number = Number(value);
+  const safeFallback = Number.isFinite(Number(fallback)) ? Number(fallback) : 0;
+  const safeMin = Number.isFinite(Number(min)) ? Number(min) : -Infinity;
+  const safeMax = Number.isFinite(Number(max)) ? Number(max) : Infinity;
+  return Number.isFinite(number)
+    ? Math.max(safeMin, Math.min(safeMax, number))
+    : safeFallback;
+}
+
+function parseNodeGraphScopeShaderNumber(source = "", key = "", fallback = 0, min = -Infinity, max = Infinity) {
+  const safeKey = String(key || "").replace(/[^\w]/g, "");
+  if (!safeKey) {
+    return normalizeNodeGraphScopeShaderNumber(fallback, fallback, min, max);
+  }
+  const match = String(source || "").match(new RegExp(`(?:^|\\n)\\s*scope\\.${safeKey}\\s*=\\s*(-?\\d+(?:\\.\\d+)?)\\s*;`, "i"));
+  return normalizeNodeGraphScopeShaderNumber(match?.[1], fallback, min, max);
+}
+
 function normalizeNodeGraphScopeShader(scopeShader = {}) {
   const source = typeof scopeShader === "string"
     ? scopeShader
@@ -93,12 +136,22 @@ function normalizeNodeGraphScopeShader(scopeShader = {}) {
   const language = String(scopeShader?.language || "scope-js").trim().slice(0, 32) || "scope-js";
   const normalizedSource = String(source || "").trim().slice(0, 100000);
   const normalizedVideoInput = parseNodeGraphScopeShaderVideoInput(normalizedSource);
+  const normalizedMode = parseNodeGraphScopeShaderMode(normalizedSource);
+  const normalizedSync = parseNodeGraphScopeShaderSync(normalizedSource);
+  const normalizedCycles = parseNodeGraphScopeShaderNumber(normalizedSource, "cycles", 1.7639, 1, 128);
+  const normalizedZoom = parseNodeGraphScopeShaderNumber(normalizedSource, "zoom", 1, 0.01, 50);
+  const normalizedSyncSpeed = parseNodeGraphScopeShaderNumber(normalizedSource, "syncSpeed", 1, 0, 50);
   return {
+    cycles: normalizedCycles,
     enabled: scopeShader?.enabled !== false,
     kind: "scopeShader",
     language,
+    mode: normalizedMode,
     source: normalizedSource || nodeGraphScopeShaderDefaultSource,
+    sync: normalizedSync,
+    syncSpeed: normalizedSyncSpeed,
     videoInput: normalizedVideoInput,
+    zoom: normalizedZoom,
   };
 }
 

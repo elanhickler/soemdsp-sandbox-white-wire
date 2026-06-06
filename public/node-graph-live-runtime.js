@@ -452,6 +452,149 @@ function renderNodeGraphLiveScriptBlock(event) {
   }
 }
 
+function nodeGraphStopGpuAdditiveProducer() {
+  const state = nodeGraphMvp.live.gpuAdditive;
+  if (!state) {
+    return;
+  }
+  if (state.timer) {
+    clearInterval(state.timer);
+  }
+  state.nodes = new Map();
+  state.timer = 0;
+}
+
+function nodeGraphGpuAdditiveNodeParam(node, key, fallback) {
+  const value = Number(node?.params?.[key]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function nodeGraphGpuAdditiveNodeVersion(node, sampleRate) {
+  const keys = [
+    "frequency",
+    "harmonics",
+    "level",
+    "waveform",
+    "modA",
+    "harmonicPhaseAdd",
+    "harmonicPhaseAlgorithm",
+    "harmonicPhaseCurve",
+    "harmonicPhaseMultiply",
+    "dampingAlgorithm",
+    "dampingCurve",
+    "dampingFilterFrequency",
+  ];
+  return [
+    node?.id || "",
+    Math.round(Number(sampleRate) || 0),
+    ...keys.map((key) => `${key}:${nodeGraphGpuAdditiveNodeParam(node, key, "")}`),
+  ].join("|");
+}
+
+function nodeGraphGpuAdditiveChunkSafe(plan, node) {
+  const nodeId = String(node?.id || "");
+  if (!nodeId) {
+    return false;
+  }
+  const hasSignalInput = (plan.connections || []).some((connection) =>
+    connection.destinationNode === nodeId ||
+    connection.toNode === nodeId ||
+    connection.targetNode === nodeId
+  );
+  const hasModulationInput = (plan.modulations || []).some((modulation) =>
+    modulation.destinationNode === nodeId ||
+    modulation.toNode === nodeId ||
+    modulation.targetNode === nodeId
+  );
+  return !hasSignalInput && !hasModulationInput;
+}
+
+function nodeGraphGpuAdditiveParams(node) {
+  return {
+    dampingAlgorithm: nodeGraphGpuAdditiveNodeParam(node, "dampingAlgorithm", 0),
+    dampingCurve: nodeGraphGpuAdditiveNodeParam(node, "dampingCurve", 0),
+    dampingFilterFrequency: nodeGraphGpuAdditiveNodeParam(node, "dampingFilterFrequency", 20000),
+    frequency: Math.max(0, nodeGraphGpuAdditiveNodeParam(node, "frequency", 220)),
+    harmonicPhaseAdd: nodeGraphGpuAdditiveNodeParam(node, "harmonicPhaseAdd", 0),
+    harmonicPhaseAlgorithm: nodeGraphGpuAdditiveNodeParam(node, "harmonicPhaseAlgorithm", 0),
+    harmonicPhaseCurve: nodeGraphGpuAdditiveNodeParam(node, "harmonicPhaseCurve", 1),
+    harmonicPhaseMultiply: nodeGraphGpuAdditiveNodeParam(node, "harmonicPhaseMultiply", 0),
+    harmonics: nodeGraphGpuAdditiveNodeParam(node, "harmonics", 256),
+    level: nodeGraphGpuAdditiveNodeParam(node, "level", 0.35),
+    modA: nodeGraphGpuAdditiveNodeParam(node, "modA", 0.5),
+    phase: nodeGraphPhaseRadians(nodeGraphGpuAdditiveNodeParam(node, "phase", 0)),
+    waveform: nodeGraphGpuAdditiveNodeParam(node, "waveform", 1),
+  };
+}
+
+function nodeGraphStartGpuAdditiveProducer(plan, audio) {
+  nodeGraphStopGpuAdditiveProducer();
+  if (!nodeGraphMvp.live.usesWorklet || !nodeGraphMvp.live.node?.port) {
+    return;
+  }
+  const sampleRate = Math.max(1, Number(audio?.clampedEngineSampleRate) || nodeGraphMvp.sampleRate || 44100);
+  const nodes = (plan.nodes || [])
+    .filter((node) => node?.type === "gpuAdditiveOsc" && nodeGraphGpuAdditiveChunkSafe(plan, node));
+  if (!nodes.length || typeof nodeGraphGpuAdditiveCpuRender !== "function") {
+    return;
+  }
+  const producer = nodeGraphMvp.live.gpuAdditive;
+  const chunkFrames = 1024;
+  const targetChunks = 8;
+  producer.nodes = new Map(nodes.map((node) => [node.id, {
+    phase: nodeGraphPhaseRadians(nodeGraphGpuAdditiveNodeParam(node, "phase", 0)),
+    queueChunks: 0,
+    rendering: false,
+    version: nodeGraphGpuAdditiveNodeVersion(node, sampleRate),
+  }]));
+
+  const produce = () => {
+    if (!nodeGraphMvp.live.node?.port || nodeGraphMvp.live.sessionId <= 0) {
+      nodeGraphStopGpuAdditiveProducer();
+      return;
+    }
+    for (const node of nodes) {
+      const state = producer.nodes.get(node.id);
+      if (!state || state.rendering || state.queueChunks >= targetChunks) {
+        continue;
+      }
+      const version = nodeGraphGpuAdditiveNodeVersion(node, sampleRate);
+      if (state.version !== version) {
+        state.version = version;
+        state.phase = nodeGraphPhaseRadians(nodeGraphGpuAdditiveNodeParam(node, "phase", 0));
+        state.queueChunks = 0;
+      }
+      state.rendering = true;
+      try {
+        const params = {
+          ...nodeGraphGpuAdditiveParams(node),
+          phase: state.phase,
+        };
+        const samples = nodeGraphGpuAdditiveCpuRender(params, chunkFrames, sampleRate);
+        state.phase = wrapNodeSliderValue(
+          state.phase + Math.PI * 2 * params.frequency * (chunkFrames / sampleRate),
+          0,
+          Math.PI * 2,
+        );
+        state.queueChunks += 1;
+        nodeGraphMvp.live.node.port.postMessage({
+          nodeId: node.id,
+          planSerial: nodeGraphMvp.live.planSerial,
+          samples,
+          sessionId: nodeGraphMvp.live.sessionId,
+          type: "gpuAdditiveChunk",
+          version,
+        }, [samples.buffer]);
+      } finally {
+        state.rendering = false;
+      }
+    }
+  };
+
+  produce();
+  producer.timer = setInterval(produce, 25);
+}
+
 function handleNodeGraphLiveWorkletMessage(event) {
   const message = event.data || {};
   if (message.type === "meter") {
@@ -551,6 +694,23 @@ function handleNodeGraphLiveWorkletMessage(event) {
         y: Number(message.y) || 0,
       };
     }
+  } else if (message.type === "gpuAdditiveStatus") {
+    if (message.sessionId !== nodeGraphMvp.live.sessionId || !nodeGraphMvp.live.node) {
+      return;
+    }
+    const producer = nodeGraphMvp.live.gpuAdditive;
+    for (const queue of message.queues || []) {
+      const state = producer?.nodes?.get?.(queue.nodeId);
+      if (state) {
+        state.queueChunks = Math.max(0, Number(queue.chunks) || 0);
+      }
+    }
+    if (nodeGraphMvp.live.lastEvidence) {
+      nodeGraphMvp.live.lastEvidence.gpuAdditive = {
+        queues: message.queues || [],
+        underruns: Number(message.underruns) || 0,
+      };
+    }
   } else if (message.type === "paramsApplied") {
     if (
       message.sessionId !== nodeGraphMvp.live.sessionId ||
@@ -620,6 +780,7 @@ function sendNodeGraphLivePlan() {
         sessionId: nodeGraphMvp.live.sessionId,
         type: "setPlan",
       });
+      nodeGraphStartGpuAdditiveProducer(plan, audio);
     } else if (nodeGraphMvp.live.runtime) {
       updateNodeGraphLiveRuntimePlan(nodeGraphMvp.live.runtime, plan);
       setNodeGraphLiveEvidence("plan-applied", nodeGraphMvp.live.planEvidence);
@@ -677,6 +838,8 @@ function sendNodeGraphLiveParameterUpdate() {
         sessionId: nodeGraphMvp.live.sessionId,
         type: "setParams",
       });
+      sendNodeGraphLivePlan();
+      return;
     } else if (nodeGraphMvp.live.runtime) {
       updateNodeGraphLiveRuntimeParameters(nodeGraphMvp.live.runtime, nodes);
       setNodeGraphLiveEvidence("params-applied", {

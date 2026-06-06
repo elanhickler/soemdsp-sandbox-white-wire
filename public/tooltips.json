@@ -17,7 +17,8 @@
     "pan": "Mouse: middle-drag to move the modular view freely. Ctrl+middle-drag or Alt+middle-drag slowly zooms, including over modules and controls. Right-click empty space opens the add module dialog. Ctrl+Shift+G aligns the view to the grid.",
     "resize": "Mouse: drag to resize workspace by grid units.",
     "resizeTitle": "Resize modular workspace",
-    "backToFull": "Return to full modular view"
+    "backToFull": "Return to full modular view",
+    "copyViewportImage": "Copy the visible modular viewport as a PNG image"
   },
   "view": {
     "patchSettings": "Patch settings",

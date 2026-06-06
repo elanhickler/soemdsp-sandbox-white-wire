@@ -116,6 +116,7 @@
     "moduleScopeLineThickness": 2,
     "moduleScopeDiscontinuitySkipSamples": 1,
     "moduleScopeOverdrawPoints": 1,
+    "moduleScopeOverdrawFade": 0.5,
     "sliderLayout": "text-inside",
     "sliderAmountVisible": false,
     "sliderPositionVisible": true
