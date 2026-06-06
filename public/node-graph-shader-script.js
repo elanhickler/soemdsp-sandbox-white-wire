@@ -1226,6 +1226,76 @@ function nodeGraphShaderScriptUtilityCameraId(nodeId = nodeGraphShaderScriptStat
   return `scope-shader-${String(nodeId || "target").trim() || "target"}`;
 }
 
+function copyNodeGraphShaderScriptScopeCanvasCrop(sourceCanvas, sourceRect, targetSurface) {
+  if (!sourceCanvas || !sourceRect || !targetSurface) {
+    return false;
+  }
+  const sourceCanvasRect = sourceCanvas.getBoundingClientRect();
+  if (
+    sourceCanvasRect.width <= 0 ||
+    sourceCanvasRect.height <= 0 ||
+    sourceCanvas.width <= 0 ||
+    sourceCanvas.height <= 0
+  ) {
+    return false;
+  }
+  const scaleX = sourceCanvas.width / sourceCanvasRect.width;
+  const scaleY = sourceCanvas.height / sourceCanvasRect.height;
+  const sourceX = clampNodeSliderValue((sourceRect.left - sourceCanvasRect.left) * scaleX, 0, Math.max(0, sourceCanvas.width - 1));
+  const sourceY = clampNodeSliderValue((sourceRect.top - sourceCanvasRect.top) * scaleY, 0, Math.max(0, sourceCanvas.height - 1));
+  const sourceWidth = Math.max(1, Math.min(sourceCanvas.width - sourceX, sourceRect.width * scaleX));
+  const sourceHeight = Math.max(1, Math.min(sourceCanvas.height - sourceY, sourceRect.height * scaleY));
+  const cropCanvas = document.createElement("canvas");
+  cropCanvas.className = "node-shader-script-scope-crop-canvas";
+  cropCanvas.width = Math.max(1, Math.ceil(sourceWidth));
+  cropCanvas.height = Math.max(1, Math.ceil(sourceHeight));
+  cropCanvas.style.position = "absolute";
+  cropCanvas.style.inset = "0";
+  cropCanvas.style.width = "100%";
+  cropCanvas.style.height = "100%";
+  cropCanvas.style.pointerEvents = "none";
+  try {
+    cropCanvas.getContext("2d")?.drawImage(
+      sourceCanvas,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      cropCanvas.width,
+      cropCanvas.height,
+    );
+  } catch {
+    return false;
+  }
+  targetSurface.append(cropCanvas);
+  return true;
+}
+
+function decorateNodeGraphShaderScriptScopePreviewClone(clone) {
+  const node = nodeGraphShaderScriptDialogScopeNode();
+  const nodeId = node?.id || "";
+  if (!clone || !nodeId) {
+    return;
+  }
+  const liveNode = nodeGraphNodeElement(nodeId);
+  const liveScope = liveNode?.querySelector(".node-module-scope-window, .node-led-face");
+  const cloneNode = clone.querySelector(`.dsp-node[data-node="${CSS.escape(nodeId)}"]`);
+  const cloneScope = cloneNode?.querySelector(".node-module-scope-window, .node-led-face");
+  const cloneSurface = cloneScope?.querySelector(".node-module-scope-window-surface") || cloneScope;
+  if (!liveScope || !cloneSurface) {
+    return;
+  }
+  clone.querySelectorAll(".node-module-scope-canvas, .node-module-scope-light-canvas").forEach((canvas) => {
+    canvas.style.display = "none";
+  });
+  cloneSurface.querySelectorAll(".node-shader-script-scope-crop-canvas").forEach((canvas) => canvas.remove());
+  const sourceRect = liveScope.getBoundingClientRect();
+  copyNodeGraphShaderScriptScopeCanvasCrop(document.getElementById("nodeModuleScopeCanvas"), sourceRect, cloneSurface);
+  copyNodeGraphShaderScriptScopeCanvasCrop(document.getElementById("nodeModuleScopeLightCanvas"), sourceRect, cloneSurface);
+}
+
 function drawNodeGraphShaderScriptScopePreview() {
   nodeGraphShaderScriptState.previewFrame = 0;
   const panel = document.getElementById("nodeShaderScriptPreviewPanel");
@@ -1275,6 +1345,7 @@ function drawNodeGraphShaderScriptScopePreview() {
   try {
     renderNodeGraphCameraFeed({
       camera,
+      decorateClone: decorateNodeGraphShaderScriptScopePreviewClone,
       surface,
       viewport,
     });
