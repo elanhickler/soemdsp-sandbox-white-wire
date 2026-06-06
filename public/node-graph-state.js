@@ -131,6 +131,7 @@ const nodeGraphMvp = {
   moduleStoreDepartment: "",
   modulations: nodeGraphDefaultPatch.modulations.map((modulation) => ({ ...modulation })),
   graphNodeDragging: null,
+  graphSelectedNodeIndices: new Map(),
   nodeDragging: null,
   nodeTypeCounts: {
     audioInput: 0,

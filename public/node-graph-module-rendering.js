@@ -172,6 +172,7 @@ function createNodeGraphModuleElement(type, node) {
     const graphSection = document.createElement("div");
     graphSection.className = "node-module-graph-display";
     graphSection.dataset.graphNode = node;
+    graphSection.tabIndex = 0;
     graphSection.setAttribute("aria-label", `${nodeGraphNodeDisplayName(node)} graph display`);
     article.append(graphSection);
     renderNodeGraphGraphDisplay(graphSection, patchNode.graph);

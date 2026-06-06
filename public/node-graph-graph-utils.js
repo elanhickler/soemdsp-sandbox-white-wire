@@ -171,6 +171,24 @@ function nodeGraphGraphNodeIndexFromValue(graph, value) {
   return Math.max(0, Math.min(maxIndex, Number.isFinite(index) ? index : maxIndex));
 }
 
+function nodeGraphGraphSelectionState() {
+  if (!(nodeGraphMvp.graphSelectedNodeIndices instanceof Map)) {
+    nodeGraphMvp.graphSelectedNodeIndices = new Map();
+  }
+  return nodeGraphMvp.graphSelectedNodeIndices;
+}
+
+function nodeGraphGraphSelectedNodeIndex(nodeId, graph, fallback = 0) {
+  const state = nodeGraphGraphSelectionState();
+  return nodeGraphGraphNodeIndexFromValue(graph, state.has(nodeId) ? state.get(nodeId) : fallback);
+}
+
+function setNodeGraphGraphSelectedNodeIndex(nodeId, graph, index) {
+  const selectedIndex = nodeGraphGraphNodeIndexFromValue(graph, index);
+  nodeGraphGraphSelectionState().set(nodeId, selectedIndex);
+  return selectedIndex;
+}
+
 function nodeGraphGraphContourHandlePoint(graph, index) {
   const left = graph.nodes[index - 1];
   const right = graph.nodes[index];
@@ -206,11 +224,15 @@ function nodeGraphGraphContourFromPoint(graph, index, point) {
   return normalizeNodeGraphGraphNumber(((point.y - midpoint.y) / range) * direction * 1.8, 0, -0.999, 0.999);
 }
 
-function renderNodeGraphGraphDisplay(element, graphValue) {
+function renderNodeGraphGraphDisplay(element, graphValue, selectedIndex = null) {
   if (!element) {
     return;
   }
   const graph = normalizeNodeGraphGraph(graphValue);
+  const nodeId = element.dataset.graphNode || "";
+  const activeIndex = selectedIndex === null
+    ? nodeGraphGraphSelectedNodeIndex(nodeId, graph, 0)
+    : nodeGraphGraphNodeIndexFromValue(graph, selectedIndex);
   const cursor = nodeGraphGraphPointToSvg(graph.cursorX, 0);
   element.replaceChildren();
   const svg = createNodeGraphGraphSvgElement("svg", {
@@ -253,27 +275,30 @@ function renderNodeGraphGraphDisplay(element, graphValue) {
       return;
     }
     svg.append(createNodeGraphGraphSvgElement("circle", {
-      class: "node-module-graph-contour-handle",
+      class: `node-module-graph-contour-handle${index === activeIndex ? " selected" : ""}`,
       cx: point.x.toFixed(3),
       cy: point.y.toFixed(3),
       "data-graph-contour-index": String(index),
+      "data-selected": index === activeIndex ? "true" : "false",
       r: "2.7",
     }));
   });
   graph.nodes.forEach((node, index) => {
     const point = nodeGraphGraphPointToSvg(node.x, node.y);
     svg.append(createNodeGraphGraphSvgElement("circle", {
-      class: "node-module-graph-node-hit",
+      class: `node-module-graph-node-hit${index === activeIndex ? " selected" : ""}`,
       cx: point.x.toFixed(3),
       cy: point.y.toFixed(3),
       "data-graph-node-index": String(index),
+      "data-selected": index === activeIndex ? "true" : "false",
       r: "5.4",
     }));
     svg.append(createNodeGraphGraphSvgElement("circle", {
-      class: "node-module-graph-node",
+      class: `node-module-graph-node${index === activeIndex ? " selected" : ""}`,
       cx: point.x.toFixed(3),
       cy: point.y.toFixed(3),
       "data-graph-node-index": String(index),
+      "data-selected": index === activeIndex ? "true" : "false",
       r: "2.2",
     }));
   });
@@ -281,9 +306,11 @@ function renderNodeGraphGraphDisplay(element, graphValue) {
 }
 
 function syncNodeGraphGraphElement(moduleElement, patchNode) {
+  const graph = normalizeNodeGraphGraph(patchNode?.graph);
   renderNodeGraphGraphDisplay(
     moduleElement?.querySelector?.(".node-module-graph-display"),
-    patchNode?.graph,
+    graph,
+    nodeGraphGraphSelectedNodeIndex(patchNode?.id || "", graph, 0),
   );
 }
 
@@ -315,6 +342,8 @@ function beginNodeGraphGraphNodeDrag(event) {
   const svg = circle.closest(".node-module-graph-svg");
   const graph = normalizeNodeGraphGraph(patchNode.graph);
   const index = nodeGraphGraphNodeIndexFromValue(graph, circle.dataset.graphNodeIndex);
+  display?.focus?.({ preventScroll: true });
+  setNodeGraphGraphSelectedNodeIndex(nodeId, graph, index);
   nodeGraphMvp.graphNodeDragging = {
     display,
     graph,
@@ -339,6 +368,8 @@ function beginNodeGraphGraphContourDrag(event, contour) {
   const svg = contour.closest(".node-module-graph-svg");
   const graph = normalizeNodeGraphGraph(patchNode.graph);
   const index = nodeGraphGraphNodeIndexFromValue(graph, contour.dataset.graphContourIndex);
+  display?.focus?.({ preventScroll: true });
+  setNodeGraphGraphSelectedNodeIndex(nodeId, graph, index);
   nodeGraphMvp.graphNodeDragging = {
     display,
     graph,
@@ -365,6 +396,7 @@ function addNodeGraphGraphNodeFromDisplayEvent(event) {
   if (!display || !patchNode || patchNode.type !== "graph") {
     return;
   }
+  display?.focus?.({ preventScroll: true });
   const point = nodeGraphGraphSvgToGraphPoint(svg, event.clientX, event.clientY);
   const patch = cloneNodeGraphPatch(nodeGraphMvp.patch);
   const targetNode = patch.nodes.find((node) => node.id === nodeId);
@@ -387,6 +419,8 @@ function addNodeGraphGraphNodeFromDisplayEvent(event) {
       ? index
       : bestIndex
   ), 0);
+  setNodeGraphGraphSelectedNodeIndex(nodeId, normalized, selectedIndex);
+  syncNodeGraphGraphElement(nodeGraphNodeElement(nodeId), { ...targetNode, graph: normalized });
   syncNodeGraphGraphControls(normalized, selectedIndex);
   event.preventDefault();
   event.stopPropagation();
@@ -406,7 +440,8 @@ function dragNodeGraphGraphNode(event) {
       shape: current.shape === "linear" ? "rational" : current.shape,
     }, drag.index);
     drag.graph = normalizeNodeGraphGraph(drag.graph);
-    renderNodeGraphGraphDisplay(drag.display, drag.graph);
+    setNodeGraphGraphSelectedNodeIndex(drag.nodeId, drag.graph, drag.index);
+    renderNodeGraphGraphDisplay(drag.display, drag.graph, drag.index);
     drag.svg = drag.display.querySelector(".node-module-graph-svg");
     if (nodeGraphModuleActionTargetNodeId() === drag.nodeId) {
       syncNodeGraphGraphControls(drag.graph, drag.index);
@@ -424,7 +459,8 @@ function dragNodeGraphGraphNode(event) {
   }, drag.index);
   drag.graph = normalizeNodeGraphGraph(drag.graph);
   drag.index = nodeGraphGraphNodeIndexFromValue(drag.graph, drag.index);
-  renderNodeGraphGraphDisplay(drag.display, drag.graph);
+  setNodeGraphGraphSelectedNodeIndex(drag.nodeId, drag.graph, drag.index);
+  renderNodeGraphGraphDisplay(drag.display, drag.graph, drag.index);
   drag.svg = drag.display.querySelector(".node-module-graph-svg");
   if (nodeGraphModuleActionTargetNodeId() === drag.nodeId) {
     syncNodeGraphGraphControls(drag.graph, drag.index);
@@ -445,8 +481,40 @@ function endNodeGraphGraphNodeDrag(event) {
   if (targetNode?.type === "graph") {
     targetNode.graph = normalizeNodeGraphGraph(drag.graph);
     commitNodeGraphPatch(patch, { status: "graph node moved" });
+    setNodeGraphGraphSelectedNodeIndex(drag.nodeId, targetNode.graph, drag.index);
     syncNodeGraphGraphControls(targetNode.graph, drag.index);
   }
   event.preventDefault();
   event.stopPropagation();
+}
+
+function removeSelectedNodeGraphGraphNodeFromDisplay(display) {
+  const moduleElement = display?.closest?.(".dsp-node");
+  const nodeId = moduleElement?.dataset.node || "";
+  const sourceNode = nodeGraphPatchNode(nodeId);
+  if (!display || !sourceNode || sourceNode.type !== "graph") {
+    return false;
+  }
+  const graph = normalizeNodeGraphGraph(sourceNode.graph);
+  if (graph.nodes.length <= 2) {
+    return false;
+  }
+  const selectedIndex = nodeGraphGraphSelectedNodeIndex(nodeId, graph, graph.nodes.length - 1);
+  graph.nodes.splice(selectedIndex, 1);
+  const patch = cloneNodeGraphPatch(nodeGraphMvp.patch);
+  const targetNode = patch.nodes.find((node) => node.id === nodeId);
+  if (!targetNode || targetNode.type !== "graph") {
+    return false;
+  }
+  targetNode.graph = graph;
+  const nextIndex = setNodeGraphGraphSelectedNodeIndex(nodeId, graph, Math.max(0, selectedIndex - 1));
+  commitNodeGraphPatch(patch, { status: "graph node removed" });
+  syncNodeGraphGraphControls(targetNode.graph, nextIndex);
+  return true;
+}
+
+function removeFocusedNodeGraphGraphNode() {
+  return removeSelectedNodeGraphGraphNodeFromDisplay(
+    document.activeElement?.closest?.(".node-module-graph-display"),
+  );
 }

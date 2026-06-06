@@ -168,5 +168,9 @@ function handleNodeGraphKeydown(event) {
     return;
   }
 
+  if (removeFocusedNodeGraphGraphNode()) {
+    event.preventDefault();
+    return;
+  }
   deleteSelectedNodeGraphItem();
 }

@@ -734,6 +734,11 @@ function renderNodeGraphGraphNodeList(graph, selectedIndex = selectedNodeGraphGr
 function syncNodeGraphGraphControls(graph, selectedIndex = selectedNodeGraphGraphIndex(graph)) {
   const graphData = normalizeNodeGraphGraph(graph);
   const index = selectedNodeGraphGraphIndex(graphData, selectedIndex);
+  const nodeId = nodeGraphModuleActionTargetNodeId();
+  if (nodeGraphPatchNode(nodeId)?.type === "graph") {
+    setNodeGraphGraphSelectedNodeIndex(nodeId, graphData, index);
+    syncNodeGraphGraphElement(nodeGraphNodeElement(nodeId), { id: nodeId, graph: graphData });
+  }
   const node = graphData.nodes[index] || graphData.nodes.at(-1);
   populateNodeGraphGraphNodeIndexSelect(graphData, index);
   renderNodeGraphGraphNodeList(graphData, index);
@@ -894,6 +899,7 @@ function removeNodeGraphGraphNodeFromContext() {
   const selectedIndex = selectedNodeGraphGraphIndex(graph);
   graph.nodes.splice(selectedIndex, 1);
   targetNode.graph = graph;
+  setNodeGraphGraphSelectedNodeIndex(targetNode.id, graph, Math.max(0, selectedIndex - 1));
   commitNodeGraphGraphEdit(patch, targetNode, "graph node removed", {
     selectedIndex: Math.max(0, selectedIndex - 1),
   });

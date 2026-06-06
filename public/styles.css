@@ -6714,6 +6714,11 @@ audio {
   background: #020609;
 }
 
+.node-module-graph-display:focus-visible {
+  outline: 1px solid rgba(255, 236, 181, 0.58);
+  outline-offset: -2px;
+}
+
 .node-module-graph-svg {
   display: block;
   width: 100%;
@@ -6752,11 +6757,22 @@ audio {
   touch-action: none;
 }
 
+.node-module-graph-contour-handle.selected {
+  stroke: rgba(255, 241, 169, 0.96);
+  stroke-width: 1.4;
+}
+
 .node-module-graph-node {
   fill: rgba(246, 246, 218, 0.94);
   stroke: rgba(7, 10, 13, 0.9);
   stroke-width: 0.7;
   pointer-events: none;
+}
+
+.node-module-graph-node.selected {
+  fill: rgba(255, 241, 169, 1);
+  stroke: rgba(92, 232, 212, 0.95);
+  stroke-width: 1;
 }
 
 .node-module-graph-node-hit {
@@ -6765,6 +6781,11 @@ audio {
   stroke-width: 0;
   pointer-events: all;
   touch-action: none;
+}
+
+.node-module-graph-node-hit.selected {
+  stroke: rgba(255, 241, 169, 0.22);
+  stroke-width: 0.8;
 }
 
 .node-module-graph-display.dragging .node-module-graph-node {
