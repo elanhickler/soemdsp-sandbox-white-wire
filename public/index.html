@@ -478,9 +478,10 @@
               </div>
             </div>
             <aside id="nodeShaderScriptPreviewPanel" class="node-shader-script-preview-panel" hidden>
-              <span>live scope</span>
-              <canvas id="nodeShaderScriptPreviewCanvas" width="320" height="180" aria-label="Current scope preview"></canvas>
-              <p id="nodeShaderScriptPreviewStatus">No live scope selected.</p>
+              <div id="nodeShaderScriptModelPreview" class="node-shader-script-model-preview" aria-label="Current module preview">
+                <canvas id="nodeShaderScriptPreviewCanvas" width="320" height="320" aria-label="Current scope preview"></canvas>
+              </div>
+              <p id="nodeShaderScriptPreviewStatus">No scope selected.</p>
             </aside>
           </div>
           <div id="nodeShaderScriptSyntaxColorsPanel" class="node-shader-script-syntax-colors-panel" hidden>

@@ -3412,6 +3412,8 @@ def require_node_graph_mvp_contract() -> None:
         "--node-shader-scope-preview-aspect",
         ".node-shader-script-syntax-colors-panel",
         "#nodeShaderScriptSyntaxColorsButton",
+        ".node-shader-script-model-preview",
+        ".node-shader-script-model-clone",
     ]:
         require(snippet in style_source, f"shader syntax color stylesheet contract missing {snippet}")
 
@@ -8763,6 +8765,9 @@ def require_node_graph_mvp_contract() -> None:
         "async function pasteNodeGraphShaderScriptSource()",
         "async function exportNodeGraphShaderScriptToDesktop()",
         "\"/api/shader-script/to-desktop\"",
+        "function syncNodeGraphShaderScriptModelPreview(slot)",
+        "clone = sourceModule.cloneNode(true)",
+        "clone.classList.add(\"node-shader-script-model-clone\")",
         "function drawNodeGraphShaderScriptScopePreview()",
         "canvas.style.setProperty(\"--node-shader-scope-preview-aspect\"",
         "function scheduleNodeGraphShaderScriptScopePreview()",

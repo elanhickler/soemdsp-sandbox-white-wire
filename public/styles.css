@@ -9179,11 +9179,12 @@ button.saved-default,
 }
 
 .node-shader-script-preview-panel {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
   min-width: 0;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid rgba(127, 199, 217, 0.2);
   border-radius: 6px;
   background:
@@ -9194,16 +9195,37 @@ button.saved-default,
   display: none;
 }
 
-.node-shader-script-preview-panel span {
-  color: rgba(127, 199, 217, 0.72);
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 0.62rem;
-  line-height: 1;
-  text-transform: uppercase;
+.node-shader-script-model-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 210px;
+  overflow: hidden;
+}
+
+.node-shader-script-model-clone {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 1;
+  transform: scale(var(--node-shader-model-preview-scale, 0.78)) !important;
+  transform-origin: center center !important;
+  pointer-events: none;
+}
+
+.node-shader-script-model-clone .node-module-scope-window,
+.node-shader-script-model-clone .node-led-face {
+  opacity: 0.34;
 }
 
 .node-shader-script-preview-panel canvas {
-  width: 100%;
+  position: absolute;
+  z-index: 2;
+  left: var(--node-shader-scope-preview-left, 0);
+  top: var(--node-shader-scope-preview-top, 0);
+  width: var(--node-shader-scope-preview-width, 100%);
+  height: var(--node-shader-scope-preview-height, auto);
   aspect-ratio: var(--node-shader-scope-preview-aspect, 1 / 1);
   border: 1px solid rgba(127, 199, 217, 0.18);
   border-radius: 5px;

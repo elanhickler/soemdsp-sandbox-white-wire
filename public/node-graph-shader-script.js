@@ -914,6 +914,60 @@ function nodeGraphShaderScriptScopePreviewSlot() {
   return node?.id ? nodeGraphModuleScopeState?.slots?.get?.(node.id) || null : null;
 }
 
+function syncNodeGraphShaderScriptModelPreview(slot) {
+  const preview = document.getElementById("nodeShaderScriptModelPreview");
+  const canvas = document.getElementById("nodeShaderScriptPreviewCanvas");
+  if (!preview || !canvas) {
+    return null;
+  }
+  const sourceModule = slot?.element;
+  if (!sourceModule?.isConnected) {
+    preview.querySelector(".node-shader-script-model-clone")?.remove();
+    canvas.style.removeProperty("--node-shader-scope-preview-aspect");
+    canvas.style.removeProperty("--node-shader-scope-preview-left");
+    canvas.style.removeProperty("--node-shader-scope-preview-top");
+    canvas.style.removeProperty("--node-shader-scope-preview-width");
+    canvas.style.removeProperty("--node-shader-scope-preview-height");
+    return null;
+  }
+  let clone = preview.querySelector(".node-shader-script-model-clone");
+  if (!clone || clone.dataset.node !== sourceModule.dataset.node) {
+    clone?.remove();
+    clone = sourceModule.cloneNode(true);
+    clone.classList.add("node-shader-script-model-clone");
+    clone.querySelectorAll("button, input, textarea, select").forEach((element) => {
+      element.disabled = true;
+      element.tabIndex = -1;
+    });
+    clone.querySelectorAll(".node-module-scope-analyzer").forEach((element) => {
+      element.remove();
+    });
+    preview.prepend(clone);
+  }
+  const sourceRect = sourceModule.getBoundingClientRect();
+  const sourceScopeRect = slot.scopeElement?.getBoundingClientRect?.();
+  const previewRect = preview.getBoundingClientRect();
+  const cloneRect = clone.getBoundingClientRect();
+  const cloneScopeElement = clone.querySelector(".node-module-scope-window, .node-led-face");
+  const cloneScopeRect = cloneScopeElement?.getBoundingClientRect?.();
+  const widthRatio = cloneRect.width / Math.max(1, sourceRect.width);
+  const heightRatio = cloneRect.height / Math.max(1, sourceRect.height);
+  const left = cloneScopeRect
+    ? cloneScopeRect.left - previewRect.left
+    : cloneRect.left - previewRect.left + (((sourceScopeRect?.left || sourceRect.left) - sourceRect.left) * widthRatio);
+  const top = cloneScopeRect
+    ? cloneScopeRect.top - previewRect.top
+    : cloneRect.top - previewRect.top + (((sourceScopeRect?.top || sourceRect.top) - sourceRect.top) * heightRatio);
+  const width = cloneScopeRect?.width || (sourceScopeRect?.width || sourceRect.width) * widthRatio;
+  const height = cloneScopeRect?.height || (sourceScopeRect?.height || sourceRect.height) * heightRatio;
+  canvas.style.setProperty("--node-shader-scope-preview-aspect", `${Math.max(1, width)} / ${Math.max(1, height)}`);
+  canvas.style.setProperty("--node-shader-scope-preview-left", `${left}px`);
+  canvas.style.setProperty("--node-shader-scope-preview-top", `${top}px`);
+  canvas.style.setProperty("--node-shader-scope-preview-width", `${width}px`);
+  canvas.style.setProperty("--node-shader-scope-preview-height", `${height}px`);
+  return { height, width };
+}
+
 function drawNodeGraphShaderScriptScopePreview() {
   nodeGraphShaderScriptState.previewFrame = 0;
   const panel = document.getElementById("nodeShaderScriptPreviewPanel");
@@ -934,12 +988,14 @@ function drawNodeGraphShaderScriptScopePreview() {
   const scopeElement = slot?.scopeElement;
   const context = canvas.getContext("2d");
   if (!slot || !sourceCanvas || !workspace || !scopeElement || !context) {
+    syncNodeGraphShaderScriptModelPreview(null);
     if (status) {
-      status.textContent = "No live scope selected.";
+      status.textContent = "No scope selected.";
     }
     scheduleNodeGraphShaderScriptScopePreview();
     return;
   }
+  syncNodeGraphShaderScriptModelPreview(slot);
   const sourceRect = sourceCanvas.getBoundingClientRect();
   const scopeRect = scopeElement.getBoundingClientRect();
   const previewAspectWidth = Math.max(1, Number(scopeRect.width) || 1);
@@ -968,7 +1024,7 @@ function drawNodeGraphShaderScriptScopePreview() {
       context.drawImage(lightCanvas, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     }
     if (status) {
-      status.textContent = nodeGraphPatchNodeTitle(slot.nodeId || nodeGraphShaderScriptDialogScopeNode());
+      status.textContent = "";
     }
   } catch {
     if (status) {
