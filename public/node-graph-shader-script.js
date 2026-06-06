@@ -776,7 +776,7 @@ function openNodeGraphScopeShaderScript(nodeId) {
   }
   setNodeGraphShaderScriptDialogMode("scope", node.id);
   setNodeGraphShaderScriptDialogVisible(true);
-  nodeGraphShaderScriptStatus("scope shader ready", false);
+  nodeGraphShaderScriptStatus("ready", false);
   return true;
 }
 
