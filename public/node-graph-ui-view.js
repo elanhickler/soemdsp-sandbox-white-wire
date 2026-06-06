@@ -138,6 +138,95 @@ function bindNodeGraphUiViewEvents() {
   document.addEventListener("pointercancel", endNodeGraphUiItemDrag);
 }
 
+function nodeGraphUiGraphSelectionSummary(sourceNode) {
+  const graph = normalizeNodeGraphGraph(sourceNode?.graph);
+  const selectedIndex = nodeGraphGraphSelectedNodeIndex(sourceNode?.id, graph, graph.nodes.length - 1);
+  const selectedNode = graph.nodes[selectedIndex] || graph.nodes[graph.nodes.length - 1];
+  return {
+    graph,
+    pointLabel: `point ${selectedIndex + 1}/${graph.nodes.length}`,
+    selectedIndex,
+    shape: normalizeNodeGraphGraphShape(selectedNode?.shape),
+    x: Number(selectedNode?.x || 0),
+    y: Number(selectedNode?.y || 0),
+  };
+}
+
+function runNodeGraphUiGraphAction(button, action) {
+  const display = button?.closest?.(".node-ui-item")?.querySelector?.(".node-module-graph-display");
+  if (!display || typeof action !== "function") {
+    return false;
+  }
+  display.focus?.({ preventScroll: true });
+  const changed = action();
+  if (changed) {
+    renderNodeGraphUiView();
+  }
+  return Boolean(changed);
+}
+
+function createNodeGraphUiGraphToolbar(sourceNode) {
+  const summary = nodeGraphUiGraphSelectionSummary(sourceNode);
+  const toolbar = document.createElement("div");
+  toolbar.className = "node-ui-graph-toolbar";
+
+  const actions = [
+    {
+      action: () => selectFocusedNodeGraphGraphNodeOffset(-1),
+      disabled: summary.selectedIndex <= 0,
+      label: "Prev",
+      title: "Select previous point",
+    },
+    {
+      action: () => selectFocusedNodeGraphGraphNodeOffset(1),
+      disabled: summary.selectedIndex >= summary.graph.nodes.length - 1,
+      label: "Next",
+      title: "Select next point",
+    },
+    {
+      action: addFocusedNodeGraphGraphNode,
+      label: "Add",
+      title: "Add point",
+    },
+    {
+      action: duplicateFocusedNodeGraphGraphNode,
+      label: "Duplicate",
+      title: "Duplicate selected point",
+    },
+    {
+      action: removeFocusedNodeGraphGraphNode,
+      disabled: summary.graph.nodes.length <= 2,
+      label: "Delete",
+      title: "Delete selected point",
+    },
+    {
+      action: cycleFocusedNodeGraphGraphShape,
+      label: "Shape",
+      title: "Cycle selected point curve shape",
+    },
+  ];
+
+  actions.forEach((entry) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = entry.label;
+    button.title = entry.title;
+    button.disabled = Boolean(entry.disabled);
+    button.addEventListener("click", () => runNodeGraphUiGraphAction(button, entry.action));
+    toolbar.append(button);
+  });
+
+  return toolbar;
+}
+
+function createNodeGraphUiGraphStatus(sourceNode) {
+  const summary = nodeGraphUiGraphSelectionSummary(sourceNode);
+  const status = document.createElement("div");
+  status.className = "node-ui-graph-status";
+  status.textContent = `${summary.pointLabel} x ${summary.x.toFixed(3)} y ${summary.y.toFixed(3)} ${summary.shape}`;
+  return status;
+}
+
 function createNodeGraphUiItemElement(item) {
   const sourceNode = nodeGraphPatchNode(item.sourceNodeId);
   const article = document.createElement("article");
@@ -162,6 +251,7 @@ function createNodeGraphUiItemElement(item) {
   const body = document.createElement("div");
   body.className = "node-ui-item-body";
   if (sourceNode?.type === "graph") {
+    body.append(createNodeGraphUiGraphToolbar(sourceNode));
     const display = document.createElement("div");
     display.className = "node-module-graph-display node-ui-graph-display";
     display.dataset.graphNode = sourceNode.id;
@@ -170,6 +260,7 @@ function createNodeGraphUiItemElement(item) {
     display.addEventListener("pointerdown", beginNodeGraphGraphNodeDrag, true);
     renderNodeGraphGraphDisplay(display, sourceNode.graph);
     body.append(display);
+    body.append(createNodeGraphUiGraphStatus(sourceNode));
   } else {
     const empty = document.createElement("div");
     empty.className = "node-ui-item-placeholder";
