@@ -8853,6 +8853,42 @@ audio {
   opacity: 0.72;
 }
 
+.metadata-script-effective {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 7px;
+  border: 1px solid rgba(127, 199, 217, 0.16);
+  border-radius: 6px;
+  background: rgba(4, 9, 11, 0.54);
+}
+
+.metadata-script-effective[hidden] {
+  display: none;
+}
+
+.metadata-script-effective div {
+  min-width: 0;
+}
+
+.metadata-script-effective dt {
+  color: rgba(127, 199, 217, 0.68);
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+
+.metadata-script-effective dd {
+  min-width: 0;
+  margin: 1px 0 0;
+  overflow: hidden;
+  color: rgba(205, 214, 216, 0.82);
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 760px) {
   .node-parameter-metadata-popover {
     grid-template-columns: minmax(0, 1fr);

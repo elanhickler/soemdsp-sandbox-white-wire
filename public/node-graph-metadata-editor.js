@@ -459,11 +459,58 @@ function nodeMetadataScriptPreviewItemHtml(assignment, details = "supported") {
     </li>`;
 }
 
+function nodeMetadataScriptEffectiveRows(metadata) {
+  const flags = [
+    metadata.displayChoices ? "display choices" : "",
+    metadata.divideChoicesVisibly ? "divided choices" : "",
+    metadata.linearSmoothing ? "smooth" : "",
+    metadata.nonlinearSlider ? "nonlinear" : "",
+    metadata.showSign ? "signed" : "",
+    metadata.wraparound ? "wraparound" : "",
+  ].filter(Boolean);
+  const choices = Array.isArray(metadata.choices) && metadata.choices.length
+    ? metadata.choices.join(", ")
+    : "none";
+  return [
+    ["kind", metadata.kind || "decimal"],
+    ["range", `${nodeMetadataScriptPreviewValueText(metadata.min, "min")} to ${nodeMetadataScriptPreviewValueText(metadata.max, "max")}`],
+    ["mid", nodeMetadataScriptPreviewValueText(metadata.mid, "mid")],
+    ["default", nodeMetadataScriptPreviewValueText(metadata.def, "default")],
+    ["step", nodeMetadataScriptPreviewValueText(metadata.step, "step")],
+    ["unit", metadata.unit || "none"],
+    ["digits", normalizeNodeGraphMetadataMaxDigits(metadata.maxDigits, metadata.kind)],
+    ["choices", choices],
+    ["flags", flags.length ? flags.join(", ") : "none"],
+  ];
+}
+
+function updateNodeMetadataScriptEffective(source = metadataScriptSourceText()) {
+  const effective = document.getElementById("metadataScriptEffective");
+  const slider = document.getElementById(nodeGraphMvp.metadataEditorTarget);
+  if (!effective || !slider) {
+    if (effective) {
+      effective.hidden = true;
+      effective.innerHTML = "";
+    }
+    return;
+  }
+  const parsed = parseNodeMetadataScript(source, slider);
+  effective.hidden = false;
+  effective.innerHTML = nodeMetadataScriptEffectiveRows(parsed.metadata)
+    .map(([key, value]) => `
+      <div>
+        <dt>${escapeNodeMetadataScriptHtml(key)}</dt>
+        <dd>${escapeNodeMetadataScriptHtml(value)}</dd>
+      </div>`)
+    .join("");
+}
+
 function updateNodeMetadataScriptPreview(source = metadataScriptSourceText()) {
   const preview = document.getElementById("metadataScriptPreview");
   if (!preview) {
     return;
   }
+  updateNodeMetadataScriptEffective(source);
   const diagnostics = analyzeNodeMetadataScriptSource(source);
   const maxVisibleItems = 8;
   const slider = document.getElementById(nodeGraphMvp.metadataEditorTarget);
@@ -589,6 +636,8 @@ this line is intentionally invalid
     nodeMetadataScriptPreviewState({ key: "def", rawValue: "441" }, changedPreviewDraft) === "changed",
     nodeMetadataScriptPreviewDetails({ key: "def", rawValue: "441" }, { def: 440, kind: "decimal" }).after === "441",
     nodeMetadataScriptPreviewDetails({ key: "def", rawValue: "441" }, { def: 440, kind: "decimal" }).before === "440",
+    nodeMetadataScriptEffectiveRows({ kind: "decimal", min: 0, mid: 0.5, max: 1, def: 0.25, step: 0, unit: "", maxDigits: 2, choices: [], displayChoices: false, divideChoicesVisibly: false, linearSmoothing: true, nonlinearSlider: false, showSign: false, wraparound: false })
+      .some(([key, value]) => key === "step" && value === "any"),
     nodeMetadataScriptTemplateForKind(fakeSlider, "waveform").includes("param.waveform.choices = [Saw, Square, Triangle, Sine, Noise];"),
     nodeMetadataScriptTemplateForKind(fakeSlider, "waveform").includes("param.waveform.displayChoices = true;"),
   ];
