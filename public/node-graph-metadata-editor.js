@@ -94,12 +94,65 @@ function metadataScriptSourceText() {
   return document.getElementById("metadataScriptSource")?.value || "";
 }
 
+const nodeMetadataScriptHighlightTokenPattern =
+  /param\.[A-Za-z0-9_.]+|\[[^\]]*\]|-?(?:\d+\.\d+|\d+|\.\d+)(?:e[+-]?\d+)?|\b(?:true|false|any)\b|=|[A-Za-z_][\w-]*/gi;
+
+function escapeNodeMetadataScriptHtml(value = "") {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function colorizeNodeMetadataScriptLine(line = "") {
+  const commentIndex = line.indexOf("//");
+  const code = commentIndex >= 0 ? line.slice(0, commentIndex) : line;
+  const comment = commentIndex >= 0 ? line.slice(commentIndex) : "";
+  let html = "";
+  let lastIndex = 0;
+  for (const match of code.matchAll(nodeMetadataScriptHighlightTokenPattern)) {
+    const token = match[0];
+    html += escapeNodeMetadataScriptHtml(code.slice(lastIndex, match.index));
+    const lowerToken = token.toLowerCase();
+    const className = token.startsWith("param.")
+      ? "metadata-token-property"
+      : token === "="
+        ? "metadata-token-assignment"
+        : token.startsWith("[") && token.endsWith("]")
+          ? "metadata-token-list"
+          : ["true", "false", "any"].includes(lowerToken)
+            ? "metadata-token-keyword"
+            : Number.isFinite(Number(token))
+              ? "metadata-token-number"
+              : "metadata-token-value";
+    html += `<span class="${className}">${escapeNodeMetadataScriptHtml(token)}</span>`;
+    lastIndex = match.index + token.length;
+  }
+  html += escapeNodeMetadataScriptHtml(code.slice(lastIndex));
+  if (comment) {
+    html += `<span class="metadata-token-comment">${escapeNodeMetadataScriptHtml(comment)}</span>`;
+  }
+  return html;
+}
+
+function updateNodeMetadataScriptHighlight() {
+  const source = document.getElementById("metadataScriptSource");
+  const highlight = document.getElementById("metadataScriptHighlight");
+  if (!source || !highlight) {
+    return;
+  }
+  highlight.innerHTML = (source.value || "").split("\n").map(colorizeNodeMetadataScriptLine).join("\n") || "&nbsp;";
+  highlight.scrollTop = source.scrollTop;
+  highlight.scrollLeft = source.scrollLeft;
+}
+
 function setMetadataScriptSourceText(text) {
   const source = document.getElementById("metadataScriptSource");
   if (!source) {
     return;
   }
   source.value = String(text || "");
+  updateNodeMetadataScriptHighlight();
 }
 
 function setNodeMetadataScriptDirty(dirty, message = "", error = false) {
@@ -352,6 +405,11 @@ function bindNodeGraphMetadataPopoverEvents() {
     popover.dataset.metadataPopoverBound = "true";
     popover.addEventListener("input", handleNodeMetadataEditorInput);
   }
+  const scriptSource = document.getElementById("metadataScriptSource");
+  if (scriptSource && scriptSource.dataset.metadataScriptSourceBound !== "true") {
+    scriptSource.dataset.metadataScriptSourceBound = "true";
+    scriptSource.addEventListener("scroll", updateNodeMetadataScriptHighlight);
+  }
   const closeButton = document.getElementById("metadataPopoverClose");
   if (closeButton && closeButton.dataset.metadataCloseBound !== "true") {
     closeButton.dataset.metadataCloseBound = "true";
@@ -559,6 +617,7 @@ function handleNodeMetadataEditorInput(event) {
     return;
   }
   if (event?.target?.id === "metadataScriptSource") {
+    updateNodeMetadataScriptHighlight();
     setNodeMetadataScriptDirty(true, "unsaved", false);
     return;
   }

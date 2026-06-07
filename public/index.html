@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>soemdsp-sandbox</title>
-  <link rel="stylesheet" href="./public/styles.css?v=modular-view-button-group-1">
+  <link rel="stylesheet" href="./public/styles.css?v=metadata-script-highlight-1">
 </head>
 <body class="debug-collapsed node-boot-loading">
   <div class="node-boot-loading-screen" role="status" aria-live="polite" aria-label="loading">
@@ -2297,11 +2297,17 @@
             <span>Metaparameter Script</span>
             <strong id="metadataScriptTarget">Current parameter</strong>
           </div>
-          <textarea
-            id="metadataScriptSource"
-            spellcheck="false"
-            rows="13"
-            aria-label="Parameter metadata script"></textarea>
+          <div class="metadata-script-editor">
+            <pre
+              id="metadataScriptHighlight"
+              class="metadata-script-highlight"
+              aria-hidden="true"></pre>
+            <textarea
+              id="metadataScriptSource"
+              spellcheck="false"
+              rows="13"
+              aria-label="Parameter metadata script"></textarea>
+          </div>
           <div class="metadata-script-actions">
             <button id="metadataScriptApply" type="button">Save</button>
             <button id="metadataScriptRefresh" type="button">Sync</button>
@@ -2827,15 +2833,15 @@
   <script src="./public/node-graph-default-preset.js?v=camera-output-wires-1780801800000"></script>
   <script src="./public/node-graph-script-status.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-view-controls.js?v=visibility-show-buttons-1"></script>
-  <script src="./public/node-graph-workspace-geometry.js?v=half-grid-window-drag-1"></script>
+  <script src="./public/node-graph-workspace-geometry.js?v=module-whole-grid-pan-half-grid-1"></script>
   <script src="./public/node-graph-workspace-zoom.js?v=wheel-zoom-tenth-step-1"></script>
-  <script src="./public/node-graph-workspace-view.js?v=workspace-resize-zoom-snap-1"></script>
+  <script src="./public/node-graph-workspace-view.js?v=module-whole-grid-pan-half-grid-1"></script>
   <script src="./public/node-graph-camera-view.js?v=utility-camera-feed-1780810000000"></script>
   <script src="./public/node-graph-clap-host.js?v=clap-diagnostics-1"></script>
   <script src="./public/node-graph-marquee-selection.js?v=slider-unit-color-1780307400000"></script>
-  <script src="./public/node-graph-node-dragging.js?v=half-grid-window-drag-1"></script>
+  <script src="./public/node-graph-node-dragging.js?v=module-whole-grid-pan-half-grid-1"></script>
   <script src="./public/node-graph-context-menu.js?v=graph-endpoint-lock-1"></script>
-  <script src="./public/node-graph-module-actions.js?v=visibility-show-buttons-1"></script>
+  <script src="./public/node-graph-module-actions.js?v=module-whole-grid-pan-half-grid-1"></script>
   <script src="./public/node-graph-code-screen.js?v=code-screen-1"></script>
   <script src="./public/node-graph-module-scopes.js?v=scope-zoom-backing-store-1"></script>
   <script src="./public/node-graph-shader-script.js?v=shader-default-comments-1"></script>
@@ -2890,7 +2896,7 @@
   <script src="./public/node-graph-live-control-rendering.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-default-patch.js?v=default-oversampling-x1-1"></script>
   <script src="./public/node-graph-state.js?v=metadata-script-dirty-1"></script>
-  <script src="./public/node-graph-patch-core.js?v=half-grid-window-drag-1"></script>
+  <script src="./public/node-graph-patch-core.js?v=module-whole-grid-pan-half-grid-1"></script>
   <script src="./public/node-graph-live-plan-runtime.js?v=graph2-smoothing-3"></script>
   <script src="./public/node-graph-live-parameter-runtime.js?v=clap-tail-source-silence-1"></script>
   <script src="./public/node-graph-oscillator-runtime.js?v=ellipsoid-audio-1"></script>
