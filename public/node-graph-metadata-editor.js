@@ -437,6 +437,14 @@ function nodeMetadataScriptPreviewDetails(assignment, draftMetadata) {
   }
 }
 
+function nodeMetadataScriptUnsupportedPreviewDetails(assignment) {
+  return {
+    after: `unsupported: ${assignment.path}`,
+    before: "",
+    state: "unsupported",
+  };
+}
+
 function nodeMetadataScriptPreviewItemHtml(assignment, details = "supported") {
   const detail = typeof details === "string" ? { state: details } : details;
   const state = detail.state || "supported";
@@ -526,7 +534,10 @@ function updateNodeMetadataScriptPreview(source = metadataScriptSourceText()) {
         nodeMetadataScriptPreviewDetails(assignment, draftMetadata),
       )),
     ...diagnostics.unsupported.map((assignment) =>
-      nodeMetadataScriptPreviewItemHtml(assignment, "unsupported")),
+      nodeMetadataScriptPreviewItemHtml(
+        assignment,
+        nodeMetadataScriptUnsupportedPreviewDetails(assignment),
+      )),
   ];
   if (diagnostics.syntaxIgnored.length) {
     const firstSyntaxLine = diagnostics.syntaxIgnored[0];
@@ -535,7 +546,7 @@ function updateNodeMetadataScriptPreview(source = metadataScriptSourceText()) {
         <span>ignored</span>
         <em>L${escapeNodeMetadataScriptHtml(diagnostics.syntaxIgnored.join(","))}</em>
         <strong>syntax</strong>
-        <code>not an assignment</code>
+        <code>expected path = value;</code>
       </li>`);
   }
   preview.hidden = items.length === 0;
@@ -636,6 +647,7 @@ this line is intentionally invalid
     nodeMetadataScriptPreviewState({ key: "def", rawValue: "441" }, changedPreviewDraft) === "changed",
     nodeMetadataScriptPreviewDetails({ key: "def", rawValue: "441" }, { def: 440, kind: "decimal" }).after === "441",
     nodeMetadataScriptPreviewDetails({ key: "def", rawValue: "441" }, { def: 440, kind: "decimal" }).before === "440",
+    nodeMetadataScriptUnsupportedPreviewDetails({ path: "param.frequency.unknown" }).after === "unsupported: param.frequency.unknown",
     nodeMetadataScriptEffectiveRows({ kind: "decimal", min: 0, mid: 0.5, max: 1, def: 0.25, step: 0, unit: "", maxDigits: 2, choices: [], displayChoices: false, divideChoicesVisibly: false, linearSmoothing: true, nonlinearSlider: false, showSign: false, wraparound: false })
       .some(([key, value]) => key === "step" && value === "any"),
     nodeMetadataScriptTemplateForKind(fakeSlider, "waveform").includes("param.waveform.choices = [Saw, Square, Triangle, Sine, Noise];"),
