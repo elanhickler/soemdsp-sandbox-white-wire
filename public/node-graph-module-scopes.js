@@ -5361,9 +5361,6 @@ function applyNodeGraphModuleScopeCanvasAnalogFade(context, canvas, settings) {
   context.globalCompositeOperation = "destination-out";
   context.fillStyle = `rgba(0, 0, 0, ${fadeAlpha.toFixed(4)})`;
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.globalCompositeOperation = "source-over";
-  context.fillStyle = "rgba(0, 0, 0, 0.006)";
-  context.fillRect(0, 0, canvas.width, canvas.height);
   context.restore();
 }
 
