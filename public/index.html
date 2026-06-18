@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>soemdsp-sandbox</title>
-  <link rel="stylesheet" href="./public/styles.css?v=workspace-min-height-1">
+  <link rel="stylesheet" href="./public/styles.css?v=saved-patch-list-1">
 </head>
 <body class="debug-collapsed node-boot-loading">
   <div class="node-boot-loading-screen" role="status" aria-live="polite" aria-label="loading">
@@ -537,7 +537,7 @@
           <button
             id="downloadNodeGraphScriptButton"
             type="button"
-            data-tooltip-key="script.download">To Desktop</button>
+            data-tooltip-key="script.save">Save Patch</button>
           <button
             id="pasteNodeGraphScriptButton"
             type="button"
@@ -561,6 +561,16 @@
           <button id="nodePatchPresetLoadButton" type="button">Load Preset</button>
           <button id="nodePatchPresetDeleteButton" type="button">Delete Preset</button>
         </div>
+        <section class="node-demo-patch-panel" aria-label="Saved demo patches">
+          <div class="node-demo-patch-heading">
+            <div>
+              <span>Patch List</span>
+              <strong>Saved Patches</strong>
+            </div>
+            <button id="nodeDemoPatchRefreshButton" type="button">Refresh</button>
+          </div>
+          <div id="nodeDemoPatchList" class="node-demo-patch-list" aria-live="polite"></div>
+        </section>
         <div class="node-script-grid-settings" aria-label="Grid unit pixel settings">
           <label>Grid Unit W PX
             <input
@@ -2664,7 +2674,7 @@
   <script src="./public/manifest-view.js?v=manifest-view-refactor-1780360800000"></script>
   <script src="./public/manifest-loader.js?v=manifest-loader-refactor-1780389600000"></script>
   <script src="./public/node-graph-wires.js?v=external-graph-inputs-1780816800000"></script>
-  <script src="./public/node-graph-file-actions.js?v=patch-presets-1"></script>
+  <script src="./public/node-graph-file-actions.js?v=saved-patch-list-1"></script>
   <script src="./public/node-graph-default-buttons.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-cookbook-filter.js?v=filter-curve-zero-cutoffs-1780822200000"></script>
   <script src="./public/node-graph-color-standards.js?v=color-standards-1"></script>
@@ -2766,7 +2776,7 @@
   <script src="./public/node-graph-wire-controller-bootstrap.js?v=external-graph-inputs-1780816800000"></script>
   <script src="./public/node-graph-workspace-event-bindings.js?v=canvas-origin-1"></script>
   <script src="./public/node-graph-render-live-event-bindings.js?v=beta-polish-1"></script>
-  <script src="./public/node-graph-header-event-bindings.js?v=patch-presets-1"></script>
+  <script src="./public/node-graph-header-event-bindings.js?v=saved-patch-list-1"></script>
   <script src="./public/node-graph-help-event-bindings.js?v=node-graph-help-event-bindings-refactor-1780369200000"></script>
   <script src="./public/node-graph-scene-menu-event-bindings.js?v=module-height-actions-1"></script>
   <script src="./public/node-graph-uidev-event-bindings.js?v=text-light-registry-1780800000000"></script>

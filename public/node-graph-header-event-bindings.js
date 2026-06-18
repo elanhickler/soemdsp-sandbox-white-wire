@@ -233,8 +233,10 @@ function bindNodeGraphHeaderControlEvents() {
   document.getElementById("nodePatchPresetLoadButton").addEventListener("click", loadSelectedNodeGraphPatchPreset);
   document.getElementById("nodePatchPresetDeleteButton").addEventListener("click", deleteSelectedNodeGraphPatchPreset);
   document.getElementById("nodePatchPresetSelect").addEventListener("change", handleNodeGraphPatchPresetSelectChange);
+  document.getElementById("nodeDemoPatchRefreshButton").addEventListener("click", renderNodeGraphDemoPatchList);
   document.getElementById("updateDefaultPresetButton").addEventListener("click", handleUpdateDefaultNodeGraphPresetClick);
   document.getElementById("loadNodeGraphScriptButton").addEventListener("click", loadNodeGraphScript);
   document.getElementById("nodeSettingsSaveScriptButton").addEventListener("click", saveNodeGraphScript);
   renderNodeGraphPatchPresetControls();
+  renderNodeGraphDemoPatchList();
 }

@@ -20,6 +20,7 @@ PUBLIC = ROOT / "public"
 DEFAULT_PRESET = PUBLIC / "presets" / "default.json"
 DEFAULT_UI_SETTINGS = PUBLIC / "presets" / "useruisettings.json"
 DEFAULT_UI_SETTINGS_SCRIPT = PUBLIC / "presets" / "useruisettings.js"
+SAVED_PATCHES = ROOT / "saved-patches"
 MAX_PRESET_BYTES = 512 * 1024
 MAX_AUDIO_FILE_BYTES = 128 * 1024 * 1024
 MAX_AUDIO_UPLOAD_JSON_BYTES = 192 * 1024 * 1024
@@ -276,6 +277,9 @@ class SandboxServer(BaseHTTPRequestHandler):
         if parsed.path == "/api/presets/default":
             self.save_default_preset()
             return
+        if parsed.path == "/api/patches/save":
+            self.save_demo_patch()
+            return
         if parsed.path == "/api/presets/useruisettings":
             self.save_default_ui_settings()
             return
@@ -334,6 +338,20 @@ class SandboxServer(BaseHTTPRequestHandler):
                 self.send_error(405, "Method not allowed")
                 return
             self.serve_node_metadata_kinds()
+            return
+
+        if parsed.path == "/api/patches":
+            if not send_body:
+                self.send_error(405, "Method not allowed")
+                return
+            self.serve_demo_patches()
+            return
+
+        if parsed.path == "/api/patches/file":
+            if not send_body:
+                self.send_error(405, "Method not allowed")
+                return
+            self.serve_demo_patch_file(parsed.query)
             return
 
         if parsed.path == "/artifact":
@@ -411,30 +429,7 @@ class SandboxServer(BaseHTTPRequestHandler):
         if payload is None:
             return
 
-        patch_format = payload.get("format")
-        if not isinstance(patch_format, dict):
-            self.send_json(
-                {"ok": False, "error": "preset missing format object"},
-                status=400,
-            )
-            return
-        if patch_format.get("kind") != "soemdsp-sandbox-node-patch":
-            self.send_json(
-                {"ok": False, "error": "preset format kind mismatch"},
-                status=400,
-            )
-            return
-        if patch_format.get("version") != 1:
-            self.send_json(
-                {"ok": False, "error": "preset format version mismatch"},
-                status=400,
-            )
-            return
-        if not isinstance(payload.get("nodes"), list):
-            self.send_json(
-                {"ok": False, "error": "preset missing nodes array"},
-                status=400,
-            )
+        if not self.validate_node_patch_payload(payload, "preset"):
             return
 
         DEFAULT_PRESET.parent.mkdir(parents=True, exist_ok=True)
@@ -449,6 +444,119 @@ class SandboxServer(BaseHTTPRequestHandler):
                 "bytes": DEFAULT_PRESET.stat().st_size,
             },
         )
+
+    def serve_demo_patches(self) -> None:
+        patches = []
+        if SAVED_PATCHES.exists():
+            for path in sorted(
+                SAVED_PATCHES.glob("*.json"),
+                key=lambda candidate: candidate.stat().st_mtime,
+                reverse=True,
+            )[:10]:
+                try:
+                    payload = json.loads(path.read_text(encoding="utf-8"))
+                    info = payload.get("info") if isinstance(payload, dict) else {}
+                    stat = path.stat()
+                except (OSError, json.JSONDecodeError):
+                    continue
+                patches.append(
+                    {
+                        "filename": path.name,
+                        "name": str(info.get("name") or path.stem),
+                        "tags": str(info.get("tags") or ""),
+                        "bytes": stat.st_size,
+                        "modifiedUtc": datetime.fromtimestamp(
+                            stat.st_mtime,
+                            timezone.utc,
+                        )
+                        .replace(microsecond=0)
+                        .isoformat()
+                        .replace("+00:00", "Z"),
+                    }
+                )
+        self.send_json({"ok": True, "patches": patches, "path": str(SAVED_PATCHES)})
+
+    def serve_demo_patch_file(self, query: str) -> None:
+        params = parse_qs(query)
+        filename = params.get("name", [""])[0]
+        if not filename or filename != Path(filename).name or not filename.endswith(".json"):
+            self.send_json({"ok": False, "error": "invalid patch filename"}, status=400)
+            return
+        path = (SAVED_PATCHES / filename).resolve()
+        if not path.is_relative_to(SAVED_PATCHES.resolve()):
+            self.send_json({"ok": False, "error": "invalid patch path"}, status=400)
+            return
+        if not path.exists():
+            self.send_json({"ok": False, "error": "patch not found"}, status=404)
+            return
+        self.serve_file(path)
+
+    def save_demo_patch(self) -> None:
+        payload = self.read_json_preset_payload("patch")
+        if payload is None:
+            return
+        if not self.validate_node_patch_payload(payload, "patch"):
+            return
+
+        info = payload.get("info") if isinstance(payload.get("info"), dict) else {}
+        title = str(info.get("name") or "soemdsp-patch")
+        tag = str(info.get("tags") or "").strip()
+        safe_title = self.safe_filename_part("-".join(part for part in (title, tag) if part))
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")[:-3]
+        filename = f"{timestamp}-{safe_title or 'soemdsp-patch'}.json"
+        try:
+            SAVED_PATCHES.mkdir(parents=True, exist_ok=True)
+            path = SAVED_PATCHES / filename
+            path.write_text(
+                f"{json.dumps(payload, indent=2, sort_keys=False)}\n",
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            self.send_json({"ok": False, "error": f"patch save failed: {exc}"}, status=500)
+            return
+
+        self.send_json(
+            {
+                "ok": True,
+                "filename": filename,
+                "path": str(path),
+                "bytes": path.stat().st_size,
+            },
+        )
+
+    def validate_node_patch_payload(self, payload: dict, label: str) -> bool:
+        patch_format = payload.get("format")
+        if not isinstance(patch_format, dict):
+            self.send_json(
+                {"ok": False, "error": f"{label} missing format object"},
+                status=400,
+            )
+            return False
+        if patch_format.get("kind") != "soemdsp-sandbox-node-patch":
+            self.send_json(
+                {"ok": False, "error": f"{label} format kind mismatch"},
+                status=400,
+            )
+            return False
+        if patch_format.get("version") != 1:
+            self.send_json(
+                {"ok": False, "error": f"{label} format version mismatch"},
+                status=400,
+            )
+            return False
+        if not isinstance(payload.get("nodes"), list):
+            self.send_json(
+                {"ok": False, "error": f"{label} missing nodes array"},
+                status=400,
+            )
+            return False
+        return True
+
+    def safe_filename_part(self, value: str) -> str:
+        return "".join(
+            character.lower() if character.isalnum() else "-"
+            for character in value.strip()
+        ).strip("-")[:80]
 
     def save_default_ui_settings(self) -> None:
         payload = self.read_json_preset_payload("ui settings")

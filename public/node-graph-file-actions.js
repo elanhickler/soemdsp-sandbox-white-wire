@@ -153,22 +153,27 @@ function handleNodeGraphPatchPresetSelectChange(event) {
   }
 }
 
-function saveNodeGraphScript() {
+async function saveNodeGraphScript() {
   if (!nodeGraphScriptReadyForGraphAction("save")) {
     return;
   }
-  const blob = new Blob([`${serializeNodeGraphPatch()}\n`], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = nodeGraphPatchFileName();
-  document.body.append(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-  setNodeGraphScriptStatus("script saved", true);
+  try {
+    const response = await fetch("/api/patches/save", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: serializeNodeGraphPatch(),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.ok === false) {
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    setNodeGraphScriptStatus(`patch saved: ${result.filename || nodeGraphPatchFileName()}`, true);
+    renderNodeGraphDemoPatchList();
+  } catch (error) {
+    setNodeGraphScriptStatus(`patch save failed: ${error?.message || error}`, false);
+  }
 }
 
 function loadNodeGraphScript() {
@@ -237,6 +242,94 @@ async function pasteNodeGraphScriptFromClipboard() {
     commitNodeGraphScript(text);
   } catch {
     setNodeGraphScriptStatus("paste blocked: use keyboard paste", false);
+  }
+}
+
+function nodeGraphDemoPatchEmptySlots(count) {
+  return Array.from({ length: Math.max(0, count) }, (_, index) => ({
+    empty: true,
+    slot: index + 1,
+  }));
+}
+
+function nodeGraphDemoPatchRows(patches) {
+  const safePatches = Array.isArray(patches) ? patches.slice(0, 10) : [];
+  return safePatches.concat(nodeGraphDemoPatchEmptySlots(10 - safePatches.length));
+}
+
+function renderNodeGraphDemoPatchRows(patches = []) {
+  const list = document.getElementById("nodeDemoPatchList");
+  if (!list) {
+    return;
+  }
+  list.replaceChildren();
+  for (const [index, patch] of nodeGraphDemoPatchRows(patches).entries()) {
+    const row = document.createElement(patch.empty ? "div" : "button");
+    row.className = "node-demo-patch-row";
+    if (!patch.empty) {
+      row.type = "button";
+      row.dataset.patchFilename = patch.filename;
+      row.addEventListener("click", () => loadNodeGraphDemoPatch(patch.filename));
+    }
+    const slot = document.createElement("span");
+    slot.className = "node-demo-patch-slot";
+    slot.textContent = String(index + 1).padStart(2, "0");
+    const name = document.createElement("strong");
+    name.textContent = patch.empty ? "Empty patch slot" : patch.name || patch.filename;
+    const meta = document.createElement("small");
+    meta.textContent = patch.empty
+      ? "save a patch to fill this slot"
+      : [patch.tags, patch.modifiedUtc].filter(Boolean).join(" - ");
+    row.append(slot, name, meta);
+    list.append(row);
+  }
+}
+
+async function renderNodeGraphDemoPatchList() {
+  const list = document.getElementById("nodeDemoPatchList");
+  if (!list) {
+    return;
+  }
+  list.replaceChildren();
+  const loading = document.createElement("div");
+  loading.className = "node-demo-patch-row";
+  loading.textContent = "Loading saved patches...";
+  list.append(loading);
+  try {
+    const response = await fetch("/api/patches");
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.ok === false) {
+      throw new Error(result.error || `HTTP ${response.status}`);
+    }
+    renderNodeGraphDemoPatchRows(result.patches || []);
+  } catch (error) {
+    list.replaceChildren();
+    const row = document.createElement("div");
+    row.className = "node-demo-patch-row error";
+    row.textContent = `Patch list unavailable: ${error?.message || error}`;
+    list.append(row);
+  }
+}
+
+async function loadNodeGraphDemoPatch(filename) {
+  const safeFilename = String(filename || "");
+  if (!safeFilename) {
+    return;
+  }
+  if (!nodeGraphScriptReadyForGraphAction("load saved patch")) {
+    return;
+  }
+  try {
+    const response = await fetch(`/api/patches/file?name=${encodeURIComponent(safeFilename)}`);
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    commitNodeGraphPatch(loadNodeGraphPatchFromScript(text), {
+      status: `patch loaded: ${safeFilename}`,
+    });
+  } catch (error) {
+    setNodeGraphScriptStatus(`patch load failed: ${error?.message || error}`, false);
   }
 }
 

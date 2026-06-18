@@ -52,12 +52,12 @@
   "script": {
     "apply": "Validate and apply the current patch script",
     "copy": "Copy patch script to clipboard",
-    "download": "Save patch script as a JSON file on the desktop",
+    "download": "Save this patch into the local sandbox saved-patches folder",
     "paste": "Paste patch script from clipboard",
     "updateDefault": "Validate current patch script and save it as the default preset",
     "load": "Load patch script",
     "view": "Open the Patch Script utility",
-    "save": "Save patch script as a JSON file"
+    "save": "Save this patch into the local sandbox saved-patches folder"
   },
   "settings": {
     "uiDevOpen": "Mouse: click to open or close the floating UI development helper.",
