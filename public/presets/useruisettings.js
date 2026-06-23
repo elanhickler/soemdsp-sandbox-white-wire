@@ -125,7 +125,7 @@
     "--node-param-output-stroke": "#66e0a3"
   },
   "view": {
-    "gridVisible": false,
+    "gridVisible": true,
     "moduleButtonsVisible": true,
     "moduleInterfaceControlsVisible": true,
     "moduleOscilloscopesVisible": true,
@@ -133,15 +133,15 @@
     "moduleScopeBackgroundColor": "#000000",
     "moduleScopeBurn": 0,
     "moduleScopeDecay": 0,
-    "globalSmoothingSamples": 44100,
-    "globalSmoothingManual": true,
+    "globalSmoothingSamples": 706,
+    "globalSmoothingManual": false,
     "moduleScopeDotCore1Enabled": true,
-    "moduleScopeDotCore1Size": 0.01,
-    "moduleScopeDotCore1Brightness": 0.1,
+    "moduleScopeDotCore1Size": 1.94,
+    "moduleScopeDotCore1Brightness": 33.5,
     "moduleScopeDotCore1Color": "#ffffff",
     "moduleScopeDotCore2Enabled": true,
-    "moduleScopeDotCore2Size": 4.29,
-    "moduleScopeDotCore2Brightness": 0.1,
+    "moduleScopeDotCore2Size": 4.79,
+    "moduleScopeDotCore2Brightness": 1.23,
     "moduleScopeDotCore2Color": "#5c0000",
     "moduleScopeFramesPerSecond": 60,
     "moduleScopeLineThickness": 1,
@@ -565,51 +565,31 @@
       }
     },
     "sceneContextWindowSize": {
-      "width": 144
+      "width": 136
     },
     "moduleActionWindowSize": {
-      "width": 163,
-      "height": 355
+      "width": 142,
+      "height": 520
     },
     "workspaceWindowStatesVersion": 1,
     "workspaceWindowStates": {
       "commandCenter": {
-        "open": true,
-        "position": {
-          "left": 14,
-          "top": 126
-        },
-        "size": {
-          "width": 144
-        }
+        "open": false
       },
       "moduleActions": {
-        "open": true
+        "open": false
       },
       "metaparameters": {
-        "open": false,
-        "locked": true
+        "open": false
       },
       "oscilloscopeSettings": {
         "open": false
       },
       "patchExplorer": {
-        "open": false,
-        "position": {
-          "left": 179,
-          "top": 143
-        }
+        "open": false
       },
       "moduleBrowser": {
-        "open": true,
-        "position": {
-          "left": 696,
-          "top": 120
-        },
-        "size": {
-          "width": 168,
-          "height": 625
-        }
+        "open": false
       },
       "visibilityMenu": {
         "open": false
@@ -627,346 +607,29 @@
     "sharedInspectorActive": "moduleActions",
     "sharedInspectorWindowState": {
       "position": {
-        "left": 12,
-        "top": 417
+        "left": 16,
+        "top": 399
       },
       "size": {
-        "width": 163,
-        "height": 355
+        "width": 142,
+        "height": 540
       }
     },
     "workspaceView": {
       "pan": {
-        "x": 36.26206488321313,
-        "y": 40.88591846696869
+        "x": 28,
+        "y": 0
       },
-      "zoom": 0.8612761690424068
+      "zoom": 1
     },
     "moduleStoreDepartment": "",
     "savedPatchBankIndex": 0,
     "savedPatchBankName": "",
     "savedPatchGridColumns": 3,
     "savedPatchExplorerView": "banks",
-    "workingPatch": {
-      "activeCameraId": "camera-1",
-      "audio": {
-        "targetSampleRate": 44100
-      },
-      "bypassedNodes": [],
-      "cameras": [
-        {
-          "color": "#ff3333",
-          "enabled": true,
-          "height": 488,
-          "id": "camera-1",
-          "midiTrigger": null,
-          "name": "Camera 1",
-          "resolutionHeight": 1080,
-          "resolutionWidth": 1920,
-          "width": 868,
-          "x": 0,
-          "y": 0
-        }
-      ],
-      "codeScreen": {
-        "helpers": [],
-        "patchTools": [],
-        "samples": [],
-        "script": "",
-        "scriptLanguage": "javascript",
-        "slots": [],
-        "ui": []
-      },
-      "connections": [],
-      "format": {
-        "kind": "soemdsp-sandbox-node-patch",
-        "version": 1
-      },
-      "grid": {
-        "heightPx": 28,
-        "sizePx": 28,
-        "widthPx": 28
-      },
-      "graphConnections": [],
-      "info": {
-        "author": "",
-        "bank": 0,
-        "bankName": "",
-        "description": "",
-        "name": "Init",
-        "program": 0,
-        "tags": ""
-      },
-      "modulations": [],
-      "monitors": [],
-      "nodes": [
-        {
-          "gx": 1,
-          "gy": 1,
-          "id": "audioPlayer-1",
-          "paramMeta": {
-            "level": {
-              "alias": "",
-              "choices": [],
-              "def": 1,
-              "displayChoices": false,
-              "divideChoicesVisibly": false,
-              "kind": "decimal",
-              "linearSmoothing": true,
-              "max": 1,
-              "maxDigits": 3,
-              "mid": 0.5,
-              "min": 0,
-              "nonlinearSlider": false,
-              "showSign": false,
-              "step": 0,
-              "unboundedMax": false,
-              "unboundedMin": false,
-              "unit": "",
-              "wraparound": false
-            },
-            "speed": {
-              "alias": "",
-              "choices": [],
-              "def": 1,
-              "displayChoices": false,
-              "divideChoicesVisibly": false,
-              "kind": "decimal",
-              "linearSmoothing": false,
-              "max": 10000,
-              "maxDigits": 5,
-              "mid": 1,
-              "min": -10000,
-              "nonlinearSlider": true,
-              "showSign": false,
-              "step": 0,
-              "unboundedMax": true,
-              "unboundedMin": true,
-              "unit": "x",
-              "wraparound": false
-            },
-            "start": {
-              "alias": "",
-              "choices": [],
-              "def": 0,
-              "displayChoices": false,
-              "divideChoicesVisibly": false,
-              "kind": "decimal",
-              "linearSmoothing": false,
-              "max": 1,
-              "maxDigits": 3,
-              "mid": 0.5,
-              "min": 0,
-              "nonlinearSlider": false,
-              "showSign": false,
-              "step": 0,
-              "unboundedMax": false,
-              "unboundedMin": false,
-              "unit": "",
-              "wraparound": false
-            },
-            "end": {
-              "alias": "",
-              "choices": [],
-              "def": 1,
-              "displayChoices": false,
-              "divideChoicesVisibly": false,
-              "kind": "decimal",
-              "linearSmoothing": false,
-              "max": 1,
-              "maxDigits": 3,
-              "mid": 0.5,
-              "min": 0,
-              "nonlinearSlider": false,
-              "showSign": false,
-              "step": 0,
-              "unboundedMax": false,
-              "unboundedMin": false,
-              "unit": "",
-              "wraparound": false
-            },
-            "transport": {
-              "alias": "",
-              "choices": [
-                "Off (reset)",
-                "Stop",
-                "Pause",
-                "Play",
-                "Loop"
-              ],
-              "def": 4,
-              "displayChoices": true,
-              "divideChoicesVisibly": true,
-              "kind": "decimal",
-              "linearSmoothing": false,
-              "max": 4,
-              "maxDigits": 3,
-              "mid": 2,
-              "min": 0,
-              "nonlinearSlider": false,
-              "showSign": false,
-              "step": 1,
-              "unboundedMax": false,
-              "unboundedMin": false,
-              "unit": "",
-              "wraparound": false
-            }
-          },
-          "params": {
-            "level": 1,
-            "speed": 1,
-            "start": 0,
-            "end": 1,
-            "transport": 4
-          },
-          "type": "audioPlayer",
-          "widthGu": 8
-        },
-        {
-          "gx": 12,
-          "gy": 6,
-          "id": "output",
-          "paramMeta": {
-            "volume": {
-              "alias": "",
-              "choices": [],
-              "def": 0.1,
-              "displayChoices": false,
-              "divideChoicesVisibly": false,
-              "kind": "decimal",
-              "linearSmoothing": true,
-              "max": 1,
-              "maxDigits": 3,
-              "mid": 0.1,
-              "min": 0,
-              "nonlinearSlider": false,
-              "showSign": false,
-              "step": 0,
-              "unboundedMax": false,
-              "unboundedMin": false,
-              "unit": "",
-              "wraparound": false
-            }
-          },
-          "params": {
-            "volume": 0.8
-          },
-          "type": "output",
-          "widthGu": 6,
-          "ui": {
-            "buttonsHidden": true,
-            "displayHeightOffsetGu": 0,
-            "ioHidden": false,
-            "interfaceControlsHidden": false,
-            "movementLocked": false,
-            "oscilloscopeHidden": true,
-            "slidersHidden": true,
-            "titleHidden": true
-          }
-        },
-        {
-          "gx": 15,
-          "gy": 13,
-          "id": "traceDisplay-1",
-          "paramMeta": {
-            "gain": {
-              "alias": "",
-              "choices": [],
-              "def": 1,
-              "displayChoices": false,
-              "divideChoicesVisibly": false,
-              "kind": "decimal",
-              "linearSmoothing": true,
-              "max": 8,
-              "maxDigits": 3,
-              "mid": 1,
-              "min": 0,
-              "nonlinearSlider": true,
-              "showSign": false,
-              "step": 0,
-              "unboundedMax": false,
-              "unboundedMin": false,
-              "unit": "",
-              "wraparound": false
-            },
-            "offset": {
-              "alias": "",
-              "choices": [],
-              "def": 0,
-              "displayChoices": false,
-              "divideChoicesVisibly": false,
-              "kind": "decimal",
-              "linearSmoothing": true,
-              "max": 1,
-              "maxDigits": 3,
-              "mid": 0,
-              "min": -1,
-              "nonlinearSlider": false,
-              "showSign": false,
-              "step": 0,
-              "unboundedMax": false,
-              "unboundedMin": false,
-              "unit": "",
-              "wraparound": false
-            }
-          },
-          "params": {
-            "gain": 1,
-            "offset": 0
-          },
-          "type": "traceDisplay",
-          "traceDisplaySettings": {
-            "brightness": 0.92,
-            "color": "#75ebff",
-            "dot2Brightness": 0.18,
-            "dot2Color": "#184fff",
-            "dot2LineThickness": 4,
-            "cycles": 2,
-            "lineThickness": 1.4,
-            "padding": 0,
-            "skipSamples": 1,
-            "sourceSync": true,
-            "zoomSeconds": 0.05
-          }
-        }
-      ],
-      "requiredAssets": [],
-      "samples": [],
-      "timing": {
-        "tempoBpm": 120,
-        "timeSignatureDenominator": 4,
-        "timeSignatureNumerator": 4
-      },
-      "uiItems": [],
-      "view": {
-        "heightGu": 22,
-        "widthGu": 20,
-        "zoom": 0.8612761690424068
-      },
-      "visual": {
-        "background": {
-          "h": 210,
-          "l": 5,
-          "s": 0
-        },
-        "mode": "auto",
-        "scale": 1,
-        "style": "glow",
-        "theme": "cyan-violet",
-        "trail": 0.35
-      },
-      "windows": {
-        "metadata": {
-          "left": null,
-          "top": null
-        },
-        "moduleActions": {
-          "left": null,
-          "top": null
-        }
-      }
-    },
     "currentSavedPatchFilename": "",
-    "patchDirtyState": "edited"
+    "patchDirtyState": "untouched",
+    "currentPatchName": "Patch name",
+    "currentPatchTags": "tags"
   }
 });

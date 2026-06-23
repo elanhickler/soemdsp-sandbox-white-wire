@@ -47,6 +47,24 @@ function nodeGraphZoomLabel() {
   return nodeGraphZoom().toFixed(2);
 }
 
+function nodeGraphRenderedPanValue(value, origin = 0) {
+  const number = Number(value) || 0;
+  const originNumber = Number(origin) || 0;
+  const rendered = Math.round(originNumber + number) - originNumber;
+  return Object.is(rendered, -0) ? 0 : rendered;
+}
+
+function nodeGraphRenderedPan(pan = nodeGraphMvp.pan || { x: 0, y: 0 }, container = document.getElementById("nodeGraphWorkspace")) {
+  const rect = container?.getBoundingClientRect?.();
+  const style = container ? getComputedStyle(container) : null;
+  const borderLeft = Number.parseFloat(style?.borderLeftWidth) || 0;
+  const borderTop = Number.parseFloat(style?.borderTopWidth) || 0;
+  return {
+    x: nodeGraphRenderedPanValue(pan.x, (rect?.left || 0) + borderLeft),
+    y: nodeGraphRenderedPanValue(pan.y, (rect?.top || 0) + borderTop),
+  };
+}
+
 function nodeGraphZoomSurface() {
   return document.getElementById("nodeGraphZoomSurface");
 }
@@ -129,8 +147,8 @@ function updateNodeGraphGridHeatmap() {
   const maskLayers = [];
   const visibleNodes = [...surface.querySelectorAll(".dsp-node:not(.removed):not([hidden])")];
   const zoom = nodeGraphZoom();
-  const pan = nodeGraphMvp.pan || { x: 0, y: 0 };
-  heatmap.style.setProperty("--node-grid-heatmap-grid-position", `${Number(pan.x) || 0}px ${Number(pan.y) || 0}px`);
+  const pan = nodeGraphRenderedPan();
+  heatmap.style.setProperty("--node-grid-heatmap-grid-position", `${pan.x}px ${pan.y}px`);
   heatmap.style.setProperty(
     "--node-grid-heatmap-grid-size",
     `${(nodeGraphGridWidth() * zoom).toFixed(2)}px ${(nodeGraphGridHeight() * zoom).toFixed(2)}px`,

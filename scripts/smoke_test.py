@@ -6180,11 +6180,11 @@ def require_node_graph_mvp_contract() -> None:
         "clear-startup-1",
         "share-link-1",
         "hidden-io-proxy-1",
-        "module-home-actions-1",
+        "control-surface-visibility-1",
         "Module Actions",
         "Metaparameters",
         "Display Settings",
-        "display-language-1",
+        "control-surface-visibility-1",
         "nodeMasterScopeLineThickness",
         "nodeMasterScopeDotCore1Enabled",
         "nodeMasterScopeDotCore1Size",
@@ -6396,12 +6396,12 @@ def require_node_graph_mvp_contract() -> None:
         "interface-controls-height-1",
         "share-link-1",
         "hidden-io-proxy-1",
-        "module-home-actions-1",
+        "control-surface-visibility-1",
         "ui-window-resize-limits-2",
         "ui-window-resize-limits-2",
         "hidden-io-proxy-1",
         "ui-window-resize-limits-2",
-        "module-home-actions-1",
+        "control-surface-visibility-1",
         "node-patch-audio-player-row",
         "ui-window-resize-limits-2",
         "ui-window-resize-limits-2",
@@ -8556,9 +8556,6 @@ def require_node_graph_mvp_contract() -> None:
         'nodeGraphModuleDefinitions[type]?.layout === "knobWidget"',
         "return 4;",
         "return Math.ceil(nodeGraphModuleRequiredHeightUnitsForUi(type, ui));",
-        "const roughGridUnits = 4 + nodeGraphModuleVisibleBodyRowCount(type) * 1.25",
-        "Math.max(roughGridUnits, requiredGridUnits)",
-        "return defaultGridUnits;",
         "function createNodeGraphKnobWidgetBody(node, type)",
         "node-knob-widget-body",
         "node-knob-widget-control",
@@ -13757,8 +13754,8 @@ def require_node_graph_mvp_contract() -> None:
         ".node-zoom-label",
         ".node-zoom-buttons",
         ".node-graph-zoom-surface",
-        "left: var(--node-graph-pan-x)",
-        "top: var(--node-graph-pan-y)",
+        "left: calc(var(--node-graph-pan-x) / var(--node-graph-zoom))",
+        "top: calc(var(--node-graph-pan-y) / var(--node-graph-zoom))",
         "background: transparent",
         ".node-graph-origin-marker",
         "display: none",
@@ -14575,6 +14572,15 @@ def require_node_graph_mvp_contract() -> None:
         "height: graphElement?.offsetHeight || graphElement?.getBoundingClientRect?.().height || 0" in script_sources["./public/node-graph-workspace-geometry.js"]
         and "width: graphElement?.offsetWidth || graphElement?.getBoundingClientRect?.().width || 0" in script_sources["./public/node-graph-workspace-geometry.js"],
         "node graph world bounds should use layout size with CSS zoom",
+    )
+    require(
+        "function nodeGraphRenderedPanValue(value, origin = 0)" in script_sources["./public/node-graph-workspace-geometry.js"]
+        and "Math.round(originNumber + number) - originNumber" in script_sources["./public/node-graph-workspace-geometry.js"]
+        and "const renderedPan = nodeGraphRenderedPan(pan);" in script_sources["./public/node-graph-workspace-view.js"]
+        and 'workspace.style.setProperty("--node-graph-pan-x", `${renderedPan.x}px`);' in script_sources["./public/node-graph-workspace-view.js"]
+        and 'workspace.style.setProperty("--node-graph-pan-y", `${renderedPan.y}px`);' in script_sources["./public/node-graph-workspace-view.js"]
+        and 'heatmap.style.setProperty("--node-grid-heatmap-grid-position", `${pan.x}px ${pan.y}px`);' in script_sources["./public/node-graph-workspace-geometry.js"],
+        "node graph rendered pan should snap to whole pixels for crisp text",
     )
     require(
         ".node-wiring-panel.modular-only-view .node-graph-resize-handle {\n  display: none;" not in style_source,

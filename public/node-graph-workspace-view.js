@@ -4,10 +4,11 @@ function applyNodeGraphPan() {
     return;
   }
   const pan = nodeGraphMvp.pan || { x: 0, y: 0 };
-  workspace.style.setProperty("--node-graph-pan-x", `${pan.x}px`);
-  workspace.style.setProperty("--node-graph-pan-y", `${pan.y}px`);
-  workspace.dataset.panX = String(Math.round(pan.x));
-  workspace.dataset.panY = String(Math.round(pan.y));
+  const renderedPan = nodeGraphRenderedPan(pan);
+  workspace.style.setProperty("--node-graph-pan-x", `${renderedPan.x}px`);
+  workspace.style.setProperty("--node-graph-pan-y", `${renderedPan.y}px`);
+  workspace.dataset.panX = String(renderedPan.x);
+  workspace.dataset.panY = String(renderedPan.y);
   syncNodeGraphOriginMarker();
   syncNodeGraphWorldPositionReadout();
   updateNodeGraphGridHeatmap();
