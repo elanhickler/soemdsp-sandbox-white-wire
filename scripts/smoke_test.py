@@ -4,6 +4,7 @@ import argparse
 from functools import cache
 from html.parser import HTMLParser
 import json
+import re
 import socket
 import subprocess
 import sys
@@ -27,6 +28,19 @@ DEFAULT_MANIFEST = (
     ROOT.parent / "soemdsp" / "runtime_dsp_object_bound_wav_resync_demo.manifest.json"
 )
 JS_CONTENT_TYPES = ("application/javascript", "text/javascript")
+
+
+def parse_bundled_default_ui_settings_script_payload(source: str) -> dict:
+    match = re.search(r"\}\)\((.*)\);\s*$", source, re.S)
+    require(match is not None, "bundled UI settings script should wrap a JSON settings payload")
+    return json.loads(match.group(1))
+
+
+def read_bundled_default_ui_settings_script_payload() -> dict:
+    source = DEFAULT_UI_SETTINGS_SCRIPT.read_text(encoding="utf-8-sig")
+    return parse_bundled_default_ui_settings_script_payload(source)
+
+
 PUBLIC_SCRIPT_PATHS = (
     "./public/boot-loading.js",
     "./public/app-state.js",
@@ -2313,6 +2327,10 @@ def require_user_ui_settings_update_contract(base_url: str) -> None:
             '"sliderLayout": "value-focus"' in saved_script,
             "bundled UI settings script did not preserve view.sliderLayout",
         )
+        require(
+            parse_bundled_default_ui_settings_script_payload(saved_script) == saved_payload,
+            "bundled UI settings script payload did not match saved JSON after update",
+        )
     finally:
         DEFAULT_UI_SETTINGS.write_bytes(original)
         DEFAULT_UI_SETTINGS_SCRIPT.write_bytes(original_script)
@@ -3472,6 +3490,11 @@ def require_node_graph_mvp_contract() -> None:
             require(snippet not in source_text, f"removed overdraw artifact still present in {label}: {snippet}")
 
     default_ui_settings_payload = json.loads(DEFAULT_UI_SETTINGS.read_text(encoding="utf-8-sig"))
+    default_ui_settings_script_payload = read_bundled_default_ui_settings_script_payload()
+    require(
+        default_ui_settings_script_payload == default_ui_settings_payload,
+        "bundled UI settings script payload should match useruisettings.json exactly",
+    )
     default_ui_view = default_ui_settings_payload.get("view", {})
     require(default_ui_view.get("workingPatch") is None, "default ui settings should not embed a working patch")
     require(default_ui_view.get("patchDirtyState") == "untouched", "default ui settings should start untouched")
@@ -6515,6 +6538,10 @@ def require_node_graph_mvp_contract() -> None:
         index_source.index('id="nodeSceneToggleSliders"'),
         "module action visibility controls should be ordered title, buttons, display, control surface, in/out, sliders",
     )
+    require(
+        'id="nodeSceneToggleIo"' in index_source and "Hide in/out" in index_source,
+        "module action visibility controls should include the in/out toggle button",
+    )
 
     shader_quick_actions_source = index_source[
         index_source.index('class="node-shader-script-quick-actions"'):
@@ -9103,8 +9130,10 @@ def require_node_graph_mvp_contract() -> None:
         "node?.type === \"groupInput\"",
         "node?.type === \"moduleGroup\"",
         "node?.type === \"groupOutput\"",
+        "function normalizeNodeGraphModuleStoreDepartment(department = \"\")",
+        "return \"Sequence\";",
         "function setNodeGraphModuleStoreDepartment(department = \"\")",
-        "nodeGraphMvp.moduleStoreDepartment = String(department || \"\")",
+        "nodeGraphMvp.moduleStoreDepartment = normalizeNodeGraphModuleStoreDepartment(department)",
         "moduleStoreDepartmentSearch",
         "function nodeGraphNormalizeModuleDepartmentSearch(value = \"\")",
         "function handleNodeGraphModuleDepartmentSearchInput(event)",
@@ -9180,11 +9209,10 @@ def require_node_graph_mvp_contract() -> None:
         "\"Filter\"",
         "\"Envelope\"",
         "\"Modulators\"",
-        "\"Time\"",
         "\"Delay\"",
         "\"Drum\"",
         "\"Dynamics\"",
-        "\"Sequencer\"",
+        "\"Sequence\"",
         "\"Audio\"",
         "\"Visual\"",
         "\"Controllers\"",
@@ -9199,7 +9227,7 @@ def require_node_graph_mvp_contract() -> None:
         'pitch: "Loop-file shelf. Empty by default',
         "nodeGraphModuleStoreVisualGroups",
         "Generate",
-        'departments: Object.freeze(["Oscillator", "Chaos", "OMS", "Noise", "Additive", "Drum", "Sequencer"])',
+        'departments: Object.freeze(["Oscillator", "Chaos", "OMS", "Noise", "Additive", "Drum", "Sequence"])',
         'spiral: {\n    category: "OMS"',
         'label: "Spiral Generator"',
         "Process",
@@ -10394,8 +10422,6 @@ def require_node_graph_mvp_contract() -> None:
         "document.getElementById(\"nodeModuleActionsWindow\")",
         "nodeSceneWireTypeControl",
         "nodeSceneToggleIo",
-        'id="nodeSceneToggleIo"',
-        "Hide in/out",
         "function toggleNodeGraphModuleIoFromContext()",
         "function createNodeGraphIoProxySection(node",
         "node-io-proxy-port",
@@ -11520,8 +11546,7 @@ def require_node_graph_mvp_contract() -> None:
         "input.addEventListener(\"dblclick\", beginNodeGraphScopeNumberEdit)",
         "scopeElement.addEventListener(\"dblclick\", beginNodeGraphModuleScopeWindowNumberEdit)",
         "function beginNodeGraphModuleScopeWindowNumberEdit(event)",
-        "setNodeGraphSelection({ type: \"node\", id: nodeId })",
-        "positionNodeGlobalScopeMenuAtSavedOr(menu, event.clientX + 10, event.clientY + 10)",
+        "openNodeGraphTraceDisplaySettings(nodeId, event)",
         "input.addEventListener(\"pointerdown\", beginNodeGraphScopeNumberDrag)",
         'getElementById("nodeSceneScopeSync")',
         'getElementById("nodeSceneScopeOscillatorTraceMode")',

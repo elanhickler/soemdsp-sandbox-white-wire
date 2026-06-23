@@ -128,7 +128,7 @@
     "gridVisible": true,
     "moduleButtonsVisible": true,
     "moduleInterfaceControlsVisible": true,
-    "moduleOscilloscopesVisible": true,
+    "moduleOscilloscopesVisible": false,
     "moduleSlidersVisible": true,
     "moduleScopeBackgroundColor": "#000000",
     "moduleScopeBurn": 0,
