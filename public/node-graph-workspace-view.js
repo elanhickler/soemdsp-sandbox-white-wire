@@ -11,6 +11,7 @@ function applyNodeGraphPan() {
   workspace.dataset.panY = String(renderedPan.y);
   syncNodeGraphOriginMarker();
   syncNodeGraphWorldPositionReadout();
+  syncNodeGraphModularViewSizeReadout();
   updateNodeGraphGridHeatmap();
   drawNodeGraphWires();
   if (typeof scheduleNodeGraphModuleScopeDraw === "function") {
@@ -66,8 +67,51 @@ function syncNodeGraphWorldPositionReadout() {
   );
   readout.setAttribute(
     "aria-label",
-    `World position X ${nodeGraphWorldPositionLabel(worldX)}, Y ${nodeGraphWorldPositionLabel(worldY)}`,
+    `World position X ${nodeGraphWorldPositionLabel(worldX)}, Y ${nodeGraphWorldPositionLabel(worldY)}. Click to recenter view at X 0, Y 0.`,
   );
+  if (typeof nodeGraphApplyTooltip === "function") {
+    nodeGraphApplyTooltip(readout, "workspace.recenterOrigin");
+  }
+}
+
+function syncNodeGraphModularViewSizeReadout(size = null) {
+  const readout = document.getElementById("nodeModularViewSizeReadout");
+  if (!readout) {
+    return;
+  }
+  const workspace = document.getElementById("nodeGraphWorkspace");
+  const view = size && typeof size === "object"
+    ? size
+    : normalizeNodeGraphPatchView(nodeGraphMvp.patch?.view);
+  const widthSource = Number.isFinite(Number(view.widthGu))
+    ? view.widthGu
+    : workspace?.dataset?.widthGu;
+  const heightSource = Number.isFinite(Number(view.heightGu))
+    ? view.heightGu
+    : workspace?.dataset?.heightGu;
+  const widthGu = Math.max(0, Math.round(Number(widthSource) || 0));
+  const heightGu = Math.max(0, Math.round(Number(heightSource) || 0));
+  readout.replaceChildren(
+    Object.assign(document.createElement("span"), { textContent: `W ${widthGu}` }),
+    Object.assign(document.createElement("span"), { textContent: `H ${heightGu}` }),
+  );
+  readout.setAttribute(
+    "aria-label",
+    `Modular view size width ${widthGu} grid units, height ${heightGu} grid units.`,
+  );
+}
+
+function recenterNodeGraphViewAtWorldOrigin(event) {
+  setNodeGraphPan(0, 0);
+  setNodeInteractionHelp("View centered at X 0, Y 0.");
+  event?.preventDefault?.();
+}
+
+function handleNodeGraphWorldPositionReadoutKeydown(event) {
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+  recenterNodeGraphViewAtWorldOrigin(event);
 }
 
 function setNodeGraphPan(x, y, options = {}) {
@@ -479,6 +523,7 @@ function setNodeGraphWorkspacePreviewSize(widthGu, heightGu) {
   });
   workspace.dataset.widthGu = String(visibleSize.widthGu);
   workspace.dataset.heightGu = String(visibleSize.heightGu);
+  syncNodeGraphModularViewSizeReadout(visibleSize);
   drawNodeGraphWires();
   syncNodeGraphWorkspaceResizeHandlePosition();
   return visibleSize;

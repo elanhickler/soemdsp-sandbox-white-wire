@@ -8,7 +8,7 @@
     {
       "color": "#ff3333",
       "enabled": true,
-      "height": 489,
+      "height": 488,
       "id": "camera-1",
       "midiTrigger": null,
       "name": "Camera 1",
@@ -21,23 +21,45 @@
   ],
   "connections": [
     {
-      "destinationNode": "output",
-      "destinationPort": "Left",
-      "sourceNode": "audioPlayer-1",
-      "sourcePort": "Left"
+      "destinationNode": "dotOscilloscope-1",
+      "destinationPort": "In",
+      "sourceNode": "polyBlep-1",
+      "sourcePort": "Sine",
+      "tracePoints": []
     },
     {
       "destinationNode": "output",
-      "destinationPort": "Right",
-      "sourceNode": "audioPlayer-1",
-      "sourcePort": "Right"
+      "destinationPort": "Mono",
+      "sourceNode": "polyBlep-1",
+      "sourcePort": "Sine",
+      "tracePoints": []
+    },
+    {
+      "destinationNode": "traceDisplay-1",
+      "destinationPort": "In",
+      "sourceNode": "polyBlep-1",
+      "sourcePort": "Sine",
+      "tracePoints": []
+    },
+    {
+      "destinationNode": "scope2d-1",
+      "destinationPort": "X",
+      "sourceNode": "polyBlep-1",
+      "sourcePort": "Sine",
+      "tracePoints": []
+    },
+    {
+      "destinationNode": "scope2d-1",
+      "destinationPort": "Y",
+      "sourceNode": "polyBlep-1",
+      "sourcePort": "Ramp",
+      "tracePoints": []
     }
   ],
   "format": {
     "kind": "soemdsp-sandbox-node-patch",
     "version": 1
   },
-  "graphConnections": [],
   "grid": {
     "heightPx": 28,
     "sizePx": 28,
@@ -45,42 +67,228 @@
   },
   "info": {
     "author": "",
+    "bank": 0,
     "bankName": "",
     "description": "",
     "name": "Init",
+    "program": 0,
     "tags": ""
   },
   "modulations": [],
   "monitors": [],
   "nodes": [
     {
-      "gx": 1,
-      "gy": 1,
-      "id": "audioPlayer-1",
-      "paramMeta": {},
-      "params": {
-        "end": 1,
-        "level": 1,
-        "speed": 1,
-        "start": 0,
-        "transport": 4
-      },
-      "type": "audioPlayer",
-      "widthGu": 8
-    },
-    {
-      "gx": 12,
-      "gy": 5,
+      "gx": 14,
+      "gy": 17,
       "id": "output",
-      "paramMeta": {},
+      "paramMeta": {
+        "volume": {
+          "alias": "",
+          "choices": [],
+          "def": 0.1,
+          "displayChoices": false,
+          "divideChoicesVisibly": false,
+          "kind": "decimal",
+          "linearSmoothing": true,
+          "max": 1,
+          "maxDigits": 3,
+          "mid": 0.1,
+          "min": 0,
+          "nonlinearSlider": false,
+          "showSign": false,
+          "step": 0,
+          "unboundedMax": false,
+          "unboundedMin": false,
+          "unit": "",
+          "wraparound": false
+        }
+      },
       "params": {
         "volume": 0.8
       },
-      "type": "output",
-      "ui": {
-        "oscilloscopeHidden": true
+      "type": "output"
+    },
+    {
+      "gx": 14,
+      "gy": 11,
+      "id": "dotOscilloscope-1",
+      "paramMeta": {},
+      "params": {},
+      "type": "dotOscilloscope"
+    },
+    {
+      "gx": 4,
+      "gy": 11,
+      "id": "polyBlep-1",
+      "paramMeta": {
+        "waveform": {
+          "alias": "",
+          "choices": [
+            "Saw",
+            "Ramp",
+            "Square",
+            "Triangle",
+            "Sine",
+            "Noise"
+          ],
+          "def": 0,
+          "displayChoices": true,
+          "divideChoicesVisibly": true,
+          "kind": "waveform",
+          "linearSmoothing": false,
+          "max": 5,
+          "maxDigits": 3,
+          "mid": 2,
+          "min": 0,
+          "nonlinearSlider": true,
+          "showSign": false,
+          "step": 1,
+          "unboundedMax": false,
+          "unboundedMin": false,
+          "unit": "",
+          "wraparound": false
+        },
+        "frequency": {
+          "alias": "",
+          "choices": [],
+          "def": 440,
+          "displayChoices": false,
+          "divideChoicesVisibly": false,
+          "kind": "frequency",
+          "linearSmoothing": true,
+          "max": 20000,
+          "maxDigits": 5,
+          "mid": 440,
+          "min": 0,
+          "nonlinearSlider": true,
+          "showSign": false,
+          "step": 0,
+          "unboundedMax": false,
+          "unboundedMin": false,
+          "unit": "Hz",
+          "wraparound": false
+        },
+        "phase": {
+          "alias": "",
+          "choices": [],
+          "def": 0,
+          "displayChoices": false,
+          "divideChoicesVisibly": false,
+          "kind": "phase",
+          "linearSmoothing": true,
+          "max": 1,
+          "maxDigits": 3,
+          "mid": 0.5,
+          "min": 0,
+          "nonlinearSlider": false,
+          "showSign": false,
+          "step": 0.01,
+          "unboundedMax": false,
+          "unboundedMin": false,
+          "unit": "cycle",
+          "wraparound": true
+        },
+        "level": {
+          "alias": "",
+          "choices": [],
+          "def": 1,
+          "displayChoices": false,
+          "divideChoicesVisibly": false,
+          "kind": "decimal",
+          "linearSmoothing": true,
+          "max": 1,
+          "maxDigits": 3,
+          "mid": 0.5,
+          "min": 0,
+          "nonlinearSlider": false,
+          "showSign": false,
+          "step": 0,
+          "unboundedMax": false,
+          "unboundedMin": false,
+          "unit": "",
+          "wraparound": false
+        }
       },
-      "widthGu": 5
+      "params": {
+        "waveform": 0,
+        "frequency": 100,
+        "phase": 0,
+        "level": 1
+      },
+      "type": "polyBlep"
+    },
+    {
+      "gx": 21,
+      "gy": 17,
+      "id": "traceDisplay-1",
+      "paramMeta": {
+        "gain": {
+          "alias": "",
+          "choices": [],
+          "def": 1,
+          "displayChoices": false,
+          "divideChoicesVisibly": false,
+          "kind": "decimal",
+          "linearSmoothing": true,
+          "max": 8,
+          "maxDigits": 3,
+          "mid": 1,
+          "min": 0,
+          "nonlinearSlider": true,
+          "showSign": false,
+          "step": 0,
+          "unboundedMax": false,
+          "unboundedMin": false,
+          "unit": "",
+          "wraparound": false
+        },
+        "offset": {
+          "alias": "",
+          "choices": [],
+          "def": 0,
+          "displayChoices": false,
+          "divideChoicesVisibly": false,
+          "kind": "decimal",
+          "linearSmoothing": true,
+          "max": 1,
+          "maxDigits": 3,
+          "mid": 0,
+          "min": -1,
+          "nonlinearSlider": false,
+          "showSign": false,
+          "step": 0,
+          "unboundedMax": false,
+          "unboundedMin": false,
+          "unit": "",
+          "wraparound": false
+        }
+      },
+      "params": {
+        "gain": 1,
+        "offset": 0
+      },
+      "type": "traceDisplay",
+      "traceDisplaySettings": {
+        "brightness": 0.92,
+        "color": "#75ebff",
+        "dot2Brightness": 0.18,
+        "dot2Color": "#184fff",
+        "dot2LineThickness": 4,
+        "cycles": 2,
+        "lineThickness": 1.4,
+        "padding": 0,
+        "skipSamples": 1,
+        "sourceSync": true,
+        "zoomSeconds": 0.05
+      }
+    },
+    {
+      "gx": 21,
+      "gy": 7,
+      "id": "scope2d-1",
+      "paramMeta": {},
+      "params": {},
+      "type": "scope2d"
     }
   ],
   "requiredAssets": [],
@@ -92,9 +300,9 @@
   },
   "uiItems": [],
   "view": {
-    "heightGu": 22,
+    "heightGu": 20,
     "widthGu": 20,
-    "zoom": 1
+    "zoom": 0.5674268557185989
   },
   "visual": {
     "background": {
@@ -107,15 +315,5 @@
     "style": "glow",
     "theme": "cyan-violet",
     "trail": 0.35
-  },
-  "windows": {
-    "metadata": {
-      "left": null,
-      "top": null
-    },
-    "moduleActions": {
-      "left": null,
-      "top": null
-    }
   }
 }

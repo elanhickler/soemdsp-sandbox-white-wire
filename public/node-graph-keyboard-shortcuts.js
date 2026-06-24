@@ -124,6 +124,13 @@ function handleNodeGraphKeydown(event) {
   if (nodeGraphEventTargetIsEditable(event.target)) {
     return;
   }
+  if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.code === "Space") {
+    event.preventDefault();
+    if (typeof toggleNodeGraphLiveOutput === "function") {
+      toggleNodeGraphLiveOutput();
+    }
+    return;
+  }
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
     event.preventDefault();
     undoNodeGraphPatch();

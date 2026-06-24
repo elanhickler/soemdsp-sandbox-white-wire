@@ -1258,20 +1258,38 @@ function nodeGraphGlobalSmoothingSamples() {
   );
 }
 
+function nodeGraphGlobalSmoothingSeconds() {
+  return clampNodeGraphAutoSmoothingSeconds(
+    nodeGraphMvp?.live?.autoSmoothingSeconds ?? nodeGraphAutoSmoothingDefaultSeconds,
+  );
+}
+
+function formatNodeGraphGlobalSmoothingSeconds(seconds) {
+  const value = clampNodeGraphAutoSmoothingSeconds(seconds);
+  if (typeof limit_decimals === "function") {
+    return limit_decimals(String(value), 5, 3, 4, false);
+  }
+  return value.toFixed(4).replace(/0$/, "");
+}
+
 function syncNodeGraphGlobalSmoothingControl(options = {}) {
-  const input = document.getElementById("nodeSceneGlobalSmoothingSamples");
+  const input = document.getElementById("nodeSceneGlobalSmoothingSeconds");
   if (!input) {
     return;
   }
   if (!options.force && document.activeElement === input) {
     return;
   }
-  input.value = String(nodeGraphGlobalSmoothingSamples());
+  input.value = formatNodeGraphGlobalSmoothingSeconds(nodeGraphGlobalSmoothingSeconds());
 }
 
 function setNodeGraphGlobalSmoothingSamples(samples, options = {}) {
-  const seconds = nodeGraphSmoothingSecondsFromSamples(samples);
-  nodeGraphMvp.live.autoSmoothingSeconds = seconds;
+  setNodeGraphGlobalSmoothingSeconds(nodeGraphSmoothingSecondsFromSamples(samples), options);
+}
+
+function setNodeGraphGlobalSmoothingSeconds(seconds, options = {}) {
+  const normalized = clampNodeGraphAutoSmoothingSeconds(seconds);
+  nodeGraphMvp.live.autoSmoothingSeconds = normalized;
   nodeGraphMvp.live.autoSmoothingManual = options.manual !== false;
   syncNodeGraphGlobalSmoothingControl({ force: true });
   scheduleNodeGraphLiveParameterSync();
@@ -1280,21 +1298,114 @@ function setNodeGraphGlobalSmoothingSamples(samples, options = {}) {
   }
 }
 
-function handleNodeGraphGlobalSmoothingSamplesChange() {
-  const input = document.getElementById("nodeSceneGlobalSmoothingSamples");
+function nodeGraphGlobalSmoothingDragStep(event) {
+  const multiplier = typeof nodeGraphNumericDragMultiplier === "function"
+    ? nodeGraphNumericDragMultiplier(event)
+    : 1;
+  return 0.01 * multiplier;
+}
+
+function handleNodeGraphGlobalSmoothingSecondsChange() {
+  const input = document.getElementById("nodeSceneGlobalSmoothingSeconds");
   if (!input) {
     return;
   }
-  setNodeGraphGlobalSmoothingSamples(input.value);
+  setNodeGraphGlobalSmoothingSeconds(input.value);
+  input.readOnly = true;
 }
 
-function handleNodeGraphGlobalSmoothingSamplesKeydown(event) {
+function handleNodeGraphGlobalSmoothingSecondsKeydown(event) {
   if (event.key !== "Enter") {
     return;
   }
   event.preventDefault();
-  handleNodeGraphGlobalSmoothingSamplesChange();
+  handleNodeGraphGlobalSmoothingSecondsChange();
   event.currentTarget?.blur?.();
+}
+
+function beginNodeGraphGlobalSmoothingSecondsEdit(event) {
+  const input = document.getElementById("nodeSceneGlobalSmoothingSeconds");
+  if (!input) {
+    return;
+  }
+  input.readOnly = false;
+  input.focus();
+  input.select();
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function beginNodeGraphGlobalSmoothingSecondsDrag(event) {
+  const input = document.getElementById("nodeSceneGlobalSmoothingSeconds");
+  if (!input || event.button > 0 || event.detail > 1) {
+    return;
+  }
+  if (typeof nodeGraphNumericModifierReserved === "function" && nodeGraphNumericModifierReserved(event)) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+  const resetToDefaultOnClick = (event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey;
+  nodeGraphMvp.globalSmoothingSecondsDragging = {
+    input,
+    moved: false,
+    pointerId: event.pointerId ?? null,
+    resetToDefaultOnClick,
+    startValue: nodeGraphGlobalSmoothingSeconds(),
+    startX: event.clientX,
+    startY: event.clientY,
+    step: nodeGraphGlobalSmoothingDragStep(event),
+  };
+  input.readOnly = true;
+  input.classList.add("value-dragging");
+  input.closest(".scene-context-global-smoothing-control")?.classList.add("value-dragging");
+  if (event.pointerId !== undefined) {
+    input.setPointerCapture?.(event.pointerId);
+  }
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+function dragNodeGraphGlobalSmoothingSeconds(event) {
+  const drag = nodeGraphMvp.globalSmoothingSecondsDragging;
+  if (
+    !drag ||
+    (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId)
+  ) {
+    return;
+  }
+  const horizontalDelta = event.clientX - drag.startX;
+  const verticalDelta = drag.startY - event.clientY;
+  if (Math.abs(horizontalDelta) > 1 || Math.abs(verticalDelta) > 1) {
+    drag.moved = true;
+  }
+  if (drag.resetToDefaultOnClick && !drag.moved) {
+    event.preventDefault();
+    return;
+  }
+  setNodeGraphGlobalSmoothingSeconds(drag.startValue + (horizontalDelta + verticalDelta) * drag.step);
+  event.preventDefault();
+}
+
+function endNodeGraphGlobalSmoothingSecondsDrag(event) {
+  const drag = nodeGraphMvp.globalSmoothingSecondsDragging;
+  if (
+    !drag ||
+    (drag.pointerId !== null && event.pointerId !== undefined && drag.pointerId !== event.pointerId)
+  ) {
+    return;
+  }
+  if (drag.resetToDefaultOnClick && !drag.moved) {
+    setNodeGraphGlobalSmoothingSeconds(nodeGraphDefaultSmoothingBlockSeconds());
+  }
+  drag.input.classList.remove("value-dragging");
+  drag.input.closest(".scene-context-global-smoothing-control")?.classList.remove("value-dragging");
+  drag.input.readOnly = true;
+  if (event.pointerId !== undefined && drag.input.hasPointerCapture?.(event.pointerId)) {
+    drag.input.releasePointerCapture(event.pointerId);
+  }
+  nodeGraphMvp.globalSmoothingSecondsDragging = null;
+  event.preventDefault();
 }
 
 function scheduleNodeGraphLiveSync(mode = "plan") {
@@ -1396,7 +1507,7 @@ async function createNodeGraphLiveWorkletNode(context) {
     throw new Error("AudioWorklet unavailable");
   }
   await nodeGraphLiveAwaitStartup(
-    context.audioWorklet.addModule("./public/node-live-audio-worklet.js?v=smoothing-zero-bypass-1"),
+    context.audioWorklet.addModule("./public/node-live-audio-worklet.js?v=polyblep-runtime-contract-1"),
     "AudioWorklet startup timed out",
   );
   const workletNode = new AudioWorkletNode(

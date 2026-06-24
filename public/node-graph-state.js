@@ -245,6 +245,7 @@ var nodeGraphMvp = {
   scopeContextWindowPosition: null,
   globalScopeDragging: null,
   globalScopeWindowPosition: null,
+  globalSmoothingSecondsDragging: null,
   scopeNumberDragging: null,
   sceneContextTargetNode: null,
   sceneContextTargetWire: null,

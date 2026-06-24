@@ -1,5 +1,5 @@
 const nodeUiDevDefaultSettingsUrl = "./public/presets/useruisettings.json";
-const nodeUiDevDefaultSettingsStorageKey = "soemdsp-sandbox.userUiSettings.startup.v11";
+const nodeUiDevDefaultSettingsStorageKey = "soemdsp-sandbox.userUiSettings.startup.v12";
 
 const nodeGraphWorkspaceWindowStateKeys = Object.freeze([
   "commandCenter",
@@ -314,9 +314,14 @@ function positionNodeGraphWorkspaceWindowFromState(key, element) {
     return false;
   }
   const wasHidden = element.hidden;
-  const left = Math.round(Number(position.left));
-  const top = Math.round(Number(position.top));
+  let left = Math.round(Number(position.left));
+  let top = Math.round(Number(position.top));
   element.style.position = "fixed";
+  if (typeof nodeGraphFloatingWindowPosition === "function") {
+    const clamped = nodeGraphFloatingWindowPosition(element, left, top);
+    left = clamped.left;
+    top = clamped.top;
+  }
   if (typeof setNodeGraphFloatingWindowViewportPosition === "function") {
     setNodeGraphFloatingWindowViewportPosition(element, left, top);
   } else {
@@ -486,10 +491,12 @@ function normalizeNodeUiDevSettings(settings = {}) {
   const moduleScopeDecay = normalizeNodeGraphModuleScopeDecay(
     view.moduleScopeDecay ?? nodeGraphMvp.moduleScopeDecay ?? 0,
   );
-  const globalSmoothingSamples = nodeGraphSmoothingSamplesFromSeconds(
-    view.globalSmoothingSamples !== undefined
-      ? nodeGraphSmoothingSecondsFromSamples(view.globalSmoothingSamples)
-      : nodeGraphMvp?.live?.autoSmoothingSeconds ?? nodeGraphAutoSmoothingDefaultSeconds,
+  const globalSmoothingSeconds = clampNodeGraphAutoSmoothingSeconds(
+    view.globalSmoothingSeconds !== undefined
+      ? view.globalSmoothingSeconds
+      : view.globalSmoothingSamples !== undefined
+        ? nodeGraphSmoothingSecondsFromSamples(view.globalSmoothingSamples)
+        : nodeGraphMvp?.live?.autoSmoothingSeconds ?? nodeGraphAutoSmoothingDefaultSeconds,
   );
   const globalSmoothingManual = Boolean(
     view.globalSmoothingManual ?? nodeGraphMvp?.live?.autoSmoothingManual ?? false,
@@ -637,7 +644,7 @@ function normalizeNodeUiDevSettings(settings = {}) {
       moduleScopeBackgroundColor,
       moduleScopeBurn,
       moduleScopeDecay,
-      globalSmoothingSamples,
+      globalSmoothingSeconds,
       globalSmoothingManual,
       moduleScopeDotCore1Enabled,
       moduleScopeDotCore1Size,
@@ -712,7 +719,7 @@ function readNodeUiDevSettingsFromControls() {
       moduleScopeBackgroundColor: normalizeNodeGraphModuleScopeBackgroundColor(nodeGraphMvp.moduleScopeBackgroundColor ?? "#000000"),
       moduleScopeBurn: normalizeNodeGraphModuleScopeBurn(nodeGraphMvp.moduleScopeBurn ?? 0),
       moduleScopeDecay: normalizeNodeGraphModuleScopeDecay(nodeGraphMvp.moduleScopeDecay ?? 0),
-      globalSmoothingSamples: nodeGraphSmoothingSamplesFromSeconds(
+      globalSmoothingSeconds: clampNodeGraphAutoSmoothingSeconds(
         nodeGraphMvp?.live?.autoSmoothingSeconds ?? nodeGraphAutoSmoothingDefaultSeconds,
       ),
       globalSmoothingManual: Boolean(nodeGraphMvp?.live?.autoSmoothingManual),
@@ -817,7 +824,11 @@ function applyNodeUiDevSettings(settings) {
   nodeGraphMvp.moduleScopeBackgroundColor = normalizeNodeGraphModuleScopeBackgroundColor(normalized.view.moduleScopeBackgroundColor);
   nodeGraphMvp.moduleScopeBurn = normalizeNodeGraphModuleScopeBurn(normalized.view.moduleScopeBurn);
   nodeGraphMvp.moduleScopeDecay = normalizeNodeGraphModuleScopeDecay(normalized.view.moduleScopeDecay);
-  nodeGraphMvp.live.autoSmoothingSeconds = nodeGraphSmoothingSecondsFromSamples(normalized.view.globalSmoothingSamples);
+  nodeGraphMvp.live.autoSmoothingSeconds = clampNodeGraphAutoSmoothingSeconds(
+    normalized.view.globalSmoothingSeconds !== undefined
+      ? normalized.view.globalSmoothingSeconds
+      : nodeGraphSmoothingSecondsFromSamples(normalized.view.globalSmoothingSamples),
+  );
   nodeGraphMvp.live.autoSmoothingManual = Boolean(normalized.view.globalSmoothingManual);
   if (typeof syncNodeGraphGlobalSmoothingControl === "function") {
     syncNodeGraphGlobalSmoothingControl({ force: true });
@@ -1028,10 +1039,15 @@ function clearNodeUserStartupLocalStorage() {
 }
 
 function clearNodeUserStartupRuntimeState() {
+  if (typeof cloneNodeGraphPatch === "function" && typeof nodeGraphDefaultPatch !== "undefined") {
+    nodeGraphMvp.patch = cloneNodeGraphPatch(nodeGraphDefaultPatch);
+  }
   nodeGraphMvp.workingPatch = null;
   nodeGraphMvp.currentSavedPatchFilename = "";
   nodeGraphMvp.patchDirtyState = "untouched";
   nodeGraphMvp.workspaceWindowStates = closeNodeGraphWorkspaceWindowStates({});
+  nodeGraphMvp.sharedInspectorActive = "";
+  nodeGraphMvp.sharedInspectorWindowState = {};
   nodeGraphMvp.pan = { x: 0, y: 0 };
   nodeGraphMvp.zoom = 1;
   nodeGraphMvp.moduleStoreDepartment = "";
@@ -1045,11 +1061,17 @@ function clearNodeUserStartupRuntimeState() {
 function clearNodeUserStartupState() {
   const removed = clearNodeUserStartupLocalStorage();
   clearNodeUserStartupRuntimeState();
+  const text = typeof serializeNodeUiDevSettings === "function"
+    ? serializeNodeUiDevSettings()
+    : "";
   if (
-    typeof serializeNodeUiDevSettings === "function" &&
+    text &&
     typeof saveNodeUiDevLocalDefaultSettings === "function"
   ) {
-    saveNodeUiDevLocalDefaultSettings(serializeNodeUiDevSettings());
+    saveNodeUiDevLocalDefaultSettings(text);
+  }
+  if (text && typeof postNodeUiDevSettingsPreset === "function") {
+    postNodeUiDevSettingsPreset(text).catch(() => {});
   }
   setNodeUiDevSettingsStatus(`startup cleared (${removed} local keys)`, true);
   window.setTimeout(() => {

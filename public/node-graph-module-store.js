@@ -96,6 +96,10 @@ const nodeGraphModuleStoreTypes = Object.freeze([
   "led",
   "visualOscilloscope",
   "traceDisplay",
+  "dotOscilloscope",
+  "valueOscilloscope",
+  "lineBurnOscilloscope",
+  "scope2d",
   "parabol",
   "vibratoGenerator",
   "wowAndFlutter",
@@ -126,6 +130,7 @@ const nodeGraphModuleStoreDepartments = Object.freeze([
   "Sequence",
   "Audio",
   "Visual",
+  "Oscilloscope",
   "Controllers",
   "Portals",
   "Loops",
@@ -144,7 +149,7 @@ const nodeGraphModuleStoreVisualGroups = Object.freeze([
   },
   {
     label: "Interact",
-    departments: Object.freeze(["Controllers", "Portals", "Visual", "Debug"]),
+    departments: Object.freeze(["Controllers", "Portals", "Oscilloscope", "Visual", "Debug"]),
   },
   {
     label: "Memory",
@@ -261,6 +266,11 @@ const nodeGraphModuleStoreDepartmentAds = Object.freeze({
     symbol: "V",
     title: "Visual",
     pitch: "Visual sinks, RGBA sources, canvas layers, and formula tiles for turning patch motion into screen output.",
+  },
+  Oscilloscope: {
+    symbol: "OSC",
+    title: "Oscilloscope",
+    pitch: "Dedicated display testbeds for trace, dot, line burn, 2D scope, and canvas-style visual inspection.",
   },
 });
 
@@ -795,7 +805,7 @@ const nodeGraphModuleStoreCatalog = Object.freeze({
     notes: ["load image", "save image", "trace texture"],
   },
   canvas: {
-    category: "Visual",
+    category: "Oscilloscope",
     description: "Layered RGBA compositor for images, scopes, shader passes, transforms, and future game-engine surfaces.",
     notes: ["layer compositor", "RGBA output", "shader script"],
   },
@@ -811,9 +821,33 @@ const nodeGraphModuleStoreCatalog = Object.freeze({
     notes: ["square display", "signal display", "visual sink"],
   },
   traceDisplay: {
-    category: "Visual",
+    category: "Oscilloscope",
     description: "Focused 1D waveform display testbed. Patch any signal into In and inspect the current trace without the full prettyscope renderer.",
     notes: ["1D waveform", "display testbed", "input trace"],
+  },
+  dotOscilloscope: {
+    category: "Oscilloscope",
+    description: "Placeholder for a clock-like oscilloscope that draws one efficient brightness dot from the current buffered value.",
+    label: "0D Burn",
+    notes: ["clock display", "single dot", "latest value"],
+  },
+  valueOscilloscope: {
+    category: "Oscilloscope",
+    description: "Single-value oscilloscope that draws the latest input as one horizontal line across the display.",
+    label: "1D Value",
+    notes: ["value display", "horizontal line", "latest value"],
+  },
+  lineBurnOscilloscope: {
+    category: "Oscilloscope",
+    description: "First-pass line-burn oscilloscope style with a heavier trace pass, ready for dedicated burn tuning.",
+    label: "1D Burn",
+    notes: ["burn display", "line trace", "testbed"],
+  },
+  scope2d: {
+    category: "Oscilloscope",
+    description: "First-pass 2D scope display for inspecting the latest X/Y signal point.",
+    label: "2D Burn",
+    notes: ["xy display", "2D scope", "latest point"],
   },
   parabol: {
     category: "Modulators",
@@ -1617,14 +1651,17 @@ function endNodeGraphModuleShopViewResize(event) {
   endNodeGraphFloatingWindowResize(event, "moduleShopResizing", saveNodeGraphModuleShopWindowSizeToUserSettings);
 }
 
-function openNodeGraphModuleShop(point = null) {
+function openNodeGraphModuleShop(point = null, windowPoint = null) {
+  const panel = document.getElementById("nodeModuleShopView");
+  if (panel && !panel.hidden) {
+    pulseNodeGraphFloatingWindowAttention(panel);
+    return;
+  }
   nodeGraphMvp.sceneContextPoint = point;
   nodeGraphMvp.sceneContextTargetNode = null;
   nodeGraphMvp.sceneContextTargetWire = null;
-  closeNodeSceneContextMenu();
   setNodeGraphViewMode("shop");
   renderNodeGraphModuleStoreCatalog();
-  const panel = document.getElementById("nodeModuleShopView");
   if (typeof applyNodeGraphModuleShopWindowSize === "function") {
     applyNodeGraphModuleShopWindowSize(nodeGraphMvp.workspaceWindowStates?.moduleBrowser?.size);
   }
@@ -1632,7 +1669,7 @@ function openNodeGraphModuleShop(point = null) {
     typeof positionNodeGraphWorkspaceWindowFromState !== "function" ||
     !positionNodeGraphWorkspaceWindowFromState("moduleBrowser", panel)
   ) {
-    positionNodeGraphModuleShopViewNearPoint(point);
+    positionNodeGraphModuleShopViewNearPoint(windowPoint || point);
   }
   if (typeof rememberNodeGraphWorkspaceWindowState === "function") {
     rememberNodeGraphWorkspaceWindowState("moduleBrowser", panel, { open: true }, { status: false });

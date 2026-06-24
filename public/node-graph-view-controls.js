@@ -1,15 +1,25 @@
 function renderNodeGraphHistoryControls() {
-  const undo = document.getElementById("nodeUndoButton");
-  const redo = document.getElementById("nodeRedoButton");
-  if (!undo || !redo) {
+  const undoButtons = [
+    document.getElementById("nodeUndoButton"),
+    document.getElementById("nodeSceneUndoButton"),
+  ].filter(Boolean);
+  const redoButtons = [
+    document.getElementById("nodeRedoButton"),
+    document.getElementById("nodeSceneRedoButton"),
+  ].filter(Boolean);
+  if (!undoButtons.length || !redoButtons.length) {
     return;
   }
   const canUndo = nodeGraphMvp.historyIndex > 0;
   const canRedo = nodeGraphMvp.historyIndex < nodeGraphMvp.historySnapshots.length - 1;
-  undo.disabled = !canUndo;
-  redo.disabled = !canRedo;
-  undo.removeAttribute("title");
-  redo.removeAttribute("title");
+  undoButtons.forEach((button) => {
+    button.disabled = !canUndo;
+    button.removeAttribute("title");
+  });
+  redoButtons.forEach((button) => {
+    button.disabled = !canRedo;
+    button.removeAttribute("title");
+  });
 }
 
 function renderNodeGraphVisibilityMenuButton() {
@@ -661,6 +671,11 @@ function renderNodeGraphTooltipToggle() {
 function setNodeGraphVisibilityMenuOpen(open) {
   const menu = document.getElementById("nodeVisibilityMenu");
   if (menu) {
+    if (open && !menu.hidden) {
+      pulseNodeGraphFloatingWindowAttention(menu);
+      renderNodeGraphVisibilityMenuButton();
+      return;
+    }
     menu.hidden = !open;
     if (open) {
       applyNodeGraphVisibilityMenuSize(nodeGraphMvp.workspaceWindowStates?.visibilityMenu?.size);

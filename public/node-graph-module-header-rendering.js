@@ -43,22 +43,45 @@ function updateNodeGraphPatchTimingFromHeader(input) {
   });
 }
 
+function commitNodeGraphHeaderNumberInput(input) {
+  if (!input) {
+    return;
+  }
+  if (input.dataset.timingField) {
+    updateNodeGraphPatchTimingFromHeader(input);
+  } else if (input.dataset.globalScopeInput) {
+    setNodeGraphScopeNumberInputValue(input, input.value);
+  }
+  input.readOnly = true;
+}
+
 function bindNodeGraphHeaderTimingWidgets(root = document) {
   for (const input of root.querySelectorAll(".node-header-timing-input")) {
     if (input.dataset.timingBound === "true") {
       continue;
     }
     input.dataset.timingBound = "true";
-    input.addEventListener("change", () => updateNodeGraphPatchTimingFromHeader(input));
-    input.addEventListener("blur", () => updateNodeGraphPatchTimingFromHeader(input));
+    if (input.dataset.globalScopeNumberDrag === "true") {
+      input.readOnly = true;
+    }
+    input.addEventListener("change", () => commitNodeGraphHeaderNumberInput(input));
+    input.addEventListener("blur", () => commitNodeGraphHeaderNumberInput(input));
+    if (input.dataset.timingField) {
+      input.addEventListener("dblclick", beginNodeGraphScopeNumberEdit);
+    }
     input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
-        updateNodeGraphPatchTimingFromHeader(input);
+        commitNodeGraphHeaderNumberInput(input);
         input.blur();
       }
       event.stopPropagation();
     });
-    input.addEventListener("pointerdown", (event) => event.stopPropagation());
+    input.addEventListener("pointerdown", (event) => {
+      if (input.dataset.timingField && input.readOnly) {
+        event.preventDefault();
+      }
+      event.stopPropagation();
+    });
   }
   for (const field of root.querySelectorAll(".node-header-timing-field[data-header-number-drag='true']")) {
     if (field.dataset.headerNumberDragBound === "true") {
@@ -73,10 +96,10 @@ function bindNodeGraphHeaderTimingWidgets(root = document) {
 function createNodeGraphHeaderTimingInput(key, label, options = {}) {
   const field = document.createElement("label");
   field.className = "node-header-timing-field";
+  field.dataset.headerNumberDrag = "true";
   if (options.row) {
     field.dataset.timingRow = options.row;
   }
-  field.dataset.headerNumberDrag = "true";
   field.setAttribute("aria-label", label);
 
   const caption = document.createElement("span");
@@ -86,13 +109,14 @@ function createNodeGraphHeaderTimingInput(key, label, options = {}) {
 
   const input = document.createElement("input");
   input.className = "node-header-timing-input";
-  input.dataset.globalScopeNumberDrag = "true";
   input.dataset.timingField = key;
+  input.dataset.globalScopeNumberDrag = "true";
   input.inputMode = "numeric";
   input.min = String(options.min ?? 1);
   input.max = String(options.max ?? 32);
   input.step = String(options.step ?? 1);
   input.type = "number";
+  input.readOnly = true;
   input.value = String(nodeGraphPatchTimingValue(key));
   field.append(input);
 
@@ -122,16 +146,14 @@ function createNodeGraphTapTempoButton() {
 
 function createNodeGraphHeaderSpeedPlaceholder() {
   const field = document.createElement("label");
-  field.className = "node-header-timing-field node-header-speed-placeholder node-under-construction-control";
+  field.className = "node-header-timing-field node-header-scope-field node-header-speed-placeholder node-under-construction-control";
   field.setAttribute("aria-label", "Speed control under construction");
   field.dataset.tooltipKey = "timing.speedUnderConstruction";
 
   const caption = document.createElement("span");
+  caption.className = "node-header-timing-caption";
   caption.textContent = "Speed";
   field.append(caption);
-
-  const inputWrap = document.createElement("span");
-  inputWrap.className = "node-header-speed-placeholder-value";
 
   const input = document.createElement("input");
   input.className = "node-header-timing-input";
@@ -147,8 +169,7 @@ function createNodeGraphHeaderSpeedPlaceholder() {
   input.addEventListener("keydown", (event) => event.stopPropagation());
   input.addEventListener("pointerdown", (event) => event.stopPropagation());
 
-  inputWrap.append(input);
-  field.append(inputWrap);
+  field.append(input);
   return field;
 }
 
@@ -184,7 +205,7 @@ function createNodeGraphHeaderScopeInput(id, label, value, options = {}) {
   input.min = String(options.min ?? 0);
   input.max = String(options.max ?? 1);
   input.step = String(options.step ?? 0.01);
-  input.readOnly = Boolean(options.underConstruction);
+  input.readOnly = true;
   input.type = "number";
   input.value = String(value);
   if (options.underConstruction) {
@@ -347,6 +368,15 @@ function createNodeGraphModuleHeader(type, node, definition) {
   nodeGraphApplyTooltip(handle, "module.move", {}, { title: false });
   handle.innerHTML = "&#x2725;";
   actionRow.append(handle);
+  const displayButton = document.createElement("button");
+  displayButton.className = "node-display-settings-button";
+  displayButton.type = "button";
+  displayButton.dataset.node = node;
+  displayButton.setAttribute("aria-label", `${nodeGraphNodeLabels[type]} display settings`);
+  displayButton.setAttribute("aria-pressed", "true");
+  nodeGraphApplyTooltip(displayButton, "module.displaySettings", {}, { title: false });
+  displayButton.textContent = "\u{1F4FA}";
+  actionRow.append(displayButton);
   const orderBadge = document.createElement("span");
   orderBadge.className = "node-execution-order-badge";
   orderBadge.dataset.executionState = "inactive";
@@ -380,7 +410,7 @@ function createNodeGraphModuleHeader(type, node, definition) {
   actionButton.className = "node-action-button";
   actionButton.type = "button";
   actionButton.dataset.node = node;
-  actionButton.setAttribute("aria-label", `${nodeGraphNodeLabels[type]} module actions`);
+  actionButton.setAttribute("aria-label", `${nodeGraphNodeLabels[type]} module settings`);
   nodeGraphApplyTooltip(actionButton, "module.actionsTitle", {}, { title: false });
   actionButton.textContent = "\u2699";
   actionRow.append(actionButton);

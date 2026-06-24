@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>soemdsp-sandbox</title>
-  <link rel="stylesheet" href="./public/styles.css?v=crisp-ui-pan-1">
+  <link rel="stylesheet" href="./public/styles.css?v=ui-settings-flat-scroll-2">
 </head>
 <body class="debug-collapsed node-boot-loading">
   <div class="node-boot-loading-screen" role="status" aria-live="polite" aria-label="loading">
@@ -110,19 +110,34 @@
               id="nodeModularViewButton"
               class="active"
               type="button"
-              aria-pressed="true"><span>Modular</span><span>View</span></button>
+              aria-pressed="true"><span>Workspace</span><span>View</span></button>
             <button
               id="nodeModularOnlyViewButton"
               type="button"
-              aria-pressed="false"><span>Modular</span><span>Only</span></button>
+              aria-pressed="false"><span>Modular</span><span>View</span></button>
           </span>
           <button
             id="nodeModuleShopButton"
             type="button"
             aria-pressed="false"><span>Module</span><span>Browser</span></button>
-          <span id="nodeWorldPositionReadout" class="node-world-position-readout" aria-label="World position" aria-live="polite">
+          <span
+            id="nodeWorldPositionReadout"
+            class="node-world-position-readout"
+            role="button"
+            tabindex="0"
+            aria-label="World position. Click to recenter view at X 0, Y 0."
+            aria-live="polite"
+            data-tooltip-key="workspace.recenterOrigin">
             <span>X 0</span>
             <span>Y 0</span>
+          </span>
+          <span
+            id="nodeModularViewSizeReadout"
+            class="node-modular-view-size-readout"
+            aria-label="Modular view size"
+            aria-live="polite">
+            <span>W 0</span>
+            <span>H 0</span>
           </span>
           <span id="nodeSelectionCountReadout" class="node-selection-count-readout" aria-label="0 selected modules" aria-live="polite">
             <span>SEL</span>
@@ -141,7 +156,6 @@
         <div class="node-history-controls" role="group" aria-label="Node graph history">
           <button id="nodeUndoButton" type="button" disabled>Undo</button>
           <button id="nodeRedoButton" type="button" disabled>Redo</button>
-          <button id="nodeShaderScriptButton" type="button" aria-label="Screen Shader" aria-pressed="false"><span>Screen</span><span>Shader</span></button>
           <span id="nodePatchTimingControls" class="node-patch-timing-controls" aria-label="Patch timing"></span>
           <a
             id="nodeDonateFiveButton"
@@ -1584,22 +1598,26 @@
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div class="node-user-ui-settings-actions" aria-label="user UI settings actions">
+        <div
+          class="node-user-ui-settings-actions"
+          aria-label="user UI settings actions">
           <button
             id="nodeUserUiSettingsClearStartup"
             type="button">Clear Startup</button>
           <button
             id="nodeUserUiSettingsSaveDefault"
             type="button">Save UI Settings</button>
-          <output
-            id="nodeUserUiSettingsStatus"
-            class="pill"
-            aria-live="polite">ui settings ready</output>
         </div>
         <div
           id="nodeUserUiSettingsControls"
           class="node-user-ui-settings-controls"
           aria-live="polite"></div>
+        <div class="node-user-ui-settings-status-row" aria-label="user UI settings status">
+          <output
+            id="nodeUserUiSettingsStatus"
+            class="pill"
+            aria-live="polite">ui settings ready</output>
+        </div>
       </div>
 
       <div
@@ -1634,10 +1652,18 @@
         </button>
         <div id="nodeSceneWindowControls" class="scene-context-text-box-controls scene-context-window-controls">
           <div>
-            <div id="nodeSceneGlobalSmoothingControl" class="scene-context-global-smoothing-control" role="group" aria-label="Global smoothing samples">
-              <label class="scene-context-global-smoothing-label" for="nodeSceneGlobalSmoothingSamples" aria-label="Smoothing">&#x1F39A;&#xFE0F;</label>
-              <input id="nodeSceneGlobalSmoothingSamples" class="scene-context-global-smoothing-input" type="number" inputmode="numeric" step="1" min="0" autocomplete="off" title="Global smoothing in samples">
-              <span class="scene-context-global-smoothing-unit">smp</span>
+            <div class="scene-context-history-controls" role="group" aria-label="Patch history">
+              <button id="nodeSceneUndoButton" class="scene-context-window-button" type="button" disabled>
+                <span class="scene-context-window-button-label">Undo</span>
+              </button>
+              <button id="nodeSceneRedoButton" class="scene-context-window-button" type="button" disabled>
+                <span class="scene-context-window-button-label">Redo</span>
+              </button>
+            </div>
+            <div id="nodeSceneGlobalSmoothingControl" class="scene-context-global-smoothing-control" role="group" aria-label="Global smoothing seconds">
+              <label class="scene-context-global-smoothing-label" for="nodeSceneGlobalSmoothingSeconds" aria-label="Smoothing">&#x1F39A;&#xFE0F;</label>
+              <input id="nodeSceneGlobalSmoothingSeconds" class="scene-context-global-smoothing-input" type="number" inputmode="decimal" step="0.001" min="0" autocomplete="off" title="Drag to tune smoothing seconds. Double-click to type. Ctrl-click resets to one audio block." readonly>
+              <span class="scene-context-global-smoothing-unit">sec</span>
             </div>
             <div id="nodeSceneTimingControls" class="scene-context-timing-controls" role="group" aria-label="Patch timing"></div>
             <button id="nodeSceneOpenSavedPatches" class="scene-context-window-button" type="button">
@@ -1648,17 +1674,9 @@
               <span class="scene-context-window-button-icon" aria-hidden="true">🎛️</span>
               <span class="scene-context-window-button-label">Module Browser</span>
             </button>
-            <button id="nodeSceneOpenTraceSettings" class="scene-context-window-button" type="button">
-              <span class="scene-context-window-button-icon" aria-hidden="true">📺</span>
-              <span class="scene-context-window-button-label">Trace Settings</span>
-            </button>
             <button id="nodeSceneOpenModuleActions" class="scene-context-window-button" type="button">
               <span class="scene-context-window-button-icon" aria-hidden="true">🛠️</span>
-              <span class="scene-context-window-button-label">Module Actions</span>
-            </button>
-            <button id="nodeSceneOpenMetaparameters" class="scene-context-window-button" type="button">
-              <span class="scene-context-window-button-icon" aria-hidden="true">🏷️</span>
-              <span class="scene-context-window-button-label">Metaparameter</span>
+              <span class="scene-context-window-button-label">Module Settings</span>
             </button>
             <button id="nodeSceneOpenUiSettings" class="scene-context-window-button" type="button">
               <span class="scene-context-window-button-icon" aria-hidden="true">🧩</span>
@@ -1667,6 +1685,10 @@
             <button id="nodeSceneOpenPostProcessing" class="scene-context-window-button" type="button">
               <span class="scene-context-window-button-icon" aria-hidden="true">✨</span>
               <span class="scene-context-window-button-label">Screen Shader</span>
+            </button>
+            <button id="nodeSceneOpenVisibility" class="scene-context-window-button" type="button">
+              <span class="scene-context-window-button-icon" aria-hidden="true">👁️</span>
+              <span class="scene-context-window-button-label">Visibility</span>
             </button>
           </div>
         </div>
@@ -1844,23 +1866,23 @@
             <button id="nodeSceneGraphPaste" type="button">paste graph</button>
           </div>
         </div>
+        <div id="nodeSceneDisplayHeightControls" class="scene-context-width-controls" hidden>
+          <button id="nodeSceneDisplayHeightDecrease" type="button" aria-label="Decrease display height">-</button>
+          <span id="nodeSceneDisplayHeightValue" aria-live="polite">2 display gu</span>
+          <button id="nodeSceneDisplayHeightIncrease" type="button" aria-label="Increase display height">+</button>
+        </div>
+        <button id="nodeSceneToggleOscilloscope" type="button" role="menuitem" hidden>
+          <span>Hide display</span>
+        </button>
         <button id="nodeSceneToggleTitle" type="button" role="menuitem" hidden>
           <span>Hide title</span>
         </button>
         <button id="nodeSceneToggleButtons" type="button" role="menuitem" hidden>
           <span>Hide buttons</span>
         </button>
-        <button id="nodeSceneToggleOscilloscope" type="button" role="menuitem" hidden>
-          <span>Hide display</span>
-        </button>
         <button id="nodeSceneToggleInterfaceControls" type="button" role="menuitem" hidden>
           <span>Hide control surface</span>
         </button>
-        <div id="nodeSceneDisplayHeightControls" class="scene-context-width-controls" hidden>
-          <button id="nodeSceneDisplayHeightDecrease" type="button" aria-label="Decrease display height">-</button>
-          <span id="nodeSceneDisplayHeightValue" aria-live="polite">2 display gu</span>
-          <button id="nodeSceneDisplayHeightIncrease" type="button" aria-label="Increase display height">+</button>
-        </div>
         <button id="nodeSceneToggleIo" type="button" role="menuitem" hidden>
           <span>Hide in/out</span>
         </button>
@@ -1914,8 +1936,11 @@
             step="1"
             value="50">
         </label>
+        <button id="nodeSceneToggleModuleEnabled" type="button" role="menuitem" hidden>
+          <span>Disable module</span>
+        </button>
         <button id="nodeSceneDeleteModule" class="scene-context-danger" type="button" role="menuitem" hidden>
-          <span>Delete</span>
+          <span>🗑️ Delete</span>
         </button>
         <button
           id="nodeSceneContextResizeHandle"
@@ -1929,7 +1954,7 @@
         class="node-scene-context-menu node-module-actions-window"
         hidden
         role="dialog"
-        aria-label="Module actions">
+        aria-label="Module settings">
         <div id="nodeModuleActionsWindowHeading" class="scene-context-heading">
           <button
             id="nodeModuleActionsDragHandle"
@@ -1938,7 +1963,7 @@
             aria-label="Move module actions"
             data-tooltip-key="metadata.sceneMove">&#x2725;</button>
           <div class="scene-context-title">
-            <span>MODULE ACTIONS</span>
+            <span>MODULE SETTINGS</span>
             <small>no module selected</small>
           </div>
           <button
@@ -2172,6 +2197,7 @@
               class="node-patch-header-field tags"
               type="text"
               autocomplete="off"
+              placeholder="Tags"
               aria-label="Patch tags"
               data-patch-header-info-field="tags">
           </div>
@@ -2915,13 +2941,13 @@
   <script src="./public/manifest-loader.js?v=manifest-loader-refactor-1780389600000"></script>
   <script src="./public/node-graph-wires.js?v=external-graph-inputs-1780816800000"></script>
   <script src="./public/node-graph-floating-windows.js?v=typed-display-settings-1"></script>
-  <script src="./public/node-graph-file-actions.js?v=floating-default-widths-1"></script>
+  <script src="./public/node-graph-file-actions.js?v=floating-window-attention-1"></script>
   <script src="./public/node-graph-default-buttons.js?v=patch-save-refresh-1"></script>
   <script src="./public/node-graph-cookbook-filter.js?v=filter-curve-zero-cutoffs-1780822200000"></script>
   <script src="./public/node-graph-color-standards.js?v=color-standards-1"></script>
-  <script src="./public/node-graph-module-definitions.js?v=typed-display-settings-1"></script>
-  <script src="./public/node-graph-module-store.js?v=module-spawn-tooltips-1"></script>
-  <script src="./public/node-graph-module-sizing.js?v=module-height-contract-1"></script>
+  <script src="./public/node-graph-module-definitions.js?v=oscilloscope-labels-1"></script>
+  <script src="./public/node-graph-module-store.js?v=oscilloscope-labels-1"></script>
+  <script src="./public/node-graph-module-sizing.js?v=oscilloscope-default-display-height-1"></script>
   <script src="./public/node-graph-metadata-kinds.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-parameter-metadata.js?v=audio-player-editable-metadata-1"></script>
   <script src="./public/node-graph-metadata-defaults.js?v=decimal-template-1"></script>
@@ -2943,29 +2969,29 @@
   <script src="./public/node-graph-settings-text-fit.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-default-preset.js?v=default-visible-nodes-1"></script>
   <script src="./public/node-graph-script-status.js?v=slider-unit-color-1780307400000"></script>
-  <script src="./public/node-graph-view-controls.js?v=floating-default-widths-1"></script>
-  <script src="./public/node-graph-workspace-geometry.js?v=crisp-ui-pan-1"></script>
+  <script src="./public/node-graph-view-controls.js?v=floating-window-attention-1"></script>
+  <script src="./public/node-graph-workspace-geometry.js?v=modular-view-size-readout-1"></script>
   <script src="./public/node-graph-workspace-zoom.js?v=workspace-view-autosave-1"></script>
-  <script src="./public/node-graph-workspace-view.js?v=crisp-ui-pan-1"></script>
+  <script src="./public/node-graph-workspace-view.js?v=modular-view-size-readout-1"></script>
   <script src="./public/node-graph-camera-view.js?v=utility-camera-feed-1780810000000"></script>
   <script src="./public/node-graph-clap-host.js?v=clap-under-construction-2"></script>
   <script src="./public/node-graph-marquee-selection.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-node-dragging.js?v=io-alt-bypass-1"></script>
-  <script src="./public/node-graph-context-menu.js?v=floating-default-widths-1"></script>
-  <script src="./public/node-graph-module-actions.js?v=control-surface-visibility-1"></script>
+  <script src="./public/node-graph-context-menu.js?v=module-settings-empty-height-1"></script>
+  <script src="./public/node-graph-module-actions.js?v=module-settings-enable-1"></script>
   <script src="./public/node-graph-code-screen.js?v=canvas-ratio-language-2"></script>
-  <script src="./public/node-graph-module-scopes.js?v=typed-display-settings-1"></script>
+  <script src="./public/node-graph-module-scopes.js?v=zero-d-burn-visible-1"></script>
   <script src="./public/node-graph-shader-script.js?v=old-display-settings-inaccessible-1"></script>
   <script src="./public/node-graph-canvas-script.js?v=floating-window-drag-area-1"></script>
   <script src="./public/node-graph-module-factories.js?v=hidden-io-proxy-1"></script>
-  <script src="./public/node-graph-module-header-rendering.js?v=transport-sequence-1"></script>
-  <script src="./public/node-graph-module-rendering.js?v=control-surface-visibility-1"></script>
+  <script src="./public/node-graph-module-header-rendering.js?v=header-double-click-edit-1"></script>
+  <script src="./public/node-graph-module-rendering.js?v=oscilloscope-display-buttons-1"></script>
   <script src="./public/node-graph-history.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-visual-utils.js?v=text-light-registry-1780800000000"></script>
   <script src="./public/node-graph-patch-clone.js?v=output-volume-unipolar-1"></script>
   <script src="./public/node-graph-slider-metadata.js?v=metadata-step-zero-1"></script>
-  <script src="./public/node-graph-slider-values.js?v=smoothing-zero-bypass-1"></script>
-  <script src="./public/node-graph-slider-dragging.js?v=working-patch-autosave-1"></script>
+  <script src="./public/node-graph-slider-values.js?v=numeric-drag-policy-2"></script>
+  <script src="./public/node-graph-slider-dragging.js?v=numeric-drag-policy-1"></script>
   <script src="./public/node-graph-node-accessors.js?v=unbounded-speed-1"></script>
   <script src="./public/node-graph-selection.js?v=selection-count-readout-1"></script>
   <script src="./public/node-graph-port-geometry.js?v=hidden-io-proxy-1"></script>
@@ -2989,16 +3015,16 @@
   <script src="./public/node-graph-debug-copy.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-execution-debug-api.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-execution-debug-view.js?v=slider-unit-color-1780307400000"></script>
-  <script src="./public/node-graph-tooltips.js?v=trace-display-simple-controls-1"></script>
-  <script src="./public/node-graph-interaction-help.js?v=button-help-labels-1"></script>
-  <script src="./public/presets/useruisettings.js?v=beta-clean-start-1"></script>
+  <script src="./public/node-graph-tooltips.js?v=space-output-hotkey-1"></script>
+  <script src="./public/node-graph-interaction-help.js?v=command-center-cleanup-1"></script>
+  <script src="./public/presets/useruisettings.js?v=reset-startup-clean-2"></script>
   <script src="./public/node-graph-ui-settings-definitions.js?v=floating-window-header-height-1"></script>
   <script src="./public/node-graph-ui-settings-utils.js?v=slider-unit-color-1780307400000"></script>
-  <script src="./public/node-graph-user-ui-settings-controls.js?v=control-surface-visibility-1"></script>
-  <script src="./public/node-graph-ui-settings-panels.js?v=workspace-window-state-1"></script>
-  <script src="./public/node-graph-ui-settings-persistence.js?v=typed-display-settings-1"></script>
+  <script src="./public/node-graph-user-ui-settings-controls.js?v=ui-settings-flat-scroll-1"></script>
+  <script src="./public/node-graph-ui-settings-panels.js?v=floating-window-attention-1"></script>
+  <script src="./public/node-graph-ui-settings-persistence.js?v=startup-storage-v12-1"></script>
   <script src="./public/node-graph-ui-settings-sync.js?v=floating-window-header-height-1"></script>
-  <script src="./public/node-graph-keyboard-shortcuts.js?v=content-height-only-1"></script>
+  <script src="./public/node-graph-keyboard-shortcuts.js?v=space-output-hotkey-1"></script>
   <script src="./public/node-graph-live-status-text.js?v=sample-rate-oversampling-1780468200000"></script>
   <script src="./public/node-graph-live-status-controls.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-live-meter-controls.js?v=gpu-additive-status-recipe-1"></script>
@@ -3006,23 +3032,23 @@
   <script src="./public/node-graph-live-evidence.js?v=sample-rate-oversampling-1780468200000"></script>
   <script src="./public/node-graph-live-control-rendering.js?v=ear-protection-reset-1"></script>
   <script src="./public/node-graph-default-patch.js?v=content-height-only-1"></script>
-  <script src="./public/node-graph-state.js?v=global-smoothing-samples-1"></script>
+  <script src="./public/node-graph-state.js?v=numeric-drag-policy-1"></script>
   <script src="./public/node-graph-external-ui-events.js?v=button-events-1"></script>
   <script src="./public/node-graph-patch-core.js?v=control-surface-visibility-1"></script>
-  <script src="./public/node-graph-live-plan-runtime.js?v=transport-sequence-1"></script>
+  <script src="./public/node-graph-live-plan-runtime.js?v=polyblep-runtime-contract-1"></script>
   <script src="./public/node-graph-live-parameter-runtime.js?v=unbounded-speed-1"></script>
   <script src="./public/node-graph-oscillator-runtime.js?v=ellipsoid-audio-1"></script>
   <script src="./public/node-graph-gpu-additive-backend.js?v=external-graph-inputs-1780816800000"></script>
   <script src="./public/node-graph-jerobeam-spiral.js?v=node-graph-jerobeam-spiral-refactor-1780371000000"></script>
   <script src="./public/node-graph-lorenz-attractor.js?v=lorenz-unbounded-speed-1"></script>
   <script src="./public/node-graph-live-frame-evaluator.js?v=transport-sequence-1"></script>
-  <script src="./public/node-graph-live-runtime.js?v=worklet-cache-sync-1"></script>
+  <script src="./public/node-graph-live-runtime.js?v=polyblep-worklet-cache-1"></script>
   <script src="./public/node-graph-wire-controller-bootstrap.js?v=external-graph-inputs-1780816800000"></script>
-  <script src="./public/node-graph-workspace-event-bindings.js?v=module-placement-unclamped-1"></script>
+  <script src="./public/node-graph-workspace-event-bindings.js?v=xy-origin-recenter-1"></script>
   <script src="./public/node-graph-render-live-event-bindings.js?v=beta-polish-1"></script>
-  <script src="./public/node-graph-header-event-bindings.js?v=control-surface-visibility-1"></script>
+  <script src="./public/node-graph-header-event-bindings.js?v=ui-settings-header-button-1"></script>
   <script src="./public/node-graph-help-event-bindings.js?v=node-graph-help-event-bindings-refactor-1780369200000"></script>
-  <script src="./public/node-graph-scene-menu-event-bindings.js?v=typed-display-settings-1"></script>
+  <script src="./public/node-graph-scene-menu-event-bindings.js?v=module-settings-enable-1"></script>
   <script src="./public/node-graph-uidev-event-bindings.js?v=origin-marker-uidev-1"></script>
   <script src="./public/node-graph-settings-event-bindings.js?v=metadata-popover-bind-1"></script>
   <script src="./public/node-graph-slider-event-bindings.js?v=node-graph-slider-event-bindings-refactor-1780369200000"></script>

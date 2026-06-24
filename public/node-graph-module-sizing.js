@@ -107,6 +107,9 @@ function nodeGraphModuleDisplayVisibleForUi(type, ui = {}) {
   if (!nodeGraphModuleTypeHasHideableOscilloscope(type)) {
     return false;
   }
+  if (typeof nodeGraphMvp !== "undefined" && nodeGraphMvp?.moduleOscilloscopesVisible === false) {
+    return false;
+  }
   return !nodeGraphEffectivePatchNodeUi(ui).oscilloscopeHidden;
 }
 
@@ -120,9 +123,19 @@ function normalizeNodeGraphModuleDisplayHeightUnits(heightGu) {
     : nodeGraphModuleLayout.moduleScopeHeightGu;
 }
 
-function normalizeNodeGraphModuleDisplayHeightOffsetUnits(offsetGu) {
-  const targetHeightGu = nodeGraphModuleLayout.moduleScopeHeightGu + Math.round(Number(offsetGu) || 0);
-  return normalizeNodeGraphModuleDisplayHeightUnits(targetHeightGu) - nodeGraphModuleLayout.moduleScopeHeightGu;
+function nodeGraphModuleDefaultDisplayHeightUnits(type) {
+  return normalizeNodeGraphModuleDisplayHeightUnits(
+    nodeGraphModuleDefinitions[type]?.displayHeightGu ?? nodeGraphModuleLayout.moduleScopeHeightGu,
+  );
+}
+
+function normalizeNodeGraphModuleDisplayHeightOffsetUnits(typeOrOffsetGu, offsetGu = null) {
+  const hasType = offsetGu !== null;
+  const type = hasType ? typeOrOffsetGu : null;
+  const offset = hasType ? offsetGu : typeOrOffsetGu;
+  const defaultHeightGu = type ? nodeGraphModuleDefaultDisplayHeightUnits(type) : nodeGraphModuleLayout.moduleScopeHeightGu;
+  const targetHeightGu = defaultHeightGu + Math.round(Number(offset) || 0);
+  return normalizeNodeGraphModuleDisplayHeightUnits(targetHeightGu) - defaultHeightGu;
 }
 
 function nodeGraphModuleConfiguredDisplayHeightUnits(type, ui = {}) {
@@ -130,9 +143,10 @@ function nodeGraphModuleConfiguredDisplayHeightUnits(type, ui = {}) {
     return 0;
   }
   const normalizedUi = normalizeNodeGraphPatchNodeUi(ui);
+  const defaultHeightGu = nodeGraphModuleDefaultDisplayHeightUnits(type);
   return Math.max(
     1,
-    nodeGraphModuleLayout.moduleScopeHeightGu + normalizedUi.displayHeightOffsetGu,
+    defaultHeightGu + normalizedUi.displayHeightOffsetGu,
   );
 }
 
@@ -149,6 +163,14 @@ function nodeGraphModuleScopeExtraHeightUnits(type, ui = {}) {
 function nodeGraphPatchNodeDisplayHeightUnits(node) {
   const patchNode = typeof node === "string" ? nodeGraphPatchNode(node) : node;
   return nodeGraphModuleDisplayHeightUnits(patchNode?.type, patchNode?.ui);
+}
+
+function nodeGraphPatchNodeDisplayCssHeightUnits(node) {
+  const patchNode = typeof node === "string" ? nodeGraphPatchNode(node) : node;
+  if (nodeGraphPatchNodeLayout(patchNode) === "canvas") {
+    return nodeGraphModuleDefaultDisplayHeightUnits(patchNode?.type);
+  }
+  return nodeGraphPatchNodeDisplayHeightUnits(patchNode);
 }
 
 function nodeGraphPatchNodeCanvasScriptGridUnits(node) {
@@ -344,7 +366,7 @@ function nodeGraphModuleHeightWidgetUnits(type, ui = {}) {
   if (nodeGraphModuleDefinitions[type]?.layout === "canvas") {
     return [
       { id: "header", heightGu: nodeGraphModuleHeaderHeightUnits(ui), visible: true },
-      { id: "canvas", heightGu: nodeGraphModuleLayout.moduleScopeHeightGu * 1.5, visible: true },
+      { id: "canvas", heightGu: nodeGraphModuleDefaultDisplayHeightUnits(type), visible: true },
       { id: "io", heightGu: ioHeightGu, visible: ioVisible },
       { id: "fit", heightGu: nodeGraphModuleLayout.fitCushionGu, visible: true },
       { id: "inset", heightGu: nodeGraphModuleLayout.moduleGridInsetGu * 2, visible: true },

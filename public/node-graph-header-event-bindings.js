@@ -20,6 +20,7 @@ function bindNodeGraphHeaderControlEvents() {
   document.addEventListener("pointerup", endNodeGraphVisibilityMenuResize);
   document.addEventListener("pointercancel", endNodeGraphVisibilityMenuDrag);
   document.addEventListener("pointercancel", endNodeGraphVisibilityMenuResize);
+  document.getElementById("nodeVisibilityMenuButton").addEventListener("click", toggleNodeGraphVisibilityMenu);
   document.getElementById("nodeGridToggleButton").addEventListener("click", toggleNodeGraphGridVisibility);
   document.getElementById("nodeVideoViewButton")?.addEventListener("click", toggleNodeGraphVideoView);
   document.getElementById("nodeMappingViewButton")?.addEventListener("click", () => setNodeGraphViewMode("mapping"));
@@ -192,6 +193,9 @@ function bindNodeGraphHeaderControlEvents() {
       const settingsVisible = !document.getElementById("nodeSettingsView").hidden;
       setNodeGraphViewMode(settingsVisible ? "modular" : "settings");
     });
+  document
+    .getElementById("nodeUserUiSettingsButton")
+    .addEventListener("click", toggleNodeUserUiSettings);
   document
     .getElementById("nodeModularViewButton")
     .addEventListener("click", () => setNodeGraphViewMode("modular"));

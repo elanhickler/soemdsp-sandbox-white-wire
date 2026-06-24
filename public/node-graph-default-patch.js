@@ -57,9 +57,8 @@ const nodeGraphDefaultNodeConfigs = Object.freeze([
     params: { ...nodeGraphDefaultParamsForType("audioPlayer"), speed: 1, transport: 4 },
   },
   {
-    ...createNodeGraphPatchNode("output", { id: "output", gx: 12, gy: 5, widthGu: 5 }),
+    ...createNodeGraphPatchNode("output", { id: "output", gx: 12, gy: 5 }),
     params: { ...nodeGraphDefaultParamsForType("output"), volume: 0.8 },
-    ui: { oscilloscopeHidden: true },
   },
 ]);
 
@@ -117,7 +116,7 @@ const nodeGraphDefaultPatch = Object.freeze({
     moduleActions: { left: null, top: null },
   },
   grid: { ...nodeGraphGrid },
-  view: { widthGu: 31, heightGu: 20, zoom: 1 },
+  view: { widthGu: 20, heightGu: 20, zoom: 1 },
   nodes: nodeGraphDefaultNodeConfigs.map((node) => ({ ...node })),
   connections: nodeGraphDefaultConnections.map((connection) => ({ ...connection })),
   graphConnections: [],

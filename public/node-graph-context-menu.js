@@ -42,6 +42,19 @@ const nodeModuleActionsWindowDefaultSize = Object.freeze({
   maxHeight: 520,
 });
 
+function pulseNodeGraphFloatingWindowAttention(element) {
+  if (!element) {
+    return false;
+  }
+  element.classList.remove("node-floating-window-attention");
+  void element.offsetWidth;
+  element.classList.add("node-floating-window-attention");
+  window.setTimeout(() => {
+    element.classList.remove("node-floating-window-attention");
+  }, 1050);
+  return true;
+}
+
 function normalizeNodeSceneContextWindowSize(size = {}) {
   const normalized = normalizeNodeGraphFloatingWindowSize(size, nodeSceneContextWindowDefaultSize);
   return { width: normalized.width };
@@ -49,6 +62,58 @@ function normalizeNodeSceneContextWindowSize(size = {}) {
 
 function normalizeNodeModuleActionsWindowSize(size = {}) {
   return normalizeNodeGraphFloatingWindowSize(size, nodeModuleActionsWindowDefaultSize);
+}
+
+function nodeModuleActionsWindowEmptyStateHeight(menu, headingHeight) {
+  const styles = menu ? window.getComputedStyle(menu) : null;
+  const buttonHeight = Number.parseFloat(styles?.getPropertyValue("--node-floating-window-button-height")) || 30;
+  return Math.ceil(headingHeight + (buttonHeight * 3));
+}
+
+function nodeModuleActionsWindowContentHeightLimit(menu = document.getElementById("nodeModuleActionsWindow")) {
+  if (!menu || menu.hidden) {
+    return null;
+  }
+  const heading = document.getElementById("nodeModuleActionsWindowHeading");
+  const body = document.getElementById("nodeModuleActionsWindowBody");
+  const headingHeight = Math.ceil(heading?.getBoundingClientRect?.().height || 0);
+  let bodyHeight = 0;
+  if (body) {
+    for (const child of body.children) {
+      if (child.hidden || child.getClientRects().length === 0) {
+        continue;
+      }
+      bodyHeight = Math.max(bodyHeight, child.offsetTop + child.offsetHeight);
+    }
+  }
+  const viewportMax = Math.max(
+    nodeModuleActionsWindowDefaultSize.minHeight,
+    Math.min(nodeModuleActionsWindowDefaultSize.maxHeight, (window.innerHeight || 760) - 28),
+  );
+  const emptyStateHeight = nodeModuleActionsWindowEmptyStateHeight(menu, headingHeight);
+  const contentHeight = Math.max(
+    nodeModuleActionsWindowDefaultSize.minHeight,
+    emptyStateHeight,
+    headingHeight + bodyHeight,
+  );
+  return Math.min(viewportMax, Math.ceil(contentHeight));
+}
+
+function syncNodeModuleActionsWindowHeightLimit() {
+  const menu = document.getElementById("nodeModuleActionsWindow");
+  const contentHeight = nodeModuleActionsWindowContentHeightLimit(menu);
+  if (!menu || !Number.isFinite(Number(contentHeight))) {
+    return null;
+  }
+  const normalized = normalizeNodeModuleActionsWindowSize(nodeGraphMvp.moduleActionWindowSize || nodeModuleActionsWindowDefaultSize);
+  const requestedHeight = Number.isFinite(Number(normalized.height)) ? Number(normalized.height) : contentHeight;
+  const effectiveHeight = Math.max(
+    nodeModuleActionsWindowDefaultSize.minHeight,
+    Math.min(Number(contentHeight), requestedHeight),
+  );
+  menu.style.setProperty("--node-module-actions-content-height", `${Math.round(Number(contentHeight))}px`);
+  menu.style.setProperty("--node-module-actions-height", `${Math.round(effectiveHeight)}px`);
+  return effectiveHeight;
 }
 
 function applyNodeSceneContextWindowSize(size = nodeGraphMvp.sceneContextWindowSize) {
@@ -70,6 +135,7 @@ function applyNodeModuleActionsWindowSize(size = nodeGraphMvp.moduleActionWindow
     return normalized;
   }
   applyNodeGraphFloatingWindowSizeVars(menu, "node-module-actions", nodeModuleActionsWindowDefaultSize, normalized);
+  syncNodeModuleActionsWindowHeightLimit();
   return normalized;
 }
 
@@ -242,6 +308,37 @@ function positionNodeSceneContextMenuHeaderAtPoint(menu, x, y, remember = false)
   );
 }
 
+function rememberNodeGraphContextMenuClientPoint(event) {
+  const x = Number(event?.clientX);
+  const y = Number(event?.clientY);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) {
+    return null;
+  }
+  nodeGraphMvp.lastContextMenuClientPoint = { x, y };
+  return nodeGraphMvp.lastContextMenuClientPoint;
+}
+
+function nodeGraphLastContextMenuClientPoint() {
+  const point = nodeGraphMvp.lastContextMenuClientPoint;
+  const x = Number(point?.x);
+  const y = Number(point?.y);
+  return Number.isFinite(x) && Number.isFinite(y)
+    ? { x, y }
+    : null;
+}
+
+function nodeGraphContextMenuInitialWindowPoint(x, y) {
+  const explicitX = Number(x);
+  const explicitY = Number(y);
+  if (Number.isFinite(explicitX) && Number.isFinite(explicitY)) {
+    return { x: explicitX, y: explicitY };
+  }
+  return nodeGraphLastContextMenuClientPoint() || {
+    x: window.innerWidth * 0.5,
+    y: window.innerHeight * 0.25,
+  };
+}
+
 function nodeSceneContextMenuCurrentPosition(menu) {
   if (!menu) {
     return null;
@@ -288,10 +385,10 @@ function positionNodeSceneContextMenuAtCurrentSavedOrInitial(menu, x, y) {
     return;
   }
   applyNodeSceneContextWindowSize();
-  const currentPosition = nodeSceneContextMenuCurrentPosition(menu);
+  const currentPosition = menu.hidden ? null : nodeSceneContextMenuCurrentPosition(menu);
   const workspaceState = nodeGraphMvp.workspaceWindowStates?.commandCenter;
   const savedPosition = workspaceState?.position;
-  const chosenPosition = currentPosition || savedPosition;
+  const chosenPosition = savedPosition || currentPosition;
   const hasChosenPosition =
     Number.isFinite(Number(chosenPosition?.left)) &&
     Number.isFinite(Number(chosenPosition?.top));
@@ -308,7 +405,8 @@ function positionNodeSceneContextMenuAtCurrentSavedOrInitial(menu, x, y) {
     }
     return;
   }
-  positionNodeSceneContextMenuHeaderAtPoint(menu, x, y, true);
+  const initial = nodeGraphContextMenuInitialWindowPoint(x, y);
+  positionNodeSceneContextMenuHeaderAtPoint(menu, initial.x, initial.y, true);
 }
 
 function positionNodeSceneContextMenuAtSavedOr(menu, x, y) {
@@ -557,11 +655,11 @@ const nodeGraphModuleActionControlIds = [
   "nodeSceneTextBoxTextControls",
   "nodeSceneCodeblockControls",
   "nodeSceneGraphControls",
+  "nodeSceneDisplayHeightControls",
+  "nodeSceneToggleOscilloscope",
   "nodeSceneToggleTitle",
   "nodeSceneToggleButtons",
-  "nodeSceneToggleOscilloscope",
   "nodeSceneToggleInterfaceControls",
-  "nodeSceneDisplayHeightControls",
   "nodeSceneToggleIo",
   "nodeSceneToggleSliders",
   "nodeSceneImageControls",
@@ -570,6 +668,7 @@ const nodeGraphModuleActionControlIds = [
   "nodeSceneTextBoxControls",
   "nodeSceneTextBoxHorizontalAlignControls",
   "nodeSceneTextBoxVerticalAlignControls",
+  "nodeSceneToggleModuleEnabled",
   "nodeSceneDeleteModule",
 ];
 
@@ -598,6 +697,10 @@ function setNodeGraphModuleActionControlsHidden(hidden = true) {
 function showNodeModuleActionsWindow(anchorRect = null) {
   const menu = document.getElementById("nodeModuleActionsWindow");
   if (!menu) {
+    return;
+  }
+  if (!menu.hidden) {
+    pulseNodeGraphFloatingWindowAttention(menu);
     return;
   }
   const metadataRect = typeof prepareNodeMetadataPopoverForInspectorReplacement === "function"
@@ -633,6 +736,7 @@ function showNodeModuleActionsWindow(anchorRect = null) {
       : Number(rect.bottom) || window.innerHeight * 0.25,
   );
   menu.hidden = false;
+  syncNodeModuleActionsWindowHeightLimit();
   if (typeof rememberNodeGraphWorkspaceWindowState === "function") {
     rememberNodeGraphWorkspaceWindowState("moduleActions", menu, { open: true }, { status: false });
   }
@@ -759,6 +863,7 @@ function configureNodeSceneContextMenu(mode) {
   const graphNodeList = document.getElementById("nodeSceneGraphNodeList");
   const graphRemoveNode = document.getElementById("nodeSceneGraphRemoveNode");
   const toggleButtonsButton = document.getElementById("nodeSceneToggleButtons");
+  const toggleModuleEnabledButton = document.getElementById("nodeSceneToggleModuleEnabled");
   const toggleOscilloscopeButton = document.getElementById("nodeSceneToggleOscilloscope");
   const toggleInterfaceControlsButton = document.getElementById("nodeSceneToggleInterfaceControls");
   const toggleSlidersButton = document.getElementById("nodeSceneToggleSliders");
@@ -823,6 +928,11 @@ function configureNodeSceneContextMenu(mode) {
     : nodeGraphModuleWidthLimits;
   const targetNodeUi = normalizeNodeGraphPatchNodeUi(targetNode?.ui);
   const effectiveTargetNodeUi = nodeGraphEffectivePatchNodeUi(targetNode?.ui);
+  const targetNodeDisabled = targetNode
+    ? targetNode.id === "output"
+      ? !Boolean(nodeGraphMvp.live.outputEnabled)
+      : nodeGraphNodeDisplaysBypassed(targetNode.id)
+    : false;
   const buttonsHidden = effectiveTargetNodeUi.buttonsHidden;
   const oscilloscopeHidden = effectiveTargetNodeUi.oscilloscopeHidden;
   const interfaceControlsHidden = effectiveTargetNodeUi.interfaceControlsHidden;
@@ -835,14 +945,14 @@ function configureNodeSceneContextMenu(mode) {
   const textBoxLayout = normalizeNodeGraphTextBoxLayout(targetNode?.layout);
   const textBoxMode = textBoxLayout.textMode;
   if (actionMode) {
-    setNodeModuleActionsWindowHeader(moduleMode ? "MODULE ACTIONS" : "WIRE ACTIONS", multiModuleMode
+    setNodeModuleActionsWindowHeader(moduleMode ? "MODULE SETTINGS" : "WIRE ACTIONS", multiModuleMode
       ? `${selectedNodeIds.size} modules`
       : targetNode
         ? nodeGraphNodeDisplayName(targetNode.id)
         : wireMode
           ? "selected wire"
           : "no module selected");
-    menu.setAttribute("aria-label", moduleMode ? "Module actions" : "Wire actions");
+    menu.setAttribute("aria-label", moduleMode ? "Module settings" : "Wire actions");
   } else {
     setNodeSceneContextHeader("Command", "Center");
     menu.setAttribute("aria-label", "Command Center");
@@ -866,6 +976,7 @@ function configureNodeSceneContextMenu(mode) {
       homeModules.hidden = true;
     }
     closeButton.hidden = false;
+    syncNodeModuleActionsWindowHeightLimit();
     return;
   }
   if (actionMode) {
@@ -892,6 +1003,7 @@ function configureNodeSceneContextMenu(mode) {
   textBoxTextControls.hidden = !(moduleMode && !multiModuleMode && targetNode?.type === "textBox");
   codeblockControls.hidden = !(moduleMode && !multiModuleMode && targetNode?.type === "codeblock");
   graphControls.hidden = !(moduleMode && !multiModuleMode && targetIsGraphType);
+  toggleModuleEnabledButton.hidden = !moduleMode || multiModuleMode;
   toggleButtonsButton.hidden = !moduleMode || multiModuleMode;
   toggleOscilloscopeButton.hidden = !(moduleMode && !multiModuleMode && nodeGraphPatchNodeHasHideableOscilloscope(targetNode));
   toggleInterfaceControlsButton.hidden = !(moduleMode && !multiModuleMode && nodeGraphModuleTypeHasInterfaceControls(targetNode?.type));
@@ -973,6 +1085,12 @@ function configureNodeSceneContextMenu(mode) {
       targetNode.type !== "textBox" ||
       textBoxLayout.textSizePercent >= nodeGraphTextBoxTextSizeLimits.maxPercent;
     textBoxTextSizeIncrease.title = nodeGraphTooltipText("actions.textBoxTextSizeIncrease");
+    toggleModuleEnabledButton.disabled = !targetNode;
+    toggleModuleEnabledButton.querySelector("span").textContent = targetNodeDisabled ? "Enable module" : "Disable module";
+    toggleModuleEnabledButton.setAttribute("aria-pressed", targetNodeDisabled ? "true" : "false");
+    toggleModuleEnabledButton.title = targetNodeDisabled
+      ? "Enable this module."
+      : "Disable this module.";
     toggleButtonsButton.disabled = !targetNode;
     toggleButtonsButton.querySelector("span").textContent = buttonsHidden ? "Show buttons" : "Hide buttons";
     toggleButtonsButton.setAttribute("aria-pressed", buttonsHidden ? "true" : "false");
@@ -1208,6 +1326,9 @@ function configureNodeSceneContextMenu(mode) {
     ledColor.disabled = true;
     ledColor.value = nodeGraphLedDefaultColor;
   }
+  if (actionMode) {
+    syncNodeModuleActionsWindowHeightLimit();
+  }
 }
 
 function openNodeModuleActionMenu(event) {
@@ -1268,6 +1389,7 @@ function openNodeSceneContextMenu(event) {
   if (openNodeScopeContextMenu(event)) {
     return;
   }
+  const contextMenuClientPoint = rememberNodeGraphContextMenuClientPoint(event);
 
   closeNodeScopeContextMenu();
   const contextWire = event.target.closest?.(".node-wire-hit-path, .node-wire-path");
@@ -1282,7 +1404,8 @@ function openNodeSceneContextMenu(event) {
       nodeGraphMvp.sceneContextTargetNode = null;
       nodeGraphMvp.sceneContextTargetWire = { index, kind };
       configureNodeSceneContextMenu("wire");
-      positionNodeSceneContextMenuHeaderAtPoint(
+      nodeGraphMvp.sharedInspectorActive = "moduleActions";
+      positionNodeModuleActionsWindowAtSavedOr(
         document.getElementById("nodeModuleActionsWindow"),
         event.clientX,
         event.clientY,
@@ -1308,7 +1431,8 @@ function openNodeSceneContextMenu(event) {
     nodeGraphMvp.lastModuleActionTargetNode = contextNode.dataset.node;
     nodeGraphMvp.sceneContextTargetWire = null;
     configureNodeSceneContextMenu("module");
-    positionNodeSceneContextMenuHeaderAtPoint(
+    nodeGraphMvp.sharedInspectorActive = "moduleActions";
+    positionNodeModuleActionsWindowAtSavedOr(
       document.getElementById("nodeModuleActionsWindow"),
       event.clientX,
       event.clientY,
@@ -1333,12 +1457,18 @@ function openNodeSceneContextMenu(event) {
   nodeGraphMvp.sceneContextTargetNode = null;
   nodeGraphMvp.sceneContextTargetWire = null;
   clearNodeGraphSelection();
+  const commandCenter = document.getElementById("nodeSceneContextMenu");
+  const moduleBrowser = document.getElementById("nodeModuleShopView");
+  if (commandCenter && !commandCenter.hidden) {
+    if (moduleBrowser && !moduleBrowser.hidden) {
+      pulseNodeGraphFloatingWindowAttention(moduleBrowser);
+      return;
+    }
+    openNodeGraphModuleShop(nodeGraphMvp.sceneContextPoint, contextMenuClientPoint);
+    return;
+  }
   configureNodeSceneContextMenu("home");
-  positionNodeSceneContextMenuAtCurrentSavedOrInitial(
-    document.getElementById("nodeSceneContextMenu"),
-    event.clientX,
-    event.clientY,
-  );
+  positionNodeSceneContextMenuAtCurrentSavedOrInitial(commandCenter, event.clientX, event.clientY);
   if (typeof rememberNodeGraphWorkspaceWindowState === "function") {
     rememberNodeGraphWorkspaceWindowState(
       "commandCenter",

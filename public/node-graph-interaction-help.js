@@ -66,6 +66,9 @@ function nodeInteractionMouseHint(element) {
   if (element.classList.contains("node-action-button")) {
     return nodeGraphTooltipText("module.actions");
   }
+  if (element.classList.contains("node-display-settings-button")) {
+    return nodeGraphTooltipText("module.displaySettings");
+  }
   if (element.classList.contains("node-bypass-button")) {
     return nodeGraphTooltipText("module.bypass");
   }

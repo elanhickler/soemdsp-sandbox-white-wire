@@ -845,6 +845,7 @@ function bindNodeGraphModuleScopeWindowEvents(scopeElement) {
   }
   scopeElement.dataset.scopeWindowEventsBound = "true";
   scopeElement.addEventListener("dblclick", beginNodeGraphModuleScopeWindowNumberEdit);
+  scopeElement.addEventListener("contextmenu", beginNodeGraphModuleScopeWindowNumberEdit);
 }
 
 function beginNodeGraphModuleScopeWindowNumberEdit(event) {
@@ -867,34 +868,30 @@ function beginNodeGraphModuleScopeWindowNumberEdit(event) {
 
 function nodeGraphScopeNumberDragScale(input, event) {
   const { min, max, step } = nodeGraphScopeNumberInputRange(input);
+  const multiplier = typeof nodeGraphNumericDragMultiplier === "function"
+    ? nodeGraphNumericDragMultiplier(event)
+    : 1;
+  if (input.dataset.globalScopeInput === "framesPerSecond") {
+    return (step / 10) * multiplier;
+  }
+  if (input.dataset.timingField) {
+    return (step / 10) * multiplier;
+  }
   if (input.dataset.scopeInput === "cycles") {
     const baseCycles = Math.max(step / 8, (max - min) / 960);
-    if (event.ctrlKey && event.shiftKey) {
-      return baseCycles * 0.01;
-    }
-    if (event.shiftKey) {
-      return baseCycles * 0.1;
-    }
-    if (event.ctrlKey) {
-      return baseCycles * 0.25;
-    }
-    return baseCycles;
+    return baseCycles * multiplier;
   }
   const base = Math.max(step, (max - min) / 160);
-  if (event.ctrlKey && event.shiftKey) {
-    return base * 0.01;
-  }
-  if (event.shiftKey) {
-    return base * 0.1;
-  }
-  if (event.ctrlKey) {
-    return base * 0.25;
-  }
-  return base;
+  return base * multiplier;
 }
 
 function beginNodeGraphScopeNumberDrag(event) {
   if (event.button > 0 || event.detail > 1) {
+    return;
+  }
+  if (typeof nodeGraphNumericModifierReserved === "function" && nodeGraphNumericModifierReserved(event)) {
+    event.preventDefault();
+    event.stopPropagation();
     return;
   }
   const input = nodeGraphScopeNumberDragInputFromTarget(event.currentTarget);
@@ -947,8 +944,9 @@ function endNodeGraphScopeNumberDrag(event) {
     return;
   }
   drag.input.classList.remove("value-dragging");
-  drag.input.closest(".node-header-timing-field")?.classList.remove("value-dragging");
-  drag.input.readOnly = false;
+  const headerField = drag.input.closest(".node-header-timing-field");
+  headerField?.classList.remove("value-dragging");
+  drag.input.readOnly = Boolean(headerField);
   const captureTarget = drag.captureTarget || drag.input;
   if (event.pointerId !== undefined && captureTarget.hasPointerCapture?.(event.pointerId)) {
     captureTarget.releasePointerCapture(event.pointerId);
@@ -1081,7 +1079,15 @@ function nodeGraphModuleScopeSlots() {
 }
 
 function nodeGraphModuleScopeSlotIgnoresGlobalHide(slot) {
-  return ["visualOscilloscope", "traceDisplay", "canvas"].includes(slot?.type);
+  return [
+    "visualOscilloscope",
+    "traceDisplay",
+    "dotOscilloscope",
+    "valueOscilloscope",
+    "lineBurnOscilloscope",
+    "scope2d",
+    "canvas",
+  ].includes(slot?.type);
 }
 
 function nodeGraphVisibleModuleScopeSlots() {
@@ -2374,10 +2380,11 @@ function nodeGraphModuleScopeCapturedBufferForSlot(slot) {
   if (!nodeId) {
     return null;
   }
-  if (slot?.type === "traceDisplay") {
-    return nodeGraphModuleScopeState.buffers.get(`${nodeId}:In`) ||
-      nodeGraphModuleScopeState.buffers.get(nodeId) ||
-      null;
+  if (slot?.type === "scope2d") {
+    return nodeGraphModuleScopeCapturedScope2dBuffer(slot);
+  }
+  if (["traceDisplay", "dotOscilloscope", "valueOscilloscope", "lineBurnOscilloscope"].includes(slot?.type)) {
+    return nodeGraphModuleScopeState.buffers.get(`${nodeId}:In`) || null;
   }
   const selectedPort = nodeGraphModuleScopeShaderOutputPortForSlot(slot);
   if (selectedPort) {
@@ -2503,7 +2510,7 @@ function nodeGraphTraceDisplaySettingsEditingGlobal() {
 
 function nodeGraphModuleDisplayTypeForType(type) {
   const declared = nodeGraphModuleDefinitions?.[type]?.displayType;
-  if (declared === "trace" || declared === "clock") {
+  if (["trace", "clock", "dot", "value", "lineBurn", "scope2d"].includes(declared)) {
     return declared;
   }
   if (type === "traceDisplay" || type === "audioPlayer") {
@@ -2731,6 +2738,23 @@ function nodeGraphModuleScopeOfflineLedBuffer(slot, capturedBuffer = null) {
   };
 }
 
+function nodeGraphModuleScopeDotOscilloscopeLightBuffer(capturedBuffer = null) {
+  if (!capturedBuffer?.length) {
+    return null;
+  }
+  capturedBuffer.nodeGraphScopeFrameBrightness = true;
+  capturedBuffer.nodeGraphScopeLightBaseRatio = 0.82;
+  capturedBuffer.nodeGraphScopeLightDisplay = true;
+  capturedBuffer.nodeGraphScopeLightInstant = true;
+  capturedBuffer.nodeGraphScopeLightReleaseSeconds = 0.018;
+  capturedBuffer.nodeGraphScopeLightShape = "circle";
+  capturedBuffer.nodeGraphScopeLightTarget =
+    nodeGraphModuleScopeCapturedFrameLightTarget(capturedBuffer) ??
+    nodeGraphModuleScopeCapturedCurrentLightTarget(capturedBuffer) ??
+    0;
+  return capturedBuffer;
+}
+
 function nodeGraphModuleScopeOfflineGainAnalyzerBuffer(slot) {
   if (slot?.type !== "gain") {
     return null;
@@ -2911,6 +2935,55 @@ function nodeGraphModuleScopeOfflineVisualOscilloscopeBuffer(slot) {
   buffer.nodeGraphScopeAnalyzer = nodeGraphModuleScopeBufferStats(buffer);
   buffer.nodeGraphScopeDrawProgress = 1;
   buffer.nodeGraphScopePeriodSamples = sourceFrequency > 0 ? frames / cycles : 0;
+  buffer.nodeGraphScopeSourceFrequency = sourceFrequency;
+  buffer.nodeGraphScopeSyncBuffer = buffer;
+  buffer.nodeGraphScopeUseFullWindow = true;
+  return buffer;
+}
+
+function nodeGraphModuleScopeOfflineInputDisplayBuffer(slot) {
+  if (!["dotOscilloscope", "valueOscilloscope", "lineBurnOscilloscope", "traceDisplay"].includes(slot?.type)) {
+    return null;
+  }
+  const node = nodeGraphModuleScopeNodeForSlot(slot);
+  if (!node) {
+    return null;
+  }
+  const inputConnections = nodeGraphModuleScopeConnectionsTo(node.id, "In");
+  if (!inputConnections.length) {
+    return null;
+  }
+  const nodeMap = nodeGraphModuleScopeNodeMap();
+  const sampleRate = Number(nodeGraphModuleScopeState.sampleRate) || nodeGraphMvp.sampleRate || 44100;
+  const sourceFrequency = nodeGraphModuleScopeOfflineConnectionsSourceFrequency(inputConnections, nodeMap);
+  const settings = slot?.type === "traceDisplay"
+    ? nodeGraphTraceDisplaySettingsForSlot(slot)
+    : nodeGraphTraceDisplaySettingsDefaults;
+  const zoomSeconds = Math.max(0.001, Number(settings.zoomSeconds) || Number(settings.windowSeconds) || 0.05);
+  const windowSeconds = sourceFrequency > 0
+    ? Math.max(zoomSeconds, 1 / sourceFrequency)
+    : zoomSeconds;
+  const frames = slot?.type === "dotOscilloscope" || slot?.type === "valueOscilloscope"
+    ? 256
+    : 2048;
+  const time = nodeGraphModuleScopeVisualDisplayTime(slot);
+  const buffer = new Float32Array(frames);
+  const context = {
+    nodeMap,
+    scopeStartTime: time,
+    zeroFrequencyDisplayCycles: sourceFrequency > 0 ? 0 : 1,
+    zeroFrequencyDisplayFrames: frames,
+  };
+  for (let index = 0; index < frames; index += 1) {
+    const progress = index / Math.max(1, frames - 1);
+    const localTime = time + progress * windowSeconds;
+    const sampleIndex = Math.floor(localTime * sampleRate);
+    context.zeroFrequencyDisplayFrame = sourceFrequency > 0 ? null : index;
+    buffer[index] = nodeGraphModuleScopeOfflineConnectionSum(context, inputConnections, localTime, sampleIndex);
+  }
+  buffer.nodeGraphScopeAnalyzer = nodeGraphModuleScopeBufferStats(buffer);
+  buffer.nodeGraphScopeDrawProgress = 1;
+  buffer.nodeGraphScopePeriodSamples = sourceFrequency > 0 ? sampleRate / sourceFrequency : 0;
   buffer.nodeGraphScopeSourceFrequency = sourceFrequency;
   buffer.nodeGraphScopeSyncBuffer = buffer;
   buffer.nodeGraphScopeUseFullWindow = true;
@@ -3240,8 +3313,24 @@ function nodeGraphModuleScopeDisplayBuffer(slot, capturedBuffer = null) {
     buffer = nodeGraphModuleScopeCapturedVisualOscilloscopeXyBuffer(slot, capturedBuffer) ||
       capturedBuffer ||
       nodeGraphModuleScopeOfflineVisualOscilloscopeBuffer(slot);
+  } else if (slot?.type === "scope2d") {
+    buffer = nodeGraphModuleScopeCapturedScope2dBuffer(slot);
+  } else if (slot?.type === "valueOscilloscope") {
+    buffer = capturedBuffer || nodeGraphModuleScopeOfflineInputDisplayBuffer(slot);
+  } else if (slot?.type === "dotOscilloscope") {
+    buffer = nodeGraphModuleScopeDotOscilloscopeLightBuffer(
+      capturedBuffer || nodeGraphModuleScopeOfflineInputDisplayBuffer(slot),
+    );
+  } else if (slot?.type === "lineBurnOscilloscope") {
+    buffer = prepareNodeGraphTraceDisplayBuffer(
+      capturedBuffer || nodeGraphModuleScopeOfflineInputDisplayBuffer(slot),
+      nodeGraphTraceDisplaySettingsDefaults,
+    );
   } else if (nodeGraphModuleDisplayTypeForSlot(slot) === "trace") {
-    buffer = prepareNodeGraphTraceDisplayBuffer(capturedBuffer, nodeGraphTraceDisplaySettingsForSlot(slot));
+    buffer = prepareNodeGraphTraceDisplayBuffer(
+      capturedBuffer || nodeGraphModuleScopeOfflineInputDisplayBuffer(slot),
+      nodeGraphTraceDisplaySettingsForSlot(slot),
+    );
   } else if (slot?.type === "spiral" || slot?.type === "ellipsoid" || slot?.type === "lorenzAttractor") {
     buffer = nodeGraphModuleScopeCapturedOutputPairXyBuffer(slot, "X", "Y") || capturedBuffer;
   } else if (slot?.type === "output") {
@@ -3258,7 +3347,8 @@ function nodeGraphModuleScopeDisplayBuffer(slot, capturedBuffer = null) {
       nodeGraphModuleScopeOfflineGainAnalyzerBuffer(slot) ||
       capturedBuffer;
   }
-  return nodeGraphModuleDisplayTypeForSlot(slot) === "trace"
+  const displayType = nodeGraphModuleDisplayTypeForSlot(slot);
+  return ["trace", "dot", "value", "lineBurn", "scope2d"].includes(displayType)
     ? buffer
     : nodeGraphModuleScopeApplyShaderDisplayMode(slot, buffer);
 }
@@ -4054,7 +4144,13 @@ function bindNodeGraphTraceDisplaySettingsEvents(popover) {
 
 function openNodeGraphTraceDisplaySettings(nodeId, event = {}) {
   const node = nodeGraphPatchNode(nodeId);
-  if (!node || node.type !== "traceDisplay") {
+  if (!node) {
+    return false;
+  }
+  if (node.type !== "traceDisplay") {
+    if (nodeGraphModuleDisplayTypeForType(node.type) === "trace") {
+      return openNodeGraphGlobalTraceSettings(event);
+    }
     return false;
   }
   const metadataRect = typeof prepareNodeMetadataPopoverForInspectorReplacement === "function"
@@ -4197,6 +4293,32 @@ function nodeGraphModuleScopeCapturedVisualOscilloscopeXyBuffer(slot, capturedBu
     nodeGraphScopeDrawProgress: 1,
     nodeGraphScopeUseFullWindow: true,
     nodeGraphScopeVisualPointLimit: frames,
+    nodeGraphScopeXy: true,
+    x,
+    y,
+  };
+}
+
+function nodeGraphModuleScopeCapturedScope2dBuffer(slot) {
+  if (slot?.type !== "scope2d") {
+    return null;
+  }
+  const xBuffer = nodeGraphModuleScopeState.buffers.get(`${slot.nodeId}:X`);
+  const yBuffer = nodeGraphModuleScopeState.buffers.get(`${slot.nodeId}:Y`);
+  const length = Math.min(xBuffer?.length || 0, yBuffer?.length || 0);
+  if (length <= 0) {
+    return null;
+  }
+  const x = new Float32Array(1);
+  const y = new Float32Array(1);
+  x[0] = Number(xBuffer[length - 1]) || 0;
+  y[0] = Number(yBuffer[length - 1]) || 0;
+  return {
+    length: 1,
+    nodeGraphScopeCapturedOutput: true,
+    nodeGraphScopeDrawProgress: 1,
+    nodeGraphScopeUseFullWindow: true,
+    nodeGraphScopeVisualPointLimit: 1,
     nodeGraphScopeXy: true,
     x,
     y,
@@ -7678,6 +7800,159 @@ function drawNodeGraphTraceDisplayItem(renderer, item, pixelRatio) {
   finishNodeGraphTraceDisplayTiming(traceTiming);
 }
 
+function nodeGraphOscilloscopeLatestSample(buffer, fallback = 0) {
+  if (buffer?.nodeGraphScopeXy) {
+    return fallback;
+  }
+  for (let index = (buffer?.length || 0) - 1; index >= 0; index -= 1) {
+    const sample = Number(buffer[index]);
+    if (Number.isFinite(sample)) {
+      return sample;
+    }
+  }
+  return fallback;
+}
+
+function drawNodeGraphOscilloscopeBeam(renderer, item, pixelRatio, x1, y1, x2, y2, options = {}) {
+  const { canvas, gl } = renderer;
+  const clipRect = nodeGraphModuleScopeClippedPixelRect(
+    canvas,
+    item.visibleScopeRect || item.scopeRect,
+    pixelRatio,
+  );
+  if (!clipRect) {
+    return;
+  }
+  const vertices = new Float32Array(36);
+  appendNodeGraphTraceDisplayBeamSegment(
+    vertices,
+    0,
+    x1 * pixelRatio,
+    y1 * pixelRatio,
+    x2 * pixelRatio,
+    y2 * pixelRatio,
+    1,
+  );
+  gl.enable(gl.SCISSOR_TEST);
+  gl.scissor(clipRect.left, canvas.height - clipRect.bottom, clipRect.width, clipRect.height);
+  gl.useProgram(renderer.beamProgram);
+  gl.uniform2f(renderer.beamCanvasSizeLocation, canvas.width, canvas.height);
+  gl.uniform1f(renderer.beamSizeLocation, Math.max(1, (Number(options.thicknessPx) || 1) * pixelRatio));
+  gl.uniform1f(renderer.beamIntensityLocation, Math.max(0, Number(options.intensity) || 0));
+  const color = Array.isArray(options.color) ? options.color : [0.45, 0.92, 1];
+  gl.uniform3f(renderer.beamColorLocation, color[0], color[1], color[2]);
+  gl.bindBuffer(gl.ARRAY_BUFFER, renderer.beamBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STREAM_DRAW);
+  gl.vertexAttribPointer(renderer.beamStartLocation, 2, gl.FLOAT, false, 24, 0);
+  gl.enableVertexAttribArray(renderer.beamStartLocation);
+  gl.vertexAttribPointer(renderer.beamEndLocation, 2, gl.FLOAT, false, 24, 8);
+  gl.enableVertexAttribArray(renderer.beamEndLocation);
+  gl.vertexAttribPointer(renderer.beamCornerLocation, 1, gl.FLOAT, false, 24, 16);
+  gl.enableVertexAttribArray(renderer.beamCornerLocation);
+  gl.vertexAttribPointer(renderer.beamPointAgeLocation, 1, gl.FLOAT, false, 24, 20);
+  gl.enableVertexAttribArray(renderer.beamPointAgeLocation);
+  gl.drawArrays(gl.TRIANGLES, 0, 6);
+  recordNodeGraphModuleScopeRenderMetrics(1, 6);
+}
+
+function drawNodeGraphDotOscilloscopeItem(renderer, item, pixelRatio) {
+  const buffer = item?.buffer;
+  const rect = item?.scopeRect;
+  if (!buffer || !rect) {
+    return;
+  }
+  renderNodeGraphModuleScopeAnalyzer(item.slot, buffer);
+  clearNodeGraphModuleScopeLocalFallback(item.slot);
+  const frameTarget = nodeGraphModuleScopeCapturedFrameLightTarget(buffer);
+  const brightness = clampNodeSliderValue(
+    frameTarget ?? (Number(buffer.nodeGraphScopeLightTarget) || 0),
+    0,
+    1,
+  );
+  if (brightness <= 0.002) {
+    return;
+  }
+  const square = nodeGraphModuleScopeCenteredSquareRect(rect);
+  const centerX = square.left + square.width * 0.5;
+  const centerY = square.top + square.height * 0.5;
+  const outerThickness = Math.max(4, Math.min(square.width, square.height) * 0.16);
+  const innerThickness = Math.max(2, outerThickness * 0.42);
+  const radius = Math.max(outerThickness * 0.5, Math.min(square.width, square.height) * 0.055);
+  drawNodeGraphOscilloscopeBeam(renderer, item, pixelRatio, centerX - radius, centerY, centerX + radius, centerY, {
+    color: [0.08, 0.66, 1],
+    intensity: 0.22 + brightness * 0.58,
+    thicknessPx: outerThickness,
+  });
+  drawNodeGraphOscilloscopeBeam(renderer, item, pixelRatio, centerX - radius, centerY, centerX + radius, centerY, {
+    color: [0.72, 0.98, 1],
+    intensity: 0.42 + brightness * 0.58,
+    thicknessPx: innerThickness,
+  });
+}
+
+function drawNodeGraphValueOscilloscopeItem(renderer, item, pixelRatio) {
+  const rect = item?.scopeRect;
+  if (!rect) {
+    return;
+  }
+  renderNodeGraphModuleScopeAnalyzer(item.slot, item.buffer);
+  clearNodeGraphModuleScopeLocalFallback(item.slot);
+  const value = clampNodeSliderValue(nodeGraphOscilloscopeLatestSample(item?.buffer, 0), -1, 1);
+  const y = rect.top + rect.height * 0.5 - value * rect.height * 0.44;
+  drawNodeGraphOscilloscopeBeam(renderer, item, pixelRatio, rect.left, y, rect.left + rect.width, y, {
+    color: [0.45, 0.92, 1],
+    intensity: 0.72,
+    thicknessPx: 1.5,
+  });
+}
+
+function drawNodeGraphLineBurnOscilloscopeItem(renderer, item, pixelRatio) {
+  if (!item?.buffer?.length) {
+    return;
+  }
+  renderNodeGraphModuleScopeAnalyzer(item.slot, item.buffer);
+  clearNodeGraphModuleScopeLocalFallback(item.slot);
+  renderer.gl.enable(renderer.gl.SCISSOR_TEST);
+  applyNodeGraphModuleScopeTraceBlendMode(renderer.gl, "normal");
+  drawNodeGraphModuleScopeBufferWebGl(renderer, item.scopeRect, item.buffer, pixelRatio, item.slot, {
+    color: [0.06, 0.72, 1],
+    dotSizeScale: 1,
+    intensity: 0.24,
+    thicknessPx: 6,
+    visibleProgressRange: item.visibleProgressRange,
+    visibleRect: item.visibleScopeRect,
+  });
+  drawNodeGraphModuleScopeBufferWebGl(renderer, item.scopeRect, item.buffer, pixelRatio, item.slot, {
+    color: [0.75, 0.98, 1],
+    dotSizeScale: 1,
+    intensity: 0.82,
+    thicknessPx: 1.4,
+    visibleProgressRange: item.visibleProgressRange,
+    visibleRect: item.visibleScopeRect,
+  });
+}
+
+function drawNodeGraphScope2dItem(renderer, item, pixelRatio) {
+  const rect = item?.scopeRect;
+  const buffer = item?.buffer;
+  if (!rect || !buffer?.nodeGraphScopeXy || !buffer.x?.length || !buffer.y?.length) {
+    return;
+  }
+  renderNodeGraphModuleScopeAnalyzer(item.slot, buffer);
+  clearNodeGraphModuleScopeLocalFallback(item.slot);
+  const square = nodeGraphModuleScopeCenteredSquareRect(rect);
+  const x = clampNodeSliderValue(Number(buffer.x[buffer.x.length - 1]) || 0, -1, 1);
+  const y = clampNodeSliderValue(Number(buffer.y[buffer.y.length - 1]) || 0, -1, 1);
+  const centerX = square.left + square.width * 0.5 + x * square.width * 0.44;
+  const centerY = square.top + square.height * 0.5 - y * square.height * 0.44;
+  const radius = Math.max(2, square.width * 0.035);
+  drawNodeGraphOscilloscopeBeam(renderer, item, pixelRatio, centerX - radius, centerY, centerX + radius, centerY, {
+    color: [0.45, 0.92, 1],
+    intensity: 0.95,
+    thicknessPx: Math.max(2, square.width * 0.018),
+  });
+}
+
 function drawNodeGraphModuleScopes() {
   const debug = setNodeGraphModuleScopeDebugPhase("enter", {
     drawAttempts: (Number(nodeGraphModuleScopeState.renderDebug?.drawAttempts) || 0) + 1,
@@ -7785,8 +8060,25 @@ function drawNodeGraphModuleScopes() {
       visibleProgressRange,
       visibleScopeRect,
     } = item;
-    if (nodeGraphModuleDisplayTypeForSlot(slot) === "trace") {
+    const displayType = nodeGraphModuleDisplayTypeForSlot(slot);
+    if (displayType === "trace") {
       drawNodeGraphTraceDisplayItem(renderer, item, pixelRatio);
+      continue;
+    }
+    if (displayType === "dot") {
+      drawNodeGraphDotOscilloscopeItem(renderer, item, pixelRatio);
+      continue;
+    }
+    if (displayType === "value") {
+      drawNodeGraphValueOscilloscopeItem(renderer, item, pixelRatio);
+      continue;
+    }
+    if (displayType === "lineBurn") {
+      drawNodeGraphLineBurnOscilloscopeItem(renderer, item, pixelRatio);
+      continue;
+    }
+    if (displayType === "scope2d") {
+      drawNodeGraphScope2dItem(renderer, item, pixelRatio);
       continue;
     }
     renderNodeGraphModuleScopeAnalyzer(slot, buffer);

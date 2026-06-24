@@ -34,6 +34,9 @@ function applyNodeGraphWorkspaceView() {
   }
   workspace.dataset.widthGu = String(visibleView.widthGu);
   workspace.dataset.heightGu = String(visibleView.heightGu);
+  if (typeof syncNodeGraphModularViewSizeReadout === "function") {
+    syncNodeGraphModularViewSizeReadout();
+  }
   if (typeof syncNodeGraphWorkspaceResizeHandlePosition === "function") {
     syncNodeGraphWorkspaceResizeHandlePosition();
   }

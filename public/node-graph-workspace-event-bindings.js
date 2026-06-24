@@ -19,6 +19,12 @@ function bindNodeGraphWorkspaceInteractionEvents() {
   document.addEventListener("mousedown", preventNodeGraphMiddleMouseDefault, true);
   document.addEventListener("wheel", preventNodeGraphOuterWheelScroll, { passive: false, capture: true });
   document
+    .getElementById("nodeWorldPositionReadout")
+    ?.addEventListener("click", recenterNodeGraphViewAtWorldOrigin);
+  document
+    .getElementById("nodeWorldPositionReadout")
+    ?.addEventListener("keydown", handleNodeGraphWorldPositionReadoutKeydown);
+  document
     .getElementById("nodeGraphWorkspace")
     .addEventListener("pointerdown", nodeGraphWireInteractions.beginPatchPointWireDrag, true);
   document

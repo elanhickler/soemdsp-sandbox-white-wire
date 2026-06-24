@@ -31,6 +31,10 @@ function setNodeUserUiSettingsVisible(visible) {
   if (!panel || !button) {
     return;
   }
+  if (visible && !panel.hidden) {
+    pulseNodeGraphFloatingWindowAttention(panel);
+    return;
+  }
   panel.hidden = !visible;
   button.classList.toggle("active", visible);
   button.setAttribute("aria-pressed", String(visible));

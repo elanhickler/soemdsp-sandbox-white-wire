@@ -494,6 +494,10 @@ function applyNodeGraphPatchToDom() {
       );
       dragHandle.classList.toggle("node-drag-handle-locked", patchNodeUi.movementLocked);
     }
+    const displayButton = element.querySelector(".node-display-settings-button");
+    if (displayButton) {
+      displayButton.setAttribute("aria-pressed", patchNodeUi.oscilloscopeHidden ? "false" : "true");
+    }
     const bypassed = nodeGraphNodeDisplaysBypassed(patchNode.id);
     element.classList.toggle("bypassed", bypassed);
     const bypassButton = element.querySelector(".node-bypass-button");

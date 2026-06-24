@@ -128,12 +128,12 @@
     "gridVisible": true,
     "moduleButtonsVisible": true,
     "moduleInterfaceControlsVisible": true,
-    "moduleOscilloscopesVisible": false,
+    "moduleOscilloscopesVisible": true,
     "moduleSlidersVisible": true,
     "moduleScopeBackgroundColor": "#000000",
     "moduleScopeBurn": 0,
     "moduleScopeDecay": 0,
-    "globalSmoothingSamples": 706,
+    "globalSmoothingSeconds": 0.01600907029478458,
     "globalSmoothingManual": false,
     "moduleScopeDotCore1Enabled": true,
     "moduleScopeDotCore1Size": 1.94,
@@ -552,6 +552,22 @@
         "developer": true,
         "home": false
       },
+      "dotOscilloscope": {
+        "developer": true,
+        "home": false
+      },
+      "valueOscilloscope": {
+        "developer": true,
+        "home": false
+      },
+      "lineBurnOscilloscope": {
+        "developer": true,
+        "home": false
+      },
+      "scope2d": {
+        "developer": true,
+        "home": false
+      },
       "parabol": {
         "developer": true,
         "home": false
@@ -581,7 +597,7 @@
       "width": 136
     },
     "moduleActionWindowSize": {
-      "width": 142,
+      "width": 185,
       "height": 520
     },
     "workspaceWindowStatesVersion": 1,
@@ -605,10 +621,18 @@
         "open": false
       },
       "visibilityMenu": {
-        "open": false
+        "open": false,
+        "position": {
+          "left": 673,
+          "top": 114
+        }
       },
       "uiSettings": {
-        "open": false
+        "open": false,
+        "position": {
+          "left": 477,
+          "top": 96
+        }
       },
       "uiDev": {
         "open": false
@@ -621,19 +645,18 @@
     "sharedInspectorWindowState": {},
     "workspaceView": {
       "pan": {
-        "x": 28,
-        "y": 0
+        "x": -35.24727813197546,
+        "y": -21.459062111118953
       },
-      "zoom": 1
+      "zoom": 0.6355180784048308
     },
     "moduleStoreDepartment": "",
     "savedPatchBankIndex": 0,
     "savedPatchBankName": "",
     "savedPatchGridColumns": 3,
     "savedPatchExplorerView": "banks",
+    "workingPatch": null,
     "currentSavedPatchFilename": "",
-    "patchDirtyState": "untouched",
-    "currentPatchName": "Patch name",
-    "currentPatchTags": "tags"
+    "patchDirtyState": "untouched"
   }
 });

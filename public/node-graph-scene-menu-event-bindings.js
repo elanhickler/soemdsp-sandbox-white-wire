@@ -51,15 +51,10 @@ function bindNodeGraphSceneMenuEvents() {
   bindNodeGraphSceneElementEvent("nodeModuleActionsWindowHeading", "pointerdown", beginNodeModuleActionsWindowDrag);
   bindNodeGraphSceneElementEvent("nodeModuleActionsDragHandle", "pointerdown", beginNodeModuleActionsWindowDrag);
   bindNodeGraphSceneElementEvent("nodeModuleActionsResizeHandle", "pointerdown", beginNodeModuleActionsWindowResize);
-  bindNodeGraphSceneElementEvent("nodeSceneOpenMetaparameters", "click", openNodeGraphMetaparametersFromContextWindow);
+  bindNodeGraphSceneElementEvent("nodeSceneUndoButton", "click", undoNodeGraphPatch);
+  bindNodeGraphSceneElementEvent("nodeSceneRedoButton", "click", redoNodeGraphPatch);
   bindNodeGraphSceneElementEvent("nodeSceneOpenSavedPatches", "click", () => {
     setNodeGraphSavedPatchesWindowVisible(true);
-  });
-  bindNodeGraphSceneElementEvent("nodeSceneOpenTraceSettings", "click", (event) => {
-    closeNodeGlobalScopeMenu();
-    if (typeof openNodeGraphGlobalTraceSettings === "function") {
-      openNodeGraphGlobalTraceSettings(event);
-    }
   });
   bindNodeGraphSceneElementEvent("nodeSceneOpenUiSettings", "click", () => {
     setNodeUserUiSettingsVisible(true);
@@ -70,8 +65,14 @@ function bindNodeGraphSceneMenuEvents() {
   bindNodeGraphSceneElementEvent("nodeSceneOpenVisibility", "click", () => {
     setNodeGraphVisibilityMenuOpen(true);
   });
-  bindNodeGraphSceneElementEvent("nodeSceneGlobalSmoothingSamples", "change", handleNodeGraphGlobalSmoothingSamplesChange);
-  bindNodeGraphSceneElementEvent("nodeSceneGlobalSmoothingSamples", "keydown", handleNodeGraphGlobalSmoothingSamplesKeydown);
+  bindNodeGraphSceneElementEvent("nodeSceneGlobalSmoothingSeconds", "change", handleNodeGraphGlobalSmoothingSecondsChange);
+  bindNodeGraphSceneElementEvent("nodeSceneGlobalSmoothingSeconds", "keydown", handleNodeGraphGlobalSmoothingSecondsKeydown);
+  bindNodeGraphSceneElementEvent("nodeSceneGlobalSmoothingSeconds", "blur", handleNodeGraphGlobalSmoothingSecondsChange);
+  bindNodeGraphSceneElementEvent("nodeSceneGlobalSmoothingSeconds", "dblclick", beginNodeGraphGlobalSmoothingSecondsEdit);
+  bindNodeGraphSceneElementEvent("nodeSceneGlobalSmoothingSeconds", "pointerdown", beginNodeGraphGlobalSmoothingSecondsDrag);
+  document.addEventListener("pointermove", dragNodeGraphGlobalSmoothingSeconds);
+  document.addEventListener("pointerup", endNodeGraphGlobalSmoothingSecondsDrag);
+  document.addEventListener("pointercancel", endNodeGraphGlobalSmoothingSecondsDrag);
   if (typeof syncNodeGraphGlobalSmoothingControl === "function") {
     syncNodeGraphGlobalSmoothingControl({ force: true });
   }
@@ -114,6 +115,7 @@ function bindNodeGraphSceneMenuEvents() {
   bindNodeGraphSceneElementEvent("nodeSceneAliasInput", "input", () => setNodeGraphModuleAliasFromContext({ record: false }));
   bindNodeGraphSceneElementEvent("nodeSceneAliasInput", "change", () => setNodeGraphModuleAliasFromContext({ record: true }));
   bindNodeGraphSceneElementEvent("nodeSceneToggleButtons", "click", toggleNodeGraphModuleButtonsFromContext);
+  bindNodeGraphSceneElementEvent("nodeSceneToggleModuleEnabled", "click", toggleNodeGraphModuleEnabledFromContext);
   bindNodeGraphSceneElementEvent("nodeSceneToggleOscilloscope", "click", toggleNodeGraphModuleOscilloscopeFromContext);
   bindNodeGraphSceneElementEvent("nodeSceneToggleInterfaceControls", "click", toggleNodeGraphModuleInterfaceControlsFromContext);
   bindNodeGraphSceneElementEvent("nodeSceneToggleSliders", "click", toggleNodeGraphModuleSlidersFromContext);

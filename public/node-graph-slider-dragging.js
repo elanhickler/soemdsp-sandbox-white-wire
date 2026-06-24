@@ -262,16 +262,9 @@ function nodeSliderValueFromPointer(slider, surface, clientX) {
 }
 
 function nodeSliderFineTuneScale(event) {
-  if (event.ctrlKey && event.shiftKey) {
-    return 0.001;
-  }
-  if (event.shiftKey) {
-    return 0.01;
-  }
-  if (event.ctrlKey) {
-    return 0.1;
-  }
-  return 1;
+  return typeof nodeGraphNumericDragMultiplier === "function"
+    ? nodeGraphNumericDragMultiplier(event)
+    : 1;
 }
 
 function nodeSliderKeyboardStep(slider, event) {
@@ -344,6 +337,11 @@ function beginNodeSliderDrag(event) {
   if (nodeGraphMvp.sliderDragging || event.button > 0 || event.detail > 1) {
     return;
   }
+  if (typeof nodeGraphNumericModifierReserved === "function" && nodeGraphNumericModifierReserved(event)) {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
   if (typeof nodeGraphSettingsTextControlFromTarget === "function" && nodeGraphSettingsTextControlFromTarget(event.target)) {
     return;
   }
@@ -361,16 +359,9 @@ function beginNodeSliderDrag(event) {
 
   const lane = nodeSliderVisualLane(surface, slider);
   const resetToDefaultOnClick = (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey;
-  const pointerMode = event.altKey ? "absolute" : "relative";
+  const pointerMode = "relative";
   let startTravel = nodeSliderTravelFromValue(slider, Number(slider.value));
-  if (pointerMode === "absolute") {
-    setNodeSliderValue(
-      slider,
-      quantizeNodeSliderDragValue(slider, nodeSliderValueFromPointer(slider, surface, event.clientX)),
-      { interaction: "drag" },
-    );
-    startTravel = nodeSliderTravelFromValue(slider, Number(slider.value));
-  } else if (!resetToDefaultOnClick && nodeSliderShouldDisplayChoices(slider) && nodeSliderShouldDivideChoicesVisibly(slider)) {
+  if (!resetToDefaultOnClick && nodeSliderShouldDisplayChoices(slider) && nodeSliderShouldDivideChoicesVisibly(slider)) {
     setNodeChoiceSliderFromPointer(slider, surface, event.clientX, { interaction: "drag" });
     startTravel = nodeSliderTravelFromValue(slider, Number(slider.value));
   }
@@ -409,35 +400,24 @@ function dragNodeSlider(event) {
     return;
   }
 
-  if (drag.pointerMode === "absolute") {
-    setNodeSliderValue(
+  const horizontalDelta = event.clientX - drag.startX;
+  const verticalDelta = drag.startY - event.clientY;
+  if (Math.abs(horizontalDelta) > 1 || Math.abs(verticalDelta) > 1) {
+    drag.moved = true;
+  }
+  const visualTravelWidth = Math.max(1, drag.width * (Number(drag.visualScale) || 1));
+  const travelDelta = ((horizontalDelta + verticalDelta) / visualTravelWidth) * drag.fineScale;
+  const nextTravel = drag.startTravel + travelDelta;
+  setNodeSliderValue(
+    drag.slider,
+    quantizeNodeSliderDragValue(
       drag.slider,
-      quantizeNodeSliderDragValue(
-        drag.slider,
-        nodeSliderValueFromPointer(drag.slider, drag.surface, event.clientX),
-      ),
-      { interaction: "drag" },
-    );
-  } else {
-    const horizontalDelta = event.clientX - drag.startX;
-    const verticalDelta = drag.startY - event.clientY;
-    if (Math.abs(horizontalDelta) > 1 || Math.abs(verticalDelta) > 1) {
-      drag.moved = true;
-    }
-    const visualTravelWidth = Math.max(1, drag.width * (Number(drag.visualScale) || 1));
-    const travelDelta = ((horizontalDelta + verticalDelta) / visualTravelWidth) * drag.fineScale;
-    const nextTravel = drag.startTravel + travelDelta;
-    setNodeSliderValue(
-      drag.slider,
-      quantizeNodeSliderDragValue(
-        drag.slider,
-        nodeSliderValueFromRelativeTravel(drag.slider, nextTravel),
-      ),
-      { interaction: "drag" },
-    );
-    if (nextTravel <= 0 || nextTravel >= 1) {
-      reanchorNodeSliderDragAtPointer(drag, event);
-    }
+      nodeSliderValueFromRelativeTravel(drag.slider, nextTravel),
+    ),
+    { interaction: "drag" },
+  );
+  if (nextTravel <= 0 || nextTravel >= 1) {
+    reanchorNodeSliderDragAtPointer(drag, event);
   }
   updateNodeSliderDotCursor(event);
   event.preventDefault();

@@ -192,6 +192,8 @@ function attachNodeGraphNodeEvents(node) {
   node.querySelectorAll(".node-parameter-row")
     .forEach((row) => row.addEventListener("pointerdown", beginNodeGraphNodeDrag));
   node.querySelector(".node-bypass-button")?.addEventListener("click", toggleNodeGraphModuleBypass);
+  node.querySelector(".node-display-settings-button")?.addEventListener("click", toggleNodeModuleDisplayVisibility);
+  node.querySelector(".node-display-settings-button")?.addEventListener("contextmenu", openNodeModuleDisplaySettings);
   node.querySelector(".node-action-button")?.addEventListener("click", openNodeModuleActionMenu);
   node.addEventListener("lostpointercapture", endNodeGraphNodeDrag);
   for (const port of node.querySelectorAll(".node-port")) {
@@ -262,6 +264,45 @@ function attachNodeGraphNodeEvents(node) {
   screenSpaceShaderSource?.addEventListener("input", (event) => {
     refreshNodeGraphScreenSpaceShaderBodyStatus(event.currentTarget.closest(".node-screen-space-shader-body"));
   });
+}
+
+function openNodeModuleDisplaySettings(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  const nodeId = event.currentTarget?.dataset?.node;
+  if (nodeId && typeof openNodeGraphTraceDisplaySettings === "function" && openNodeGraphTraceDisplaySettings(nodeId, event)) {
+    return;
+  }
+  if (typeof setNodeInteractionHelp === "function") {
+    setNodeInteractionHelp("This display does not have a settings form yet. Click the TV button to show or hide it.");
+  }
+}
+
+function toggleNodeModuleDisplayVisibility(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  const nodeId = event.currentTarget?.dataset?.node;
+  const sourceNode = nodeGraphPatchNode(nodeId);
+  if (!sourceNode || !nodeGraphPatchNodeHasHideableOscilloscope(sourceNode)) {
+    if (typeof setNodeInteractionHelp === "function") {
+      setNodeInteractionHelp("This module does not have a hideable display.");
+    }
+    return;
+  }
+  const patch = cloneNodeGraphPatch(nodeGraphMvp.patch);
+  const targetNode = patch.nodes.find((node) => node.id === sourceNode.id);
+  if (!targetNode || !nodeGraphPatchNodeHasHideableOscilloscope(targetNode)) {
+    return;
+  }
+  const ui = normalizeNodeGraphPatchNodeUi(targetNode.ui);
+  ui.oscilloscopeHidden = !ui.oscilloscopeHidden;
+  applyNodeGraphPatchNodeUi(targetNode, ui);
+  commitNodeGraphPatch(patch, {
+    status: ui.oscilloscopeHidden ? "module display hidden" : "module display shown",
+  });
+  if (typeof configureNodeSceneContextMenu === "function") {
+    configureNodeSceneContextMenu("module");
+  }
 }
 
 function applyNodeGraphScreenSpaceShaderScript(event) {
@@ -406,7 +447,7 @@ function createNodeGraphModuleElement(type, node) {
   article.dataset.gridHeightGu = String(heightGu);
   article.style.setProperty("--node-grid-width-units", String(widthGu));
   article.style.setProperty("--node-grid-height-units", String(heightGu));
-  article.style.setProperty("--node-module-display-height-units", String(nodeGraphPatchNodeDisplayHeightUnits(patchNode)));
+  article.style.setProperty("--node-module-display-height-units", String(nodeGraphPatchNodeDisplayCssHeightUnits(patchNode)));
   article.style.setProperty("--node-module-interface-controls-height-units", String(nodeGraphPatchNodeInterfaceControlsHeightUnits(patchNode)));
   if (layout === "knobWidget" && widthGu <= 1 && heightGu <= 1) {
     article.classList.add("knob-widget-compact");
@@ -430,6 +471,10 @@ function createNodeGraphModuleElement(type, node) {
     });
   } else {
     article.append(createNodeGraphModuleHeader(type, node, definition));
+  }
+  const displayButton = article.querySelector(".node-display-settings-button");
+  if (displayButton) {
+    displayButton.setAttribute("aria-pressed", patchNodeUi.oscilloscopeHidden ? "false" : "true");
   }
   if (layout === "led") {
     // Compact LED body is the whole module face.

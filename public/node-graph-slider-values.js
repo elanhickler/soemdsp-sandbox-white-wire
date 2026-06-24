@@ -33,6 +33,30 @@ function nodeGraphSmoothingSecondsFromSamples(samples) {
   return clampNodeGraphAutoSmoothingSeconds(safeSamples / nodeGraphSmoothingSampleRate());
 }
 
+function nodeGraphDefaultSmoothingBlockSeconds() {
+  return clampNodeGraphAutoSmoothingSeconds(128 / nodeGraphSmoothingSampleRate());
+}
+
+function nodeGraphNumericModifierReserved(event) {
+  return Boolean(event?.shiftKey && (event.ctrlKey || event.metaKey) && event.altKey);
+}
+
+function nodeGraphNumericDragMultiplier(event) {
+  if (nodeGraphNumericModifierReserved(event)) {
+    return 0;
+  }
+  if (event?.shiftKey && (event.ctrlKey || event.metaKey)) {
+    return 0.01;
+  }
+  if (event?.shiftKey || event?.ctrlKey || event?.metaKey) {
+    return 0.1;
+  }
+  if (event?.altKey) {
+    return 10;
+  }
+  return 1;
+}
+
 function clampNodeSliderValue(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }

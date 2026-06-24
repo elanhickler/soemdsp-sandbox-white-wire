@@ -388,16 +388,16 @@ function createNodeUserUiSettingsSection(title, controls) {
   if (!visibleControls.length) {
     return null;
   }
-  const details = document.createElement("details");
-  details.className = "node-ui-dev-section node-user-ui-settings-section";
-  details.open = true;
-  const summary = document.createElement("summary");
-  summary.textContent = title;
+  const section = document.createElement("section");
+  section.className = "node-ui-dev-section node-user-ui-settings-section";
+  const heading = document.createElement("div");
+  heading.className = "node-user-ui-settings-section-heading";
+  heading.textContent = title;
   const body = document.createElement("div");
   body.className = "node-ui-dev-section-body";
   body.append(...visibleControls);
-  details.append(summary, body);
-  return details;
+  section.append(heading, body);
+  return section;
 }
 
 function renderNodeUserUiSettingsControls() {
@@ -411,19 +411,6 @@ function renderNodeUserUiSettingsControls() {
   for (const section of nodeUiDevSettingSections) {
     const controls = [];
     if (section.title === "workspace") {
-      const clearStartupHint = document.createElement("div");
-      clearStartupHint.className = "node-user-ui-setting-control action";
-      const title = document.createElement("span");
-      title.textContent = "New user startup";
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = "Clear Startup";
-      button.addEventListener("click", (event) => {
-        document.getElementById("nodeUserUiSettingsClearStartup")?.click();
-        event.preventDefault();
-      });
-      clearStartupHint.append(title, button);
-      controls.push(clearStartupHint);
       controls.push(createNodeUserUiSettingsHideMouseWhileDraggingControl());
       controls.push(createNodeUserUiSettingsViewControl());
       controls.push(createNodeUserUiSettingsSliderAmountControl());

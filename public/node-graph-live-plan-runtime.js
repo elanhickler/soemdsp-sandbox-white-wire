@@ -269,12 +269,12 @@ function createNodeGraphLiveRuntime(plan) {
   const vactrolEnvelopeStates = new Map();
   const visualControlState = createNodeGraphVisualControlState();
   for (const node of plan.nodes || []) {
-    if (node.type === "osc" || node.type === "fbPolyBlepOsc") {
+    if (nodeGraphModuleIsRealtimeOscillatorType(node.type)) {
       phases.set(node.id, 0);
       oscResetStates.set(node.id, createNodeGraphOscResetState());
       triangleStates.set(node.id, 0);
     }
-    if (node.type === "osc" || node.type === "fbPolyBlepOsc" || node.type === "noise") {
+    if (nodeGraphModuleIsRealtimeOscillatorType(node.type) || node.type === "noise") {
       noiseSeeds.set(node.id, nodeGraphStableSeed(node.id));
     }
     if (node.type === "stereoNoise") {
@@ -598,16 +598,16 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
     if (!runtime.nodeOutputs.has(node.id)) {
       runtime.nodeOutputs.set(node.id, 0);
     }
-    if ((node.type === "osc" || node.type === "fbPolyBlepOsc") && !runtime.phases.has(node.id)) {
+    if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.phases.has(node.id)) {
       runtime.phases.set(node.id, 0);
     }
-    if ((node.type === "osc" || node.type === "fbPolyBlepOsc") && !runtime.oscResetStates.has(node.id)) {
+    if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.oscResetStates.has(node.id)) {
       runtime.oscResetStates.set(node.id, createNodeGraphOscResetState());
     }
-    if ((node.type === "osc" || node.type === "fbPolyBlepOsc") && !runtime.triangleStates.has(node.id)) {
+    if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.triangleStates.has(node.id)) {
       runtime.triangleStates.set(node.id, 0);
     }
-    if ((node.type === "osc" || node.type === "fbPolyBlepOsc" || node.type === "noise") && !runtime.noiseSeeds.has(node.id)) {
+    if ((nodeGraphModuleIsRealtimeOscillatorType(node.type) || node.type === "noise") && !runtime.noiseSeeds.has(node.id)) {
       runtime.noiseSeeds.set(node.id, nodeGraphStableSeed(node.id));
     }
     if (node.type === "stereoNoise") {

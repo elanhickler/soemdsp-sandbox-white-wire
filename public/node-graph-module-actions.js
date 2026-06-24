@@ -683,6 +683,7 @@ function adjustNodeGraphModuleDisplayHeightFromContext(delta) {
   }
   const ui = normalizeNodeGraphPatchNodeUi(targetNode.ui);
   const nextOffsetGu = normalizeNodeGraphModuleDisplayHeightOffsetUnits(
+    targetNode.type,
     ui.displayHeightOffsetGu + delta * nodeGraphModuleDisplayHeightLimits.stepGu,
   );
   if (nextOffsetGu === ui.displayHeightOffsetGu) {
@@ -1511,6 +1512,35 @@ function toggleNodeGraphModuleButtonsFromContext() {
   applyNodeGraphPatchNodeUi(targetNode, ui);
   commitNodeGraphPatch(patch, {
     status: ui.buttonsHidden ? "module buttons hidden" : "module buttons shown",
+  });
+  configureNodeSceneContextMenu("module");
+}
+
+function toggleNodeGraphModuleEnabledFromContext() {
+  const sourceNode = nodeGraphPatchNode(nodeGraphModuleActionTargetNodeId());
+  if (!sourceNode) {
+    return;
+  }
+  if (sourceNode.id === "output") {
+    toggleNodeGraphLiveOutput();
+    configureNodeSceneContextMenu("module");
+    return;
+  }
+
+  const patch = cloneNodeGraphPatch(nodeGraphMvp.patch);
+  const targetNode = patch.nodes.find((node) => node.id === sourceNode.id);
+  if (!targetNode) {
+    return;
+  }
+  const bypassed = new Set(patch.bypassedNodes || []);
+  if (bypassed.has(targetNode.id)) {
+    bypassed.delete(targetNode.id);
+  } else {
+    bypassed.add(targetNode.id);
+  }
+  patch.bypassedNodes = [...bypassed];
+  commitNodeGraphPatch(patch, {
+    status: bypassed.has(targetNode.id) ? "module disabled" : "module enabled",
   });
   configureNodeSceneContextMenu("module");
 }
