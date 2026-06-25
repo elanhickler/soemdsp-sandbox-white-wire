@@ -461,12 +461,11 @@ const nodeGraphModuleDefinitions = Object.freeze({
       Increment: "Inc.",
     },
     outputAliases: {
-      Out: "Wave Out",
+      Out: "Mono",
+      Wave: "Mono",
+      "Wave Out": "Mono",
     },
-    outputLabels: {
-      "Wave Out": "Wave",
-    },
-    outputs: ["X", "Y", "Wave Out"],
+    outputs: ["Mono", "X", "Y"],
     parameters: [
       { defaultValue: "220", key: "frequency", kind: "frequency", label: "Frequency", max: "20000", mid: "220", min: "0", step: "any", unit: "Hz" },
       { defaultValue: "0", key: "phase", kind: "phase", label: "Phase", max: "1", mid: "0.5", min: "0", step: "0.01", unit: "cycle", wraparound: true },

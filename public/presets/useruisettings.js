@@ -604,16 +604,16 @@
       "width": 136
     },
     "moduleActionWindowSize": {
-      "width": 185,
-      "height": 520
+      "width": 186,
+      "height": 523
     },
     "workspaceWindowStatesVersion": 1,
     "workspaceWindowStates": {
       "commandCenter": {
-        "open": true,
+        "open": false,
         "position": {
-          "left": -68,
-          "top": 430
+          "left": 600,
+          "top": 221
         }
       },
       "moduleActions": {
@@ -635,12 +635,16 @@
       "moduleBrowser": {
         "open": false,
         "position": {
-          "left": 514,
-          "top": 7
+          "left": 229,
+          "top": 132
         }
       },
       "visibilityMenu": {
-        "open": false
+        "open": false,
+        "position": {
+          "left": 597,
+          "top": 114
+        }
       },
       "uiSettings": {
         "open": false
@@ -649,23 +653,27 @@
         "open": false
       },
       "traceDisplaySettings": {
-        "open": true,
-        "targetNode": "scope2d-1"
+        "open": false,
+        "targetNode": "ellipsoid-2"
       }
     },
-    "sharedInspectorActive": "traceDisplaySettings",
+    "sharedInspectorActive": "moduleActions",
     "sharedInspectorWindowState": {
       "position": {
-        "left": 588,
-        "top": 183
+        "left": 484,
+        "top": 253
+      },
+      "size": {
+        "width": 186,
+        "height": 523
       }
     },
     "workspaceView": {
       "pan": {
-        "x": -331.7857142857143,
-        "y": -1146.3839285714284
+        "x": 1311.68,
+        "y": -253.3325
       },
-      "zoom": 2.941165327612676
+      "zoom": 6.623183592811418
     },
     "moduleStoreDepartment": "",
     "savedPatchBankIndex": 0,
@@ -716,27 +724,6 @@
           "sourceNode": "ellipsoid-1",
           "sourcePort": "Y",
           "tracePoints": []
-        },
-        {
-          "destinationNode": "scope2d-1",
-          "destinationPort": "X",
-          "sourceNode": "ellipsoid-1",
-          "sourcePort": "X",
-          "tracePoints": []
-        },
-        {
-          "destinationNode": "scope2d-1",
-          "destinationPort": "Y",
-          "sourceNode": "ellipsoid-1",
-          "sourcePort": "Y",
-          "tracePoints": []
-        },
-        {
-          "destinationNode": "traceDisplay-1",
-          "destinationPort": "In",
-          "sourceNode": "ellipsoid-1",
-          "sourcePort": "Wave Out",
-          "tracePoints": []
         }
       ],
       "format": {
@@ -762,8 +749,8 @@
       "monitors": [],
       "nodes": [
         {
-          "gx": 0,
-          "gy": 24,
+          "gx": -3,
+          "gy": 0,
           "id": "output",
           "paramMeta": {
             "volume": {
@@ -790,21 +777,11 @@
           "params": {
             "volume": 0.640154150863261
           },
-          "type": "output",
-          "ui": {
-            "buttonsHidden": false,
-            "displayHeightOffsetGu": 0,
-            "ioHidden": true,
-            "interfaceControlsHidden": false,
-            "movementLocked": false,
-            "oscilloscopeHidden": true,
-            "slidersHidden": true,
-            "titleHidden": false
-          }
+          "type": "output"
         },
         {
-          "gx": -8,
-          "gy": 12,
+          "gx": -11,
+          "gy": -5,
           "id": "ellipsoid-1",
           "paramMeta": {
             "frequency": {
@@ -989,9 +966,9 @@
             }
           },
           "params": {
-            "frequency": 0.908229577872583,
-            "phase": 0,
-            "offsetX": 0.63,
+            "frequency": 1,
+            "phase": 0.48,
+            "offsetX": 0.19,
             "offsetY": 0,
             "shapeX": 0,
             "shapeY": 0,
@@ -1000,68 +977,29 @@
             "level": 0.41
           },
           "type": "ellipsoid",
-          "ui": {
-            "buttonsHidden": true,
-            "displayHeightOffsetGu": 0,
-            "ioHidden": true,
-            "interfaceControlsHidden": false,
-            "movementLocked": false,
-            "oscilloscopeHidden": false,
-            "slidersHidden": false,
-            "titleHidden": true
-          }
-        },
-        {
-          "gx": 0,
-          "gy": 10,
-          "id": "scope2d-1",
-          "paramMeta": {},
-          "params": {},
-          "type": "scope2d",
-          "ui": {
-            "buttonsHidden": true,
-            "displayHeightOffsetGu": 0,
-            "ioHidden": true,
-            "interfaceControlsHidden": false,
-            "movementLocked": false,
-            "oscilloscopeHidden": false,
-            "slidersHidden": false,
-            "titleHidden": false
-          }
-        },
-        {
-          "gx": 0,
-          "gy": 18,
-          "id": "traceDisplay-1",
-          "paramMeta": {},
-          "params": {},
-          "type": "traceDisplay",
-          "ui": {
-            "buttonsHidden": false,
-            "displayHeightOffsetGu": 0,
-            "ioHidden": true,
-            "interfaceControlsHidden": false,
-            "movementLocked": false,
-            "oscilloscopeHidden": false,
-            "slidersHidden": false,
-            "titleHidden": false
-          },
           "traceDisplaySettings": {
-            "brightness": 0.92,
-            "color": "#75ebff",
+            "burn": 0.82,
+            "decay": 0.12,
+            "dot1Brightness": 0.92,
+            "dot1Color": "#75ebff",
             "dot1Enabled": true,
-            "dot1Size": 0.08,
+            "dot1Size": 0.01,
             "dot2Brightness": 0.18,
             "dot2Color": "#184fff",
-            "dot2Enabled": true,
+            "dot2Enabled": false,
             "dot2Size": 0.24,
             "dot2LineThickness": 0.48,
-            "cycles": 2,
-            "lineThickness": 0.2,
-            "padding": 0,
-            "skipSamples": 1,
-            "sourceSync": true,
-            "zoomSeconds": 0.05
+            "lineThickness": 0.2
+          },
+          "ui": {
+            "buttonsHidden": false,
+            "displayHeightOffsetGu": 4,
+            "ioHidden": false,
+            "interfaceControlsHidden": false,
+            "movementLocked": false,
+            "oscilloscopeHidden": false,
+            "slidersHidden": false,
+            "titleHidden": false
           }
         }
       ],
@@ -1076,7 +1014,7 @@
       "view": {
         "heightGu": 24,
         "widthGu": 24,
-        "zoom": 1.0606137022653623
+        "zoom": 6.623183592811418
       },
       "visual": {
         "background": {

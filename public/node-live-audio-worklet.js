@@ -2050,6 +2050,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     const y = this.ellipsoidSample(phase - Math.PI * 0.5, offsetY, shapeY, scaleY) * level;
     const output = target || {};
     output.Out = x;
+    output.Mono = x;
     output.X = x;
     output.Y = y;
     output.Wave = x;
@@ -4770,7 +4771,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
         const phaseIncrement = (pitchedFrequency / safeRate) + incrementInput;
         let ellipsoidFrame = this.ellipsoidOutputFrames.get(nodeId);
         if (!ellipsoidFrame) {
-          ellipsoidFrame = { Out: 0, Wave: 0, "Wave Out": 0, X: 0, Y: 0 };
+          ellipsoidFrame = { Mono: 0, Out: 0, Wave: 0, "Wave Out": 0, X: 0, Y: 0 };
           this.ellipsoidOutputFrames.set(nodeId, ellipsoidFrame);
         }
         value = this.ellipsoidVectorSample(

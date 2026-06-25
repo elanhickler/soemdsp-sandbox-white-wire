@@ -195,6 +195,7 @@ function attachNodeGraphNodeEvents(node) {
   node.querySelector(".node-display-settings-button")?.addEventListener("click", openNodeModuleDisplaySettings);
   node.querySelector(".node-display-settings-button")?.addEventListener("contextmenu", openNodeModuleDisplaySettings);
   node.querySelector(".node-action-button")?.addEventListener("click", openNodeModuleActionMenu);
+  node.querySelector(".node-metaparameter-button")?.addEventListener("click", openNodeModuleMetaparameters);
   node.addEventListener("lostpointercapture", endNodeGraphNodeDrag);
   for (const port of node.querySelectorAll(".node-port")) {
     port.addEventListener("pointerdown", toggleNodeGraphMonitorFromPortEvent, true);
@@ -310,6 +311,63 @@ function toggleNodeModuleDisplayVisibility(event) {
   });
   if (typeof configureNodeSceneContextMenu === "function") {
     configureNodeSceneContextMenu("module");
+  }
+}
+
+function firstNodeModuleSliderReadout(nodeElement) {
+  const readout = nodeElement?.querySelector?.(".node-slider-readout");
+  if (readout) {
+    return readout;
+  }
+  const slider = nodeElement?.querySelector?.('input[type="range"]');
+  if (slider && typeof createNodeSliderReadout === "function") {
+    createNodeSliderReadout(slider);
+  }
+  return nodeElement?.querySelector?.(".node-slider-readout") || null;
+}
+
+function toggleNodeModuleSlidersVisibility(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  const nodeId = event.currentTarget?.dataset?.node;
+  const sourceNode = nodeGraphPatchNode(nodeId);
+  if (!sourceNode || !nodeGraphModuleTypeHasHideableSliders(sourceNode.type)) {
+    if (typeof setNodeInteractionHelp === "function") {
+      setNodeInteractionHelp("This module does not have hideable sliders.");
+    }
+    return;
+  }
+  const patch = cloneNodeGraphPatch(nodeGraphMvp.patch);
+  const targetNode = patch.nodes.find((node) => node.id === sourceNode.id);
+  if (!targetNode || !nodeGraphModuleTypeHasHideableSliders(targetNode.type)) {
+    return;
+  }
+  const ui = normalizeNodeGraphPatchNodeUi(targetNode.ui);
+  ui.slidersHidden = !ui.slidersHidden;
+  applyNodeGraphPatchNodeUi(targetNode, ui);
+  commitNodeGraphPatch(patch, {
+    status: ui.slidersHidden ? "module sliders hidden" : "module sliders shown",
+  });
+  if (typeof configureNodeSceneContextMenu === "function") {
+    configureNodeSceneContextMenu("module");
+  }
+}
+
+function openNodeModuleMetaparameters(event) {
+  if (event?.altKey) {
+    toggleNodeModuleSlidersVisibility(event);
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  const nodeElement = event.currentTarget?.closest?.(".dsp-node");
+  const readout = firstNodeModuleSliderReadout(nodeElement);
+  if (readout && typeof openNodeMetadataPopover === "function") {
+    openNodeMetadataPopover(event, readout);
+    return;
+  }
+  if (typeof openBlankNodeMetadataPopover === "function") {
+    openBlankNodeMetadataPopover(event);
   }
 }
 
@@ -483,6 +541,10 @@ function createNodeGraphModuleElement(type, node) {
   const displayButton = article.querySelector(".node-display-settings-button");
   if (displayButton) {
     displayButton.setAttribute("aria-pressed", patchNodeUi.oscilloscopeHidden ? "false" : "true");
+  }
+  const metaparameterButton = article.querySelector(".node-metaparameter-button");
+  if (metaparameterButton) {
+    metaparameterButton.setAttribute("aria-pressed", patchNodeUi.slidersHidden ? "false" : "true");
   }
   if (layout === "led") {
     // Compact LED body is the whole module face.

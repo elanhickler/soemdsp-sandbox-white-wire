@@ -185,9 +185,6 @@ function bindNodeGraphHeaderControlEvents() {
     .getElementById("nodeUserUiSettingsButton")
     .addEventListener("click", toggleNodeUserUiSettings);
   document
-    .getElementById("nodeModularViewButton")
-    .addEventListener("click", () => setNodeGraphViewMode("modular"));
-  document
     .getElementById("nodeCodeScreenViewButton")
     .addEventListener("click", () => setNodeGraphViewMode("code"));
   document

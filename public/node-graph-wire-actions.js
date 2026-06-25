@@ -138,48 +138,67 @@ function connectNodeGraphGraphInput(sourceNode, sourcePort, destinationNode, des
   return true;
 }
 
+function nodeGraphEquivalentStereoPortName(port) {
+  const key = String(port || "").trim().toLowerCase();
+  if (key === "x" || key === "left") {
+    return "left-x";
+  }
+  if (key === "y" || key === "right") {
+    return "right-y";
+  }
+  return "";
+}
+
+function nodeGraphStereoPairSiblingPort(port) {
+  const key = String(port || "").trim().toLowerCase();
+  if (key === "x") {
+    return "Y";
+  }
+  if (key === "y") {
+    return "X";
+  }
+  if (key === "left") {
+    return "Right";
+  }
+  if (key === "right") {
+    return "Left";
+  }
+  return "";
+}
+
 function nodeGraphAutoPairPortConnections(patch, sourceNode, sourcePort, destinationNode, destinationPort, wireData = {}) {
-  if (!patch || sourcePort !== destinationPort) {
+  if (
+    !patch ||
+    nodeGraphEquivalentStereoPortName(sourcePort) !== "left-x" ||
+    nodeGraphEquivalentStereoPortName(destinationPort) !== "left-x"
+  ) {
     return 0;
   }
   const sourcePorts = nodeGraphPatchNodeOutputPorts(sourceNode);
   const destinationPorts = nodeGraphPatchNodeInputPorts(destinationNode);
-  const sourceIndex = sourcePorts.indexOf(sourcePort);
-  const destinationIndex = destinationPorts.indexOf(destinationPort);
-  if (sourceIndex < 0 || destinationIndex < 0) {
+  const nextSourcePort = nodeGraphStereoPairSiblingPort(sourcePort);
+  const nextDestinationPort = nodeGraphStereoPairSiblingPort(destinationPort);
+  if (!sourcePorts.includes(nextSourcePort) || !destinationPorts.includes(nextDestinationPort)) {
     return 0;
   }
-  let added = 0;
-  for (
-    let outputIndex = sourceIndex + 1, inputIndex = destinationIndex + 1;
-    outputIndex < sourcePorts.length && inputIndex < destinationPorts.length;
-    outputIndex += 1, inputIndex += 1
-  ) {
-    const nextSourcePort = sourcePorts[outputIndex];
-    const nextDestinationPort = destinationPorts[inputIndex];
-    if (nextSourcePort !== nextDestinationPort) {
-      break;
-    }
-    const duplicate = patch.connections.some(
-      (connection) =>
-        connection.sourceNode === sourceNode &&
-        connection.sourcePort === nextSourcePort &&
-        connection.destinationNode === destinationNode &&
-        connection.destinationPort === nextDestinationPort,
-    );
-    if (duplicate) {
-      continue;
-    }
-    patch.connections.push({
-      sourceNode,
-      sourcePort: nextSourcePort,
-      destinationNode,
-      destinationPort: nextDestinationPort,
-      ...wireData,
-    });
-    added += 1;
+  const duplicate = patch.connections.some(
+    (connection) =>
+      connection.sourceNode === sourceNode &&
+      connection.sourcePort === nextSourcePort &&
+      connection.destinationNode === destinationNode &&
+      connection.destinationPort === nextDestinationPort,
+  );
+  if (duplicate) {
+    return 0;
   }
-  return added;
+  patch.connections.push({
+    sourceNode,
+    sourcePort: nextSourcePort,
+    destinationNode,
+    destinationPort: nextDestinationPort,
+    ...wireData,
+  });
+  return 1;
 }
 
 function connectNodeGraphPorts(sourceNode, sourcePort, destinationNode, destinationPort, options = {}) {

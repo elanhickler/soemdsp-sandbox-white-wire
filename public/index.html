@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>soemdsp-sandbox</title>
-  <link rel="stylesheet" href="./public/styles.css?v=zero-d-burn-trace-params-1">
+  <link rel="stylesheet" href="./public/styles.css?v=0028">
 </head>
 <body class="debug-collapsed node-boot-loading">
   <div class="node-boot-loading-screen" role="status" aria-live="polite" aria-label="loading">
@@ -105,17 +105,10 @@
             id="nodeUserUiSettingsButton"
             type="button"
             aria-pressed="false"><span>UI</span><span>Settings</span></button>
-          <span class="node-modular-view-button-group" role="group" aria-label="Modular view mode">
-            <button
-              id="nodeModularViewButton"
-              class="active"
-              type="button"
-              aria-pressed="true"><span>Workspace</span><span>View</span></button>
-            <button
-              id="nodeModularOnlyViewButton"
-              type="button"
-              aria-pressed="false"><span>Modular</span><span>View</span></button>
-          </span>
+          <button
+            id="nodeModularOnlyViewButton"
+            type="button"
+            aria-pressed="false"><span>Modular</span><span>View</span></button>
           <button
             id="nodeModuleShopButton"
             type="button"
@@ -174,6 +167,14 @@
             data-support-amount="50"
             hidden
             aria-label="Download for fifty dollars. Donation refund available."><span>Download$50</span><span class="node-toolbar-subline">(donation refund available)</span></a>
+          <span
+            id="nodeBuildNumberReadout"
+            class="node-build-number-readout"
+            aria-label="Build number 0031"
+            title="Build number 0031">
+            <span>B</span>
+            <span data-build-number-value>0031</span>
+          </span>
           <button id="nodeVisibilityMenuButton" type="button" aria-pressed="false" aria-haspopup="menu">Visibility</button>
         </div>
         <div
@@ -2935,7 +2936,7 @@
   <script src="./public/node-graph-default-buttons.js?v=patch-save-refresh-1"></script>
   <script src="./public/node-graph-cookbook-filter.js?v=filter-curve-zero-cutoffs-1780822200000"></script>
   <script src="./public/node-graph-color-standards.js?v=color-standards-1"></script>
-  <script src="./public/node-graph-module-definitions.js?v=soft-clipper-1"></script>
+  <script src="./public/node-graph-module-definitions.js?v=0023"></script>
   <script src="./public/node-graph-module-store.js?v=soft-clipper-1"></script>
   <script src="./public/node-graph-module-sizing.js?v=oscilloscope-default-display-height-1"></script>
   <script src="./public/node-graph-metadata-kinds.js?v=slider-unit-color-1780307400000"></script>
@@ -2959,9 +2960,9 @@
   <script src="./public/node-graph-settings-text-fit.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-default-preset.js?v=default-visible-nodes-1"></script>
   <script src="./public/node-graph-script-status.js?v=slider-unit-color-1780307400000"></script>
-  <script src="./public/node-graph-view-controls.js?v=display-point-budget-1"></script>
-  <script src="./public/node-graph-workspace-geometry.js?v=center-origin-view-1"></script>
-  <script src="./public/node-graph-workspace-zoom.js?v=center-origin-view-1"></script>
+  <script src="./public/node-graph-view-controls.js?v=remove-workspace-view-0002"></script>
+  <script src="./public/node-graph-workspace-geometry.js?v=0020"></script>
+  <script src="./public/node-graph-workspace-zoom.js?v=0019"></script>
   <script src="./public/node-graph-workspace-view.js?v=center-origin-view-1"></script>
   <script src="./public/node-graph-camera-view.js?v=utility-camera-feed-1780810000000"></script>
   <script src="./public/node-graph-clap-host.js?v=clap-under-construction-2"></script>
@@ -2970,15 +2971,15 @@
   <script src="./public/node-graph-context-menu.js?v=shared-inspector-stable-height-1"></script>
   <script src="./public/node-graph-module-actions.js?v=module-settings-enable-1"></script>
   <script src="./public/node-graph-code-screen.js?v=canvas-ratio-language-2"></script>
-  <script src="./public/node-graph-module-scopes.js?v=scope2d-path-builder-1"></script>
+  <script src="./public/node-graph-module-scopes.js?v=0031"></script>
   <script src="./public/node-graph-shader-script.js?v=old-display-settings-inaccessible-1"></script>
   <script src="./public/node-graph-canvas-script.js?v=floating-window-drag-area-1"></script>
   <script src="./public/node-graph-module-factories.js?v=hidden-io-proxy-1"></script>
-  <script src="./public/node-graph-module-header-rendering.js?v=hide-point-budget-widget-1"></script>
-  <script src="./public/node-graph-module-rendering.js?v=display-button-alt-toggle-1"></script>
+  <script src="./public/node-graph-module-header-rendering.js?v=0025"></script>
+  <script src="./public/node-graph-module-rendering.js?v=0025"></script>
   <script src="./public/node-graph-history.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-visual-utils.js?v=text-light-registry-1780800000000"></script>
-  <script src="./public/node-graph-patch-clone.js?v=zero-d-burn-isolated-1"></script>
+  <script src="./public/node-graph-patch-clone.js?v=typed-display-settings-clone-1"></script>
   <script src="./public/node-graph-slider-metadata.js?v=numeric-text-sanitize-1"></script>
   <script src="./public/node-graph-slider-values.js?v=numeric-drag-policy-2"></script>
   <script src="./public/node-graph-slider-dragging.js?v=numeric-drag-policy-1"></script>
@@ -2998,21 +2999,21 @@
   <script src="./public/node-graph-execution-wires.js?v=external-graph-inputs-1780816800000"></script>
   <script src="./public/node-graph-execution-plan.js?v=soft-clipper-1"></script>
   <script src="./public/node-graph-execution-summary.js?v=slider-unit-color-1780307400000"></script>
-  <script src="./public/node-graph-wire-actions.js?v=exact-port-autopair-1"></script>
+  <script src="./public/node-graph-wire-actions.js?v=0022"></script>
   <script src="./public/node-graph-trace-router.js?v=no-self-burst-1780321400000"></script>
   <script src="./public/node-graph-wire-rendering.js?v=wire-port-measured-zoom-1"></script>
   <script src="./public/node-graph-render-output.js?v=output-one-trip-1"></script>
   <script src="./public/node-graph-debug-copy.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-execution-debug-api.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-execution-debug-view.js?v=slider-unit-color-1780307400000"></script>
-  <script src="./public/node-graph-tooltips.js?v=space-output-hotkey-1"></script>
-  <script src="./public/node-graph-interaction-help.js?v=no-selection-tooltip-1"></script>
+  <script src="./public/node-graph-tooltips.js?v=0025"></script>
+  <script src="./public/node-graph-interaction-help.js?v=0025"></script>
   <script src="./public/presets/useruisettings.js?v=reset-startup-clean-2"></script>
   <script src="./public/node-graph-ui-settings-definitions.js?v=floating-window-header-height-1"></script>
   <script src="./public/node-graph-ui-settings-utils.js?v=slider-unit-color-1780307400000"></script>
   <script src="./public/node-graph-user-ui-settings-controls.js?v=ui-settings-flat-scroll-1"></script>
   <script src="./public/node-graph-ui-settings-panels.js?v=floating-window-attention-1"></script>
-  <script src="./public/node-graph-ui-settings-persistence.js?v=display-point-budget-1"></script>
+  <script src="./public/node-graph-ui-settings-persistence.js?v=0019"></script>
   <script src="./public/node-graph-ui-settings-sync.js?v=floating-window-header-height-1"></script>
   <script src="./public/node-graph-keyboard-shortcuts.js?v=shift-a-module-browser-1"></script>
   <script src="./public/node-graph-live-status-text.js?v=sample-rate-oversampling-1780468200000"></script>
@@ -3024,20 +3025,20 @@
   <script src="./public/node-graph-default-patch.js?v=content-height-only-1"></script>
   <script src="./public/node-graph-state.js?v=numeric-drag-policy-1"></script>
   <script src="./public/node-graph-external-ui-events.js?v=button-events-1"></script>
-  <script src="./public/node-graph-patch-core.js?v=control-surface-visibility-1"></script>
+  <script src="./public/node-graph-patch-core.js?v=0025"></script>
   <script src="./public/node-graph-live-plan-runtime.js?v=polyblep-runtime-contract-1"></script>
   <script src="./public/node-graph-live-parameter-runtime.js?v=unbounded-speed-1"></script>
-  <script src="./public/node-graph-oscillator-runtime.js?v=ellipsoid-audio-1"></script>
+  <script src="./public/node-graph-oscillator-runtime.js?v=0023"></script>
   <script src="./public/node-graph-gpu-additive-backend.js?v=external-graph-inputs-1780816800000"></script>
   <script src="./public/node-graph-jerobeam-spiral.js?v=node-graph-jerobeam-spiral-refactor-1780371000000"></script>
   <script src="./public/node-graph-lorenz-attractor.js?v=lorenz-unbounded-speed-1"></script>
   <script src="./public/node-graph-live-frame-evaluator.js?v=soft-clipper-1"></script>
-  <script src="./public/node-graph-live-runtime.js?v=scope-visual-buffer-post-1"></script>
+  <script src="./public/node-graph-live-runtime.js?v=0023"></script>
   <script src="./public/node-graph-wire-controller-bootstrap.js?v=external-graph-inputs-1780816800000"></script>
   <script src="./public/node-graph-workspace-event-bindings.js?v=xy-origin-recenter-1"></script>
   <script src="./public/node-graph-render-live-event-bindings.js?v=beta-polish-1"></script>
-  <script src="./public/node-graph-header-event-bindings.js?v=local-burn-decay-1"></script>
-  <script src="./public/node-graph-help-event-bindings.js?v=node-graph-help-event-bindings-refactor-1780369200000"></script>
+  <script src="./public/node-graph-header-event-bindings.js?v=remove-workspace-view-0002"></script>
+  <script src="./public/node-graph-help-event-bindings.js?v=remove-workspace-view-0002"></script>
   <script src="./public/node-graph-scene-menu-event-bindings.js?v=module-settings-enable-1"></script>
   <script src="./public/node-graph-uidev-event-bindings.js?v=origin-marker-uidev-1"></script>
   <script src="./public/node-graph-settings-event-bindings.js?v=metadata-popover-bind-1"></script>

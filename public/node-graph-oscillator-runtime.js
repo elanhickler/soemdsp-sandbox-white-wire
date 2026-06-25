@@ -156,9 +156,11 @@ function nodeGraphEllipsoidVectorSample(phase, params = {}) {
   const y = nodeGraphEllipsoidSample(phase - Math.PI * 0.5, params.offsetY, params.shapeY, params.scaleY) * level;
   return {
     Out: x,
+    Mono: x,
+    Wave: x,
+    "Wave Out": x,
     X: x,
     Y: y,
-    "Wave Out": x,
   };
 }
 

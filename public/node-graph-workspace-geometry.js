@@ -40,6 +40,27 @@ function applyNodeGraphWorkspaceView() {
   if (typeof syncNodeGraphWorkspaceResizeHandlePosition === "function") {
     syncNodeGraphWorkspaceResizeHandlePosition();
   }
+  if (typeof applyNodeGraphPan === "function") {
+    applyNodeGraphPan();
+  }
+  scheduleNodeGraphWorkspaceOriginSync();
+}
+
+function scheduleNodeGraphWorkspaceOriginSync() {
+  if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
+    return;
+  }
+  if (nodeGraphMvp.workspaceOriginSyncFrame) {
+    window.cancelAnimationFrame(nodeGraphMvp.workspaceOriginSyncFrame);
+  }
+  nodeGraphMvp.workspaceOriginSyncFrame = window.requestAnimationFrame(() => {
+    nodeGraphMvp.workspaceOriginSyncFrame = window.requestAnimationFrame(() => {
+      nodeGraphMvp.workspaceOriginSyncFrame = 0;
+      if (typeof applyNodeGraphPan === "function") {
+        applyNodeGraphPan();
+      }
+    });
+  });
 }
 
 function nodeGraphZoom() {

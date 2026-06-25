@@ -171,6 +171,7 @@ function validateNodeGraphPatch(patch) {
     if (type === "screenSpaceShader") {
       normalizedNode.screenSpaceShader = normalizeNodeGraphScreenSpaceShader(node.screenSpaceShader);
     }
+    Object.assign(normalizedNode, cloneNodeGraphTypedDisplaySettings(node));
     if (Object.hasOwn(node, "scopeShader")) {
       normalizedNode.scopeShader = normalizeNodeGraphScopeShader(node.scopeShader);
     }
@@ -498,6 +499,10 @@ function applyNodeGraphPatchToDom() {
     if (displayButton) {
       displayButton.setAttribute("aria-pressed", patchNodeUi.oscilloscopeHidden ? "false" : "true");
     }
+    const metaparameterButton = element.querySelector(".node-metaparameter-button");
+    if (metaparameterButton) {
+      metaparameterButton.setAttribute("aria-pressed", patchNodeUi.slidersHidden ? "false" : "true");
+    }
     const bypassed = nodeGraphNodeDisplaysBypassed(patchNode.id);
     element.classList.toggle("bypassed", bypassed);
     const bypassButton = element.querySelector(".node-bypass-button");
@@ -567,8 +572,8 @@ function applyNodeGraphPatchToDom() {
 
 function commitNodeGraphPatch(patch, options = {}) {
   nodeGraphMvp.patch = cloneNodeGraphPatch(validateNodeGraphPatch(patch));
-  if (typeof syncNodeGraphZoomFromPatchView === "function") {
-    syncNodeGraphZoomFromPatchView(nodeGraphMvp.patch);
+  if (typeof preserveNodeGraphEditorZoomOnPatch === "function") {
+    preserveNodeGraphEditorZoomOnPatch(nodeGraphMvp.patch);
   }
   syncNodeGraphRuntimeFromPatch();
   applyNodeGraphPatchToDom();

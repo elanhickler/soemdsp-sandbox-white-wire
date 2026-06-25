@@ -355,6 +355,15 @@ function createNodeGraphModuleHeader(type, node, definition) {
   nodeGraphApplyTooltip(actionButton, "module.actionsTitle", {}, { title: false });
   actionButton.textContent = "\u2699\uFE0F";
   actionRow.append(actionButton);
+  const metaparameterButton = document.createElement("button");
+  metaparameterButton.className = "node-metaparameter-button";
+  metaparameterButton.type = "button";
+  metaparameterButton.dataset.node = node;
+  metaparameterButton.setAttribute("aria-label", `${nodeGraphNodeLabels[type]} metaparameters`);
+  metaparameterButton.setAttribute("aria-pressed", "true");
+  nodeGraphApplyTooltip(metaparameterButton, "module.metaparameters", {}, { title: false });
+  metaparameterButton.textContent = "\u{1F39B}\uFE0F";
+  actionRow.append(metaparameterButton);
   const orderBadge = document.createElement("span");
   orderBadge.className = "node-execution-order-badge";
   orderBadge.dataset.executionState = "inactive";

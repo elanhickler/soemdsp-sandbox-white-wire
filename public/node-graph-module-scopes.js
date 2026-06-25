@@ -1138,7 +1138,8 @@ function nodeGraphDefaultModuleScopeMonitors(patch = nodeGraphMvp?.patch) {
 }
 
 function nodeGraphOscillatorSelectedOutputPort(node) {
-  return "Wave Out";
+  const outputs = nodeGraphPatchNodeOutputPorts(node);
+  return outputs.includes("Wave Out") ? "Wave Out" : outputs[0] || "Out";
 }
 
 function nodeGraphModuleScopeCaptureMonitors(patch = nodeGraphMvp?.patch) {
@@ -1478,10 +1479,16 @@ function finishNodeGraphRenderedScopeCapture(capture) {
 }
 
 function nodeGraphLiveModuleScopeFrameCapacity(options = {}) {
+  const sampleRate = Math.max(1, Number(nodeGraphModuleScopeState.sampleRate) || Number(nodeGraphMvp?.sampleRate) || 44100);
+  const fps = typeof normalizeNodeGraphModuleScopeFramesPerSecond === "function"
+    ? normalizeNodeGraphModuleScopeFramesPerSecond(nodeGraphMvp?.moduleScopeFramesPerSecond ?? 60)
+    : 60;
+  const visualFrameWindow = fps > 0 ? Math.ceil(sampleRate / Math.max(1, fps)) : 0;
   return Math.max(
     32,
     Math.floor(Number(options.frames) || 0),
     nodeGraphModuleScopeState.liveFrameCapacity,
+    visualFrameWindow,
   );
 }
 
@@ -2446,7 +2453,7 @@ function nodeGraphModuleScopeCapturedBufferForSlot(slot) {
   if (!nodeId) {
     return null;
   }
-  if (slot?.type === "scope2d") {
+  if (nodeGraphModuleDisplayTypeForSlot(slot) === "scope2d") {
     return nodeGraphModuleScopeCapturedScope2dBuffer(slot);
   }
   if (["traceDisplay", "dotOscilloscope", "valueOscilloscope", "lineBurnOscilloscope"].includes(slot?.type)) {
@@ -3462,7 +3469,7 @@ function nodeGraphModuleScopeDisplayBuffer(slot, capturedBuffer = null) {
       capturedBuffer ||
       nodeGraphModuleScopeOfflineVisualOscilloscopeBuffer(slot);
   } else if (nodeGraphModuleDisplayTypeForSlot(slot) === "scope2d") {
-    buffer = capturedBuffer;
+    buffer = nodeGraphModuleScopeCapturedScope2dBuffer(slot) || capturedBuffer;
   } else if (slot?.type === "valueOscilloscope") {
     buffer = capturedBuffer;
   } else if (slot?.type === "clock") {
@@ -3596,10 +3603,8 @@ const nodeGraphTraceDisplayActiveControlsByType = Object.freeze({
       "burn",
       "decay",
       "dot1Size",
-      "lineThickness",
       "dot1Brightness",
       "dot2Size",
-      "dot2LineThickness",
       "dot2Brightness",
     ]),
     colors: Object.freeze(["dot1Color", "dot2Color"]),
@@ -3614,6 +3619,59 @@ function nodeGraphTraceDisplayActiveControlsForType(type = nodeGraphTraceDisplay
 
 function nodeGraphTraceDisplayActiveControlSet(kind, type = nodeGraphTraceDisplaySettingsFormType()) {
   return new Set(nodeGraphTraceDisplayActiveControlsForType(type)[kind] || []);
+}
+
+const nodeGraphTraceDisplaySectionControls = Object.freeze({
+  caps: Object.freeze({
+    fields: Object.freeze(["capSize", "capLength"]),
+    colors: Object.freeze([]),
+    toggles: Object.freeze(["capEnabled"]),
+    choices: Object.freeze([]),
+  }),
+  dot1: Object.freeze({
+    fields: Object.freeze(["dot1Size", "lineThickness", "dot1Brightness"]),
+    colors: Object.freeze(["dot1Color"]),
+    toggles: Object.freeze(["bipolarBrightness", "dot1Enabled"]),
+    choices: Object.freeze([]),
+  }),
+  dot2: Object.freeze({
+    fields: Object.freeze(["dot2Size", "dot2LineThickness", "dot2Brightness"]),
+    colors: Object.freeze(["dot2Color"]),
+    toggles: Object.freeze(["dot2Enabled"]),
+    choices: Object.freeze([]),
+  }),
+  trace: Object.freeze({
+    fields: Object.freeze(["burn", "decay", "zoomSeconds", "padding", "skipSamples"]),
+    colors: Object.freeze([]),
+    toggles: Object.freeze(["sourceSync"]),
+    choices: Object.freeze(["lineBurnMode"]),
+  }),
+  value: Object.freeze({
+    fields: Object.freeze(["lineLength"]),
+    colors: Object.freeze([]),
+    toggles: Object.freeze([]),
+    choices: Object.freeze([]),
+  }),
+});
+
+function nodeGraphTraceDisplaySectionHasActiveControls(section, type = nodeGraphTraceDisplaySettingsFormType()) {
+  const sectionControls = nodeGraphTraceDisplaySectionControls[section];
+  if (!sectionControls) {
+    return false;
+  }
+  return ["fields", "colors", "toggles", "choices"].some((kind) => {
+    const activeSet = nodeGraphTraceDisplayActiveControlSet(kind, type);
+    return (sectionControls[kind] || []).some((key) => activeSet.has(key));
+  });
+}
+
+function setNodeGraphTraceDisplaySectionVisible(popover, section, visible) {
+  if (!popover) {
+    return;
+  }
+  for (const element of popover.querySelectorAll(`.node-trace-display-${section}-title, .node-trace-display-${section}-section`)) {
+    element.hidden = !visible;
+  }
 }
 
 function formatNodeGraphTraceDisplaySetting(value) {
@@ -3646,6 +3704,7 @@ function nodeGraphTraceDisplaySettingsElement() {
       <div class="scene-context-title">
         <span id="nodeTraceDisplaySettingsTitle">Display</span>
         <small id="nodeTraceDisplaySettingsSubtitle">Settings</small>
+        <small id="nodeTraceDisplaySettingsTarget">No module</small>
       </div>
       <button
         id="nodeTraceDisplaySettingsClose"
@@ -3667,7 +3726,7 @@ function nodeGraphTraceDisplaySettingsElement() {
       </div>
       <div class="metadata-section-title node-trace-display-trace-title">Trace</div>
       <div class="metadata-field-section node-trace-display-trace-section">
-        <label class="node-trace-display-line-burn-mode-row">
+        <label class="node-trace-display-line-burn-mode-row" data-trace-display-choice-row="lineBurnMode">
           <span>Mode</span>
           <select id="nodeTraceDisplayLineBurnMode" data-trace-display-choice="lineBurnMode">
             <option value="sweep">Sweep</option>
@@ -3726,15 +3785,18 @@ function nodeGraphTraceDisplaySettingsElement() {
           </span>
         </label>
       </div>
-      <div class="metadata-section-title node-trace-display-dot1-title">Dot 1</div>
+      <div class="metadata-section-title node-trace-display-dot1-title">
+        <span>Dot 1</span>
+        <input
+          id="nodeTraceDisplayDot1Enabled"
+          type="checkbox"
+          aria-label="Dot 1 on"
+          data-trace-display-toggle="dot1Enabled">
+      </div>
       <div class="metadata-field-section node-trace-display-dot1-section">
         <label class="metadata-checkbox-label node-trace-display-bipolar-brightness-row">
           <input id="nodeTraceDisplayBipolarBrightness" type="checkbox" data-trace-display-toggle="bipolarBrightness">
           Bipolar
-        </label>
-        <label class="metadata-checkbox-label node-trace-display-dot-toggle-row">
-          <input id="nodeTraceDisplayDot1Enabled" type="checkbox" data-trace-display-toggle="dot1Enabled">
-          Dot 1 on
         </label>
         <label>
           <span>Size</span>
@@ -3762,12 +3824,15 @@ function nodeGraphTraceDisplaySettingsElement() {
         </label>
         <label><input id="nodeTraceDisplayColor" type="color" data-trace-display-color="dot1Color" aria-label="Dot 1 color"></label>
       </div>
-      <div class="metadata-section-title node-trace-display-dot2-title">Dot 2</div>
+      <div class="metadata-section-title node-trace-display-dot2-title">
+        <span>Dot 2</span>
+        <input
+          id="nodeTraceDisplayDot2Enabled"
+          type="checkbox"
+          aria-label="Dot 2 on"
+          data-trace-display-toggle="dot2Enabled">
+      </div>
       <div class="metadata-field-section node-trace-display-dot2-section">
-        <label class="metadata-checkbox-label node-trace-display-dot-toggle-row">
-          <input id="nodeTraceDisplayDot2Enabled" type="checkbox" data-trace-display-toggle="dot2Enabled">
-          Dot 2 on
-        </label>
         <label>
           <span>Size</span>
           <span class="metadata-stepper-control">
@@ -3887,6 +3952,31 @@ function applyNodeGraphTraceDisplaySettingsTooltips(popover) {
   }
 }
 
+function setNodeGraphTraceDisplaySettingsHeader(title = "Display", subtitle = "Settings", target = "") {
+  const titleElement = document.getElementById("nodeTraceDisplaySettingsTitle");
+  const subtitleElement = document.getElementById("nodeTraceDisplaySettingsSubtitle");
+  const targetElement = document.getElementById("nodeTraceDisplaySettingsTarget");
+  if (titleElement) {
+    titleElement.textContent = title;
+  }
+  if (subtitleElement) {
+    subtitleElement.textContent = subtitle;
+  }
+  if (targetElement) {
+    targetElement.textContent = target || "";
+    targetElement.hidden = !target;
+  }
+}
+
+function nodeGraphTraceDisplaySettingsTargetLabel(node) {
+  if (!node) {
+    return "";
+  }
+  return typeof nodeGraphPatchNodeTitle === "function"
+    ? nodeGraphPatchNodeTitle(node)
+    : (nodeGraphNodeLabels?.[node.type] || "Module");
+}
+
 function setNodeGraphTraceDisplaySettingsFormType(node = null) {
   const popover = document.getElementById("nodeTraceDisplaySettingsPopover");
   if (!popover) {
@@ -3897,13 +3987,14 @@ function setNodeGraphTraceDisplaySettingsFormType(node = null) {
     : "";
   const formType = displayType || "trace";
   popover.dataset.displaySettingsType = formType;
+  popover.dataset.displaySettingsTargetNode = node?.id ? String(node.id) : "";
   const activeFields = nodeGraphTraceDisplayActiveControlSet("fields", formType);
   const activeColors = nodeGraphTraceDisplayActiveControlSet("colors", formType);
   const activeToggles = nodeGraphTraceDisplayActiveControlSet("toggles", formType);
   const activeChoices = nodeGraphTraceDisplayActiveControlSet("choices", formType);
   const setControlHidden = (selector, hidden) => {
     for (const element of popover.querySelectorAll(selector)) {
-      const row = element.closest("label") || element;
+      const row = element.closest("[data-trace-display-control-row], label") || element;
       row.hidden = hidden;
     }
   };
@@ -3920,12 +4011,13 @@ function setNodeGraphTraceDisplaySettingsFormType(node = null) {
     setControlHidden(`[data-trace-display-toggle="${toggle}"]`, !activeToggles.has(toggle));
   }
   for (const choice of nodeGraphTraceDisplaySettingControlKeys.choices) {
-    setControlHidden(`[data-trace-display-choice="${choice}"]`, !activeChoices.has(choice));
+    setControlHidden(
+      `[data-trace-display-choice="${choice}"], [data-trace-display-choice-row="${choice}"]`,
+      !activeChoices.has(choice),
+    );
   }
-  const traceSectionVisible = formType === "trace" || formType === "lineBurn" || formType === "value" || formType === "scope2d";
-  for (const element of popover.querySelectorAll(".node-trace-display-trace-title, .node-trace-display-trace-section")) {
-    element.hidden = !traceSectionVisible;
-  }
+  const traceSectionVisible = nodeGraphTraceDisplaySectionHasActiveControls("trace", formType);
+  setNodeGraphTraceDisplaySectionVisible(popover, "trace", traceSectionVisible);
   const traceTitle = popover.querySelector(".node-trace-display-trace-title");
   if (traceTitle) {
     traceTitle.textContent = formType === "value"
@@ -3936,17 +4028,22 @@ function setNodeGraphTraceDisplaySettingsFormType(node = null) {
           ? "2D"
           : "Trace";
   }
-  const valueSectionVisible = formType === "value";
-  for (const element of popover.querySelectorAll(".node-trace-display-value-title, .node-trace-display-value-section")) {
-    element.hidden = !valueSectionVisible;
-  }
-  for (const element of popover.querySelectorAll(".node-trace-display-caps-title, .node-trace-display-caps-section")) {
-    element.hidden = !valueSectionVisible;
-  }
+  setNodeGraphTraceDisplaySectionVisible(popover, "value", nodeGraphTraceDisplaySectionHasActiveControls("value", formType));
+  setNodeGraphTraceDisplaySectionVisible(popover, "dot1", nodeGraphTraceDisplaySectionHasActiveControls("dot1", formType));
+  setNodeGraphTraceDisplaySectionVisible(popover, "dot2", nodeGraphTraceDisplaySectionHasActiveControls("dot2", formType));
+  setNodeGraphTraceDisplaySectionVisible(popover, "caps", nodeGraphTraceDisplaySectionHasActiveControls("caps", formType));
 }
 
 function nodeGraphTraceDisplaySettingsFormType() {
   return document.getElementById("nodeTraceDisplaySettingsPopover")?.dataset.displaySettingsType || "";
+}
+
+function nodeGraphTraceDisplaySettingsTargetNodeId() {
+  return String(
+    nodeGraphMvp.traceDisplaySettingsTargetNode ||
+    document.getElementById("nodeTraceDisplaySettingsPopover")?.dataset.displaySettingsTargetNode ||
+    "",
+  );
 }
 
 function nodeGraphDisplaySettingsDefaultsForFormType(type = nodeGraphTraceDisplaySettingsFormType()) {
@@ -4372,13 +4469,94 @@ function stepNodeGraphTraceDisplaySetting(event) {
   updateNodeGraphTraceDisplaySettingsDraft();
 }
 
+function toggleNodeGraphTraceDisplaySettingRow(event) {
+  const toggleRow = event.target.closest("label, .metadata-section-title");
+  const input = toggleRow?.querySelector?.("[data-trace-display-toggle]");
+  if (!input || input.disabled) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  input.checked = !input.checked;
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+  updateNodeGraphTraceDisplaySettingsDraft();
+}
+
+function suppressNodeGraphTraceDisplaySettingRowClick(event) {
+  const toggleRow = event.target.closest("label, .metadata-section-title");
+  const input = toggleRow?.querySelector?.("[data-trace-display-toggle]");
+  if (!input || input.disabled) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+}
+
 function updateNodeGraphTraceDisplaySettingsDraft() {
   nodeGraphMvp.traceDisplaySettingsDraft = readNodeGraphTraceDisplaySettingsForm();
   setNodeGraphTraceDisplaySettingsDirty(true);
   scheduleNodeGraphModuleScopeDraw();
 }
 
-function saveNodeGraphTraceDisplaySettings() {
+function assignNodeGraphTypedDisplaySettingsToNode(node, displayType, settings) {
+  if (!node) {
+    return null;
+  }
+  if (displayType === "dot") {
+    node.zeroDBurnSettings = normalizeNodeGraphZeroDBurnSettings(settings);
+    return node.zeroDBurnSettings;
+  }
+  if (displayType === "lineBurn") {
+    node.traceDisplaySettings = normalizeNodeGraphLineBurnSettings(settings);
+    return node.traceDisplaySettings;
+  }
+  if (displayType === "value") {
+    node.traceDisplaySettings = normalizeNodeGraphValueOscilloscopeSettings(settings);
+    return node.traceDisplaySettings;
+  }
+  if (displayType === "scope2d") {
+    node.traceDisplaySettings = normalizeNodeGraphScope2dSettings(settings);
+    return node.traceDisplaySettings;
+  }
+  node.traceDisplaySettings = normalizeNodeGraphTraceDisplaySettings(settings);
+  return node.traceDisplaySettings;
+}
+
+async function persistNodeGraphDisplaySettingsWorkingPatch(node, displayType, settings) {
+  if (!node || typeof serializeNodeUiDevSettings !== "function") {
+    return false;
+  }
+  const patchNode = nodeGraphMvp.patch?.nodes?.find((candidate) => candidate.id === node.id);
+  if (patchNode && patchNode !== node) {
+    assignNodeGraphTypedDisplaySettingsToNode(patchNode, displayType, settings);
+  }
+  if (typeof cloneNodeGraphPatch === "function") {
+    nodeGraphMvp.workingPatch = cloneNodeGraphPatch(nodeGraphMvp.patch);
+    const workingNode = nodeGraphMvp.workingPatch?.nodes?.find((candidate) => candidate.id === node.id);
+    assignNodeGraphTypedDisplaySettingsToNode(workingNode, displayType, settings);
+  }
+  const text = serializeNodeUiDevSettings();
+  const localSaved = typeof saveNodeUiDevLocalDefaultSettings === "function"
+    ? saveNodeUiDevLocalDefaultSettings(text)
+    : false;
+  let fileSaved = false;
+  if (typeof postNodeUiDevSettingsPreset === "function") {
+    try {
+      await postNodeUiDevSettingsPreset(text);
+      fileSaved = true;
+    } catch {
+      fileSaved = false;
+    }
+  }
+  return Boolean(localSaved || fileSaved);
+}
+
+async function saveNodeGraphTraceDisplaySettings() {
+  const savePopover = document.getElementById("nodeTraceDisplaySettingsPopover");
+  savePopover?.setAttribute("data-last-save-attempt", String(Date.now()));
+  nodeGraphMvp.traceDisplaySettingsDraft = readNodeGraphTraceDisplaySettingsForm();
+  savePopover?.setAttribute("data-last-save-draft-dot2", String(nodeGraphMvp.traceDisplaySettingsDraft?.dot2Enabled));
   if (nodeGraphTraceDisplaySettingsEditingTraceDefaults()) {
     nodeGraphMvp.traceSettings = normalizeNodeGraphTraceDisplaySettings(nodeGraphMvp.traceDisplaySettingsDraft);
     setNodeGraphTraceDisplaySettingsDirty(false);
@@ -4388,36 +4566,33 @@ function saveNodeGraphTraceDisplaySettings() {
     scheduleNodeGraphModuleScopeDraw();
     return;
   }
-  const node = nodeGraphPatchNode(nodeGraphMvp.traceDisplaySettingsTargetNode);
+  const node = nodeGraphPatchNode(nodeGraphTraceDisplaySettingsTargetNodeId());
   if (!nodeGraphNodeCanOpenDisplaySettings(node)) {
     return;
   }
   const displayType = nodeGraphModuleDisplayTypeForType(node.type);
-  if (displayType === "dot") {
-    node.zeroDBurnSettings = normalizeNodeGraphZeroDBurnSettings(nodeGraphMvp.traceDisplaySettingsDraft);
-  } else if (displayType === "lineBurn") {
-    node.traceDisplaySettings = normalizeNodeGraphLineBurnSettings(nodeGraphMvp.traceDisplaySettingsDraft);
-  } else if (displayType === "value") {
-    node.traceDisplaySettings = normalizeNodeGraphValueOscilloscopeSettings(nodeGraphMvp.traceDisplaySettingsDraft);
-  } else if (displayType === "scope2d") {
-    node.traceDisplaySettings = normalizeNodeGraphScope2dSettings(nodeGraphMvp.traceDisplaySettingsDraft);
-  } else {
-    node.traceDisplaySettings = normalizeNodeGraphTraceDisplaySettings(nodeGraphMvp.traceDisplaySettingsDraft);
-  }
-  setNodeGraphTraceDisplaySettingsDirty(false);
+  const savedSettings = assignNodeGraphTypedDisplaySettingsToNode(node, displayType, nodeGraphMvp.traceDisplaySettingsDraft);
+  savePopover?.setAttribute("data-last-save-settings-dot2", String(savedSettings?.dot2Enabled));
   markNodeGraphRenderPending("trace display settings saved");
   if (typeof renderNodeGraphExecutionPlanDebug === "function") {
     renderNodeGraphExecutionPlanDebug();
   }
-  if (typeof setNodeGraphPatchDirtyState === "function") {
-    setNodeGraphPatchDirtyState("edited");
-  } else if (typeof saveNodeGraphWorkingPatchToUserSettings === "function") {
-    nodeGraphMvp.patchDirtyState = "edited";
-    saveNodeGraphWorkingPatchToUserSettings();
+  nodeGraphMvp.patchDirtyState = "edited";
+  if (typeof syncNodeGraphCurrentSavedPatchHeader === "function") {
+    syncNodeGraphCurrentSavedPatchHeader();
+  }
+  const persisted = await persistNodeGraphDisplaySettingsWorkingPatch(node, displayType, savedSettings);
+  savePopover?.setAttribute("data-last-save-persisted", String(persisted));
+  if (persisted) {
+    setNodeGraphTraceDisplaySettingsDirty(false);
   }
   if (typeof renderNodeGraphHistoryControls === "function") {
     renderNodeGraphHistoryControls();
   }
+}
+
+if (typeof window !== "undefined") {
+  window.saveNodeGraphTraceDisplaySettings = saveNodeGraphTraceDisplaySettings;
 }
 
 function restoreNodeGraphTraceDisplaySettings() {
@@ -4563,16 +4738,14 @@ function restoreNodeGraphTraceDisplaySettingsWindowFromState(state = {}) {
   if (nodeId === "__globalTraceSettings") {
     nodeGraphMvp.traceDisplaySettingsTargetNode = "__globalTraceSettings";
     nodeGraphMvp.traceDisplaySettingsDraft = nodeGraphGlobalTraceSettings();
-    document.getElementById("nodeTraceDisplaySettingsTitle").textContent = "Trace";
-    document.getElementById("nodeTraceDisplaySettingsSubtitle").textContent = "Settings";
+    setNodeGraphTraceDisplaySettingsHeader("Trace", "Settings", "Global");
     setNodeGraphTraceDisplaySettingsFormType(null);
     writeNodeGraphTraceDisplaySettingsForm(nodeGraphMvp.traceDisplaySettingsDraft);
     setNodeGraphTraceDisplaySettingsDirty(false);
     return;
   }
   if (!nodeGraphNodeCanOpenDisplaySettings(node)) {
-    document.getElementById("nodeTraceDisplaySettingsTitle").textContent = "Display";
-    document.getElementById("nodeTraceDisplaySettingsSubtitle").textContent = "Settings";
+    setNodeGraphTraceDisplaySettingsHeader("Display", "Settings", "No module");
     nodeGraphMvp.traceDisplaySettingsTargetNode = null;
     nodeGraphMvp.traceDisplaySettingsDraft = normalizeNodeGraphTraceDisplaySettings();
     setNodeGraphTraceDisplaySettingsFormType(null);
@@ -4591,8 +4764,7 @@ function restoreNodeGraphTraceDisplaySettingsWindowFromState(state = {}) {
         : displayType === "scope2d"
           ? normalizeNodeGraphScope2dSettings(node.traceDisplaySettings)
           : nodeGraphGlobalTraceSettings();
-  document.getElementById("nodeTraceDisplaySettingsTitle").textContent = "Display";
-  document.getElementById("nodeTraceDisplaySettingsSubtitle").textContent = "Settings";
+  setNodeGraphTraceDisplaySettingsHeader("Display", "Settings", nodeGraphTraceDisplaySettingsTargetLabel(node));
   setNodeGraphTraceDisplaySettingsFormType(node);
   writeNodeGraphTraceDisplaySettingsForm(nodeGraphMvp.traceDisplaySettingsDraft);
   setNodeGraphTraceDisplaySettingsDirty(false);
@@ -4626,8 +4798,7 @@ function openNodeGraphGlobalTraceSettings(event = {}) {
   nodeGraphMvp.traceDisplaySettingsTargetNode = "__globalTraceSettings";
   nodeGraphMvp.traceDisplaySettingsDraft = nodeGraphGlobalTraceSettings();
   nodeGraphMvp.sharedInspectorActive = "traceDisplaySettings";
-  document.getElementById("nodeTraceDisplaySettingsTitle").textContent = "Trace";
-  document.getElementById("nodeTraceDisplaySettingsSubtitle").textContent = "Settings";
+  setNodeGraphTraceDisplaySettingsHeader("Trace", "Settings", "Global");
   setNodeGraphTraceDisplaySettingsFormType(null);
   writeNodeGraphTraceDisplaySettingsForm(nodeGraphMvp.traceDisplaySettingsDraft);
   setNodeGraphTraceDisplaySettingsDirty(false);
@@ -4714,6 +4885,8 @@ function bindNodeGraphTraceDisplaySettingsEvents(popover) {
   }
   popover.dataset.traceDisplaySettingsBound = "true";
   bindNodeGraphSettingsTextInputProtection(popover);
+  popover.addEventListener("pointerdown", toggleNodeGraphTraceDisplaySettingRow, true);
+  popover.addEventListener("click", suppressNodeGraphTraceDisplaySettingRowClick, true);
   popover.addEventListener("input", updateNodeGraphTraceDisplaySettingsDraft);
   popover.addEventListener("change", updateNodeGraphTraceDisplaySettingsDraft);
   popover.addEventListener("click", stepNodeGraphTraceDisplaySetting);
@@ -4784,9 +4957,11 @@ function openNodeGraphTraceDisplaySettings(nodeId, event = {}) {
           ? normalizeNodeGraphScope2dSettings(node.traceDisplaySettings)
           : nodeGraphGlobalTraceSettings();
   nodeGraphMvp.sharedInspectorActive = "traceDisplaySettings";
-  document.getElementById("nodeTraceDisplaySettingsTitle").textContent =
-    nodeGraphNodeLabels?.[node.type] || "Display";
-  document.getElementById("nodeTraceDisplaySettingsSubtitle").textContent = "Settings";
+  setNodeGraphTraceDisplaySettingsHeader(
+    nodeGraphNodeLabels?.[node.type] || "Display",
+    "Settings",
+    nodeGraphTraceDisplaySettingsTargetLabel(node),
+  );
   setNodeGraphTraceDisplaySettingsFormType(node);
   writeNodeGraphTraceDisplaySettingsForm(nodeGraphMvp.traceDisplaySettingsDraft);
   setNodeGraphTraceDisplaySettingsDirty(false);
@@ -4921,6 +5096,16 @@ function nodeGraphScopeBufferRecentSampleCount(buffer) {
   return Math.max(0, Math.floor(Number(buffer.nodeGraphScopeRecentSampleCount) || 0));
 }
 
+function nodeGraphScopeAvailableSampleCount(buffer) {
+  if (!buffer?.length) {
+    return 0;
+  }
+  const absoluteFrame = Math.floor(Number(buffer.nodeGraphScopeAbsoluteFrame) || 0);
+  return absoluteFrame > 0
+    ? Math.min(buffer.length, absoluteFrame)
+    : buffer.length;
+}
+
 function nodeGraphModuleScopeCapturedScope2dBuffer(slot) {
   if (nodeGraphModuleDisplayTypeForSlot(slot) !== "scope2d") {
     return null;
@@ -4943,11 +5128,18 @@ function nodeGraphModuleScopeCapturedScope2dBuffer(slot) {
   if (hasRecentSampleMetadata && !(xRecentSamples > 0 && yRecentSamples > 0)) {
     return null;
   }
-  const validLength = hasRecentSampleMetadata
-    ? Math.min(xRecentSamples, yRecentSamples, length)
-    : length;
+  const validLength = Math.min(
+    nodeGraphScopeAvailableSampleCount(xBuffer),
+    nodeGraphScopeAvailableSampleCount(yBuffer),
+    length,
+  );
   const frames = nodeGraphScope2dSourceFrameCount(sampleRate, fps, validLength);
   const start = Math.max(0, length - frames);
+  const absoluteFrame = Math.min(
+    Number(xBuffer.nodeGraphScopeAbsoluteFrame) || 0,
+    Number(yBuffer.nodeGraphScopeAbsoluteFrame) || 0,
+  );
+  const startFrame = Math.max(0, absoluteFrame - frames);
   const x = new Float32Array(frames);
   const y = new Float32Array(frames);
   for (let index = 0; index < frames; index += 1) {
@@ -4956,16 +5148,10 @@ function nodeGraphModuleScopeCapturedScope2dBuffer(slot) {
   }
   return {
     length: frames,
-    nodeGraphScopeAbsoluteFrame: Math.min(
-      Number(xBuffer.nodeGraphScopeAbsoluteFrame) || 0,
-      Number(yBuffer.nodeGraphScopeAbsoluteFrame) || 0,
-    ),
+    nodeGraphScopeAbsoluteFrame: absoluteFrame,
     nodeGraphScopeCapturedOutput: true,
     nodeGraphScopeDrawProgress: 1,
-    nodeGraphScopeStartFrame: Math.min(
-      Number(xBuffer.nodeGraphScopeStartFrame) || 0,
-      Number(yBuffer.nodeGraphScopeStartFrame) || 0,
-    ),
+    nodeGraphScopeStartFrame: startFrame,
     nodeGraphScopeUseFullWindow: true,
     nodeGraphScopeXy: true,
     x,
@@ -5750,16 +5936,22 @@ function nodeGraphTraceDisplayBufferView(buffer, slot) {
   const estimatedCycle = settings.sourceSync && !zoomEditActive
     ? nodeGraphModuleScopeEstimatedCycle(buffer)
     : null;
-  const visibleSamples = nodeGraphTraceDisplayVisibleSamples(buffer, settings);
-  let start = Math.max(0, buffer.length - visibleSamples);
-  if (settings.sourceSync && estimatedCycle && visibleSamples < buffer.length) {
+  const recentSamples = nodeGraphScopeBufferRecentSampleCount(buffer);
+  const validEnd = buffer.length;
+  const validStart = recentSamples > 0
+    ? Math.max(0, validEnd - Math.min(validEnd, recentSamples))
+    : 0;
+  const validSamples = Math.max(0, validEnd - validStart);
+  const visibleSamples = Math.min(validSamples, nodeGraphTraceDisplayVisibleSamples(buffer, settings));
+  let start = Math.max(validStart, validEnd - visibleSamples);
+  if (settings.sourceSync && estimatedCycle && visibleSamples < validSamples) {
     const triggeredStart = nodeGraphModuleScopeTriggeredStart(syncBuffer || buffer, estimatedCycle, visibleSamples);
-    if (triggeredStart !== null) {
+    if (triggeredStart !== null && triggeredStart >= validStart) {
       start = triggeredStart;
     }
   }
   return {
-    end: Math.min(buffer.length, start + visibleSamples),
+    end: Math.min(validEnd, start + visibleSamples),
     gain: 1,
     offset: 0,
     start,
@@ -8349,7 +8541,7 @@ function drawNodeGraphValueOscilloscopeCanvasLine(context, points, color, bright
   const alpha = clampNodeSliderValue(Number(brightness) || 0, 0, 4);
   context.save();
   context.globalCompositeOperation = "lighter";
-  context.lineCap = "round";
+  context.lineCap = "butt";
   context.lineJoin = "round";
   context.lineWidth = thickness;
   context.strokeStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.min(1, alpha).toFixed(4)})`;
@@ -8622,8 +8814,9 @@ function drawNodeGraphScopeCanvasSegment(context, from, to, radius, color, brigh
   const blurAmount = normalizeNodeGraphModuleScopeDotBlur(blur, 0);
   context.save();
   context.globalCompositeOperation = "lighter";
-  context.lineCap = "round";
+  context.lineCap = "butt";
   context.lineJoin = "round";
+  context.setLineDash([]);
   context.lineWidth = Math.max(1, radius * 2);
   context.strokeStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.min(1, alpha)})`;
   context.shadowColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.min(1, alpha * 0.8)})`;
@@ -8633,6 +8826,38 @@ function drawNodeGraphScopeCanvasSegment(context, from, to, radius, color, brigh
   context.lineTo(to.x, to.y);
   context.stroke();
   context.restore();
+}
+
+function drawNodeGraphScopeCanvasSmoothPath(context, points) {
+  let subpath = [];
+  const flushSubpath = () => {
+    if (subpath.length < 2) {
+      subpath = [];
+      return;
+    }
+    context.moveTo(subpath[0].x, subpath[0].y);
+    if (subpath.length === 2) {
+      context.lineTo(subpath[1].x, subpath[1].y);
+    } else {
+      for (let index = 1; index < subpath.length - 1; index += 1) {
+        const point = subpath[index];
+        const next = subpath[index + 1];
+        context.quadraticCurveTo(point.x, point.y, (point.x + next.x) * 0.5, (point.y + next.y) * 0.5);
+      }
+      const last = subpath[subpath.length - 1];
+      context.lineTo(last.x, last.y);
+    }
+    subpath = [];
+  };
+  for (let index = 0; index < points.length; index += 1) {
+    const point = points[index];
+    if (!point) {
+      flushSubpath();
+      continue;
+    }
+    subpath.push(point);
+  }
+  flushSubpath();
 }
 
 function drawNodeGraphScopeCanvasBurnPath(context, points, radius, color, brightness, blur) {
@@ -8653,22 +8878,51 @@ function drawNodeGraphScopeCanvasBurnPath(context, points, radius, color, bright
   context.shadowColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.min(1, alpha * 0.9)})`;
   context.shadowBlur = radius * (0.4 + blurAmount * 2.6);
   context.beginPath();
-  let subpathOpen = false;
-  for (let index = 0; index < points.length; index += 1) {
-    const point = points[index];
-    if (!point) {
-      subpathOpen = false;
-      continue;
-    }
-    if (!subpathOpen) {
-      context.moveTo(point.x, point.y);
-      subpathOpen = true;
-    } else {
-      context.lineTo(point.x, point.y);
-    }
-  }
+  drawNodeGraphScopeCanvasSmoothPath(context, points);
   context.stroke();
   context.restore();
+}
+
+function nodeGraphScope2dEffectiveBurnStroke(settings, dotSpace, intensity) {
+  const layers = [];
+  if (settings.dot2Enabled !== false) {
+    layers.push({
+      blur: settings.dot2LineThickness,
+      brightness: Number(settings.dot2Brightness) || 0,
+      color: nodeGraphScopeHexColorToRgb(settings.dot2Color),
+      radius: dotSpace * clampNodeSliderValue(settings.dot2Size, 0, 1) * 0.5,
+    });
+  }
+  if (settings.dot1Enabled !== false) {
+    layers.push({
+      blur: settings.lineThickness,
+      brightness: Number(settings.dot1Brightness) || 0,
+      color: nodeGraphScopeHexColorToRgb(settings.dot1Color),
+      radius: dotSpace * clampNodeSliderValue(settings.dot1Size, 0, 1) * 0.5,
+    });
+  }
+  const activeLayers = layers.filter((layer) => layer.radius > 0 && layer.brightness > 0);
+  if (!activeLayers.length) {
+    return null;
+  }
+  const brightnessTotal = activeLayers.reduce((sum, layer) => sum + layer.brightness, 0);
+  const weightedColor = [0, 0, 0];
+  for (const layer of activeLayers) {
+    const weight = brightnessTotal > 0 ? layer.brightness / brightnessTotal : 1 / activeLayers.length;
+    weightedColor[0] += layer.color[0] * weight;
+    weightedColor[1] += layer.color[1] * weight;
+    weightedColor[2] += layer.color[2] * weight;
+  }
+  return {
+    blur: Math.max(...activeLayers.map((layer) => Number(layer.blur) || 0)),
+    brightness: Math.min(4, brightnessTotal) * intensity,
+    color: weightedColor,
+    radius: Math.max(...activeLayers.map((layer) => layer.radius)),
+  };
+}
+
+function nodeGraphScope2dStrokeSpace(canvas) {
+  return Math.min(canvas?.width || 0, canvas?.height || 0);
 }
 
 function drawNodeGraphOneDimensionalBurnTrail(item, pixelRatio, point, settings) {
@@ -8780,6 +9034,10 @@ function nodeGraphScope2dSampleHasVisibleOffset(square, x, y, minimumPixels = 0.
   return Math.sqrt((sampleX * radiusX) ** 2 + (sampleY * radiusY) ** 2) > Math.max(0, Number(minimumPixels) || 0);
 }
 
+function nodeGraphScope2dSampleIsFinite(x, y) {
+  return nodeGraphScope2dFiniteSample(x) !== null && nodeGraphScope2dFiniteSample(y) !== null;
+}
+
 function nodeGraphScope2dPointToCanvas(item, pixelRatio, point) {
   const screenRect = item?.screenRect;
   if (!screenRect || !point) {
@@ -8846,10 +9104,56 @@ function nodeGraphScope2dInterpolationSpacingPx() {
   return 0.5;
 }
 
+function nodeGraphScope2dPathStartOffsetPx() {
+  return nodeGraphScope2dInterpolationSpacingPx() * 4;
+}
+
 function breakNodeGraphScope2dPath(points) {
   if (Array.isArray(points) && points.length && points[points.length - 1] !== null) {
     points.push(null);
   }
+}
+
+function firstNodeGraphScope2dPathPoint(points) {
+  if (!Array.isArray(points)) {
+    return null;
+  }
+  return points.find(Boolean) || null;
+}
+
+function lastNodeGraphScope2dPathPoint(points) {
+  if (!Array.isArray(points)) {
+    return null;
+  }
+  for (let index = points.length - 1; index >= 0; index -= 1) {
+    if (points[index]) {
+      return points[index];
+    }
+  }
+  return null;
+}
+
+function nodeGraphScope2dPointDistance(a, b) {
+  if (!a || !b) {
+    return Infinity;
+  }
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  return Number.isFinite(distance) ? distance : Infinity;
+}
+
+function bridgeNodeGraphScope2dAdjacentFramePath(canvas, pathPoints, maxDistancePx, spacingPx) {
+  const previousPoint = canvas?._nodeGraphScope2dLastDrawnPoint || null;
+  const firstPoint = firstNodeGraphScope2dPathPoint(pathPoints);
+  if (!previousPoint || !firstPoint || nodeGraphScope2dPointDistance(previousPoint, firstPoint) > maxDistancePx) {
+    return pathPoints;
+  }
+  const bridgePoints = [previousPoint];
+  appendNodeGraphScope2dInterpolatedPoint(bridgePoints, firstPoint, spacingPx);
+  return bridgePoints.length > 1
+    ? [...bridgePoints, ...pathPoints]
+    : pathPoints;
 }
 
 function nodeGraphScope2dCanvasSettingsSignature(settings) {
@@ -8870,18 +9174,44 @@ function nodeGraphScope2dCanvasSettingsSignature(settings) {
   ].join("|");
 }
 
-function buildNodeGraphScope2dPathPoints(item, pixelRatio, square, buffer) {
+function nodeGraphScope2dDrawStartIndex(canvas, buffer, count) {
+  const startFrame = Number(buffer?.nodeGraphScopeStartFrame);
+  const endFrame = Number(buffer?.nodeGraphScopeAbsoluteFrame);
+  const lastFrame = Number(canvas?._nodeGraphScope2dLastDrawnFrame);
+  if (
+    !Number.isFinite(startFrame) ||
+    !Number.isFinite(endFrame) ||
+    !Number.isFinite(lastFrame) ||
+    endFrame <= startFrame
+  ) {
+    return 0;
+  }
+  if (lastFrame >= endFrame) {
+    return count;
+  }
+  if (lastFrame <= startFrame) {
+    return 0;
+  }
+  const frameOffset = Math.max(0, Math.floor(lastFrame - startFrame) - 1);
+  return Math.min(Math.max(0, Math.floor(Number(count) || 0) - 1), frameOffset);
+}
+
+function buildNodeGraphScope2dPathPoints(item, pixelRatio, square, buffer, startIndex = 0) {
   const count = Math.min(buffer?.x?.length || 0, buffer?.y?.length || 0);
   if (!count) {
     return [];
   }
   const pathPoints = [];
   const interpolationSpacingPx = nodeGraphScope2dInterpolationSpacingPx();
+  const pathStartOffsetPx = nodeGraphScope2dPathStartOffsetPx();
   let previousPoint = null;
-  for (let index = 0; index < count; index += 1) {
-    if (!nodeGraphScope2dSampleHasVisibleOffset(square, buffer.x[index], buffer.y[index])) {
+  for (let index = Math.max(0, Math.floor(Number(startIndex) || 0)); index < count; index += 1) {
+    if (!nodeGraphScope2dSampleIsFinite(buffer.x[index], buffer.y[index])) {
       breakNodeGraphScope2dPath(pathPoints);
       previousPoint = null;
+      continue;
+    }
+    if (!previousPoint && !nodeGraphScope2dSampleHasVisibleOffset(square, buffer.x[index], buffer.y[index], pathStartOffsetPx)) {
       continue;
     }
     const point = nodeGraphScope2dPointToCanvas(
@@ -8912,6 +9242,8 @@ function drawNodeGraphScope2dCanvasTrail(item, pixelRatio, square, buffer, setti
   if (canvas.dataset.scope2dRenderer !== "interpolated-path-1") {
     context.clearRect(0, 0, canvas.width, canvas.height);
     canvas.dataset.scope2dRenderer = "interpolated-path-1";
+    delete canvas._nodeGraphScope2dLastDrawnPoint;
+    delete canvas._nodeGraphScope2dLastDrawnFrame;
   }
   const settingsSignature = nodeGraphScope2dCanvasSettingsSignature(settings);
   if (canvas.dataset.scope2dSettingsSignature && canvas.dataset.scope2dSettingsSignature !== settingsSignature) {
@@ -8937,33 +9269,42 @@ function drawNodeGraphScope2dCanvasTrail(item, pixelRatio, square, buffer, setti
   if (!hasSignal) {
     return;
   }
-  const dotSpace = Math.min(canvas.width, canvas.height);
-  const pathPoints = buildNodeGraphScope2dPathPoints(item, pixelRatio, square, buffer);
+  const dotSpace = nodeGraphScope2dStrokeSpace(canvas);
+  const drawStartIndex = nodeGraphScope2dDrawStartIndex(canvas, buffer, count);
+  if (drawStartIndex >= count) {
+    return;
+  }
+  const pathPoints = buildNodeGraphScope2dPathPoints(item, pixelRatio, square, buffer, drawStartIndex);
   const pointCount = pathPoints.filter(Boolean).length;
   if (pointCount < 2) {
     return;
   }
   nodeGraphOneDimensionalBurnFadeTrail(context, canvas, settings);
-  recordNodeGraphModuleScopeRenderMetrics(pointCount, pointCount);
   const intensity = 0.012 + burn * 0.09;
-  if (settings.dot2Enabled !== false) {
-    drawNodeGraphScopeCanvasBurnPath(
-      context,
+  const stroke = nodeGraphScope2dEffectiveBurnStroke(settings, dotSpace, intensity);
+  if (stroke) {
+    const maxBridgeDistance = Math.max(nodeGraphScope2dInterpolationSpacingPx() * 2, stroke.radius);
+    const bridgedPathPoints = bridgeNodeGraphScope2dAdjacentFramePath(
+      canvas,
       pathPoints,
-      dotSpace * clampNodeSliderValue(settings.dot2Size, 0, 1) * 0.5,
-      nodeGraphScopeHexColorToRgb(settings.dot2Color),
-      settings.dot2Brightness * intensity,
-      settings.dot2LineThickness,
+      maxBridgeDistance,
+      nodeGraphScope2dInterpolationSpacingPx(),
     );
-  }
-  if (settings.dot1Enabled !== false) {
+    const lastPathPoint = lastNodeGraphScope2dPathPoint(pathPoints);
+    if (lastPathPoint) {
+      canvas._nodeGraphScope2dLastDrawnPoint = lastPathPoint;
+    }
+    if (Number.isFinite(Number(buffer.nodeGraphScopeAbsoluteFrame))) {
+      canvas._nodeGraphScope2dLastDrawnFrame = Number(buffer.nodeGraphScopeAbsoluteFrame);
+    }
+    recordNodeGraphModuleScopeRenderMetrics(bridgedPathPoints.filter(Boolean).length, bridgedPathPoints.filter(Boolean).length);
     drawNodeGraphScopeCanvasBurnPath(
       context,
-      pathPoints,
-      dotSpace * clampNodeSliderValue(settings.dot1Size, 0, 1) * 0.5,
-      nodeGraphScopeHexColorToRgb(settings.dot1Color),
-      settings.dot1Brightness * intensity,
-      settings.lineThickness,
+      bridgedPathPoints,
+      stroke.radius,
+      stroke.color,
+      stroke.brightness,
+      stroke.blur,
     );
   }
 }
@@ -9057,7 +9398,7 @@ function drawNodeGraphModuleScopes() {
     }
   }
   const firstVisibleSlot = visibleItems.find((item) => item.slot?.type !== "visualOscilloscope")?.slot;
-  if (nodeGraphModuleScopeTraceDisplayFrameUnchanged(visibleItems)) {
+  if (!scopePaused && nodeGraphModuleScopeTraceDisplayFrameUnchanged(visibleItems)) {
     setNodeGraphModuleScopeDebugPhase("trace-unchanged");
     commitNodeGraphModuleScopeRenderMetricsFrame(animationTime);
     return;

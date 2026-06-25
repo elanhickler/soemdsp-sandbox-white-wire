@@ -204,6 +204,26 @@ function nodeGraphPatchNodeTitle(node) {
   return normalizeNodeGraphPatchNodeAlias(patchNode.alias) || nodeGraphDefaultNodeTitle(patchNode.type, patchNode.id);
 }
 
+function cloneNodeGraphTypedDisplaySettings(node) {
+  const displayType = nodeGraphModuleDefinitions?.[node?.type]?.displayType || "";
+  if (displayType === "dot") {
+    return { zeroDBurnSettings: normalizeNodeGraphZeroDBurnSettings(node.zeroDBurnSettings) };
+  }
+  if (displayType === "lineBurn") {
+    return { traceDisplaySettings: normalizeNodeGraphLineBurnSettings(node.traceDisplaySettings) };
+  }
+  if (displayType === "value") {
+    return { traceDisplaySettings: normalizeNodeGraphValueOscilloscopeSettings(node.traceDisplaySettings) };
+  }
+  if (displayType === "scope2d") {
+    return { traceDisplaySettings: normalizeNodeGraphScope2dSettings(node.traceDisplaySettings) };
+  }
+  if (displayType === "trace" && Object.hasOwn(node, "traceDisplaySettings")) {
+    return { traceDisplaySettings: normalizeNodeGraphTraceDisplaySettings(node.traceDisplaySettings) };
+  }
+  return {};
+}
+
 function cloneNodeGraphPatch(patch) {
   const cameraState = normalizeNodeGraphPatchCameras(patch.cameras, patch.activeCameraId);
   return {
@@ -259,12 +279,7 @@ function cloneNodeGraphPatch(patch) {
         ...(node.type === "screenSpaceShader"
           ? { screenSpaceShader: normalizeNodeGraphScreenSpaceShader(node.screenSpaceShader) }
           : {}),
-        ...(node.type === "traceDisplay"
-          ? { traceDisplaySettings: normalizeNodeGraphTraceDisplaySettings(node.traceDisplaySettings) }
-          : {}),
-        ...(node.type === "dotOscilloscope"
-          ? { zeroDBurnSettings: normalizeNodeGraphZeroDBurnSettings(node.zeroDBurnSettings) }
-          : {}),
+        ...cloneNodeGraphTypedDisplaySettings(node),
         ...(Object.hasOwn(node, "scopeShader")
           ? { scopeShader: normalizeNodeGraphScopeShader(node.scopeShader) }
           : {}),

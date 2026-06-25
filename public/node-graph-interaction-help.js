@@ -65,6 +65,9 @@ function nodeInteractionMouseHint(element) {
   if (element.classList.contains("node-display-settings-button")) {
     return nodeGraphTooltipText("module.displaySettings");
   }
+  if (element.classList.contains("node-metaparameter-button")) {
+    return nodeGraphTooltipText("module.metaparameters");
+  }
   if (element.classList.contains("node-bypass-button")) {
     return nodeGraphTooltipText("module.bypass");
   }
@@ -130,7 +133,7 @@ function nodeInteractionMouseHint(element) {
   if (element.id === "nodeSettingsViewButton") {
     return nodeGraphTooltipText("view.patchSettings");
   }
-  if (element.id === "nodeModularViewButton" || element.id === "nodeModularOnlyViewButton") {
+  if (element.id === "nodeModularOnlyViewButton") {
     return nodeGraphTooltipText("view.switchView");
   }
   if (element.id === "nodeUndoButton" || element.id === "nodeRedoButton") {

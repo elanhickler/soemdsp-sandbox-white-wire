@@ -1850,7 +1850,6 @@ function setNodeGraphViewMode(mode) {
   renderNodeGraphMacroControls();
   renderNodeGraphVideoViewToggle();
   document.getElementById("nodeSettingsViewButton").classList.toggle("active", settingsMode);
-  document.getElementById("nodeModularViewButton").classList.toggle("active", modularMode && !modularOnlyMode);
   document.getElementById("nodeModuleShopButton")?.classList.toggle("active", shopMode);
   document.getElementById("nodeModularOnlyViewButton").classList.toggle("active", modularOnlyMode);
   document.getElementById("nodeMappingViewButton")?.classList.toggle("active", mappingMode);
@@ -1858,7 +1857,6 @@ function setNodeGraphViewMode(mode) {
   document.getElementById("nodeUiViewButton")?.classList.toggle("active", uiMode);
   document.getElementById("nodeSettingsScriptViewButton").classList.toggle("active", scriptMode);
   document.getElementById("nodeSettingsViewButton").setAttribute("aria-pressed", String(settingsMode));
-  document.getElementById("nodeModularViewButton").setAttribute("aria-pressed", String(modularMode && !modularOnlyMode));
   document.getElementById("nodeModuleShopButton")?.setAttribute("aria-pressed", String(shopMode));
   document.getElementById("nodeModularOnlyViewButton").setAttribute("aria-pressed", String(modularOnlyMode));
   document.getElementById("nodeMappingViewButton")?.setAttribute("aria-pressed", String(mappingMode));

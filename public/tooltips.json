@@ -82,6 +82,7 @@
     "actions": "Mouse: click to open module settings.",
     "actionsTitle": "Module settings",
     "displaySettings": "Click to open this module's display settings. Alt+click shows or hides the display.",
+    "metaparameters": "Click to open this module's metaparameters. Alt+click shows or hides this module's sliders.",
     "textBoxEdit": "Display-only text. Edit content from this module's actions menu. Text clips to the box height and scales down to fit width. Mouse wheel zooms the modular view.",
     "bypass": "Mouse: click to bypass this module. Bypassed modules are removed from the compiled engine.",
     "include": "Mouse: click to include this module in the compiled engine.",

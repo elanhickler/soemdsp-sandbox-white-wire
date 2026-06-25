@@ -92,9 +92,12 @@ function syncNodeGraphPatchViewZoom(zoom = nodeGraphZoom()) {
   nodeGraphMvp.patch.view = { ...view, zoom: clampNodeGraphZoom(zoom) };
 }
 
-function syncNodeGraphZoomFromPatchView(patch = nodeGraphMvp.patch) {
-  const view = normalizeNodeGraphPatchView(patch?.view);
-  nodeGraphMvp.zoom = clampNodeGraphZoom(view.zoom);
+function preserveNodeGraphEditorZoomOnPatch(patch = nodeGraphMvp.patch) {
+  if (!patch) {
+    return;
+  }
+  const view = normalizeNodeGraphPatchView(patch.view);
+  patch.view = { ...view, zoom: clampNodeGraphZoom(nodeGraphMvp.zoom) };
 }
 
 function nodeGraphZoomRatioBySteps(steps, baseRatio = nodeGraphZoomLimits.wheelRatio) {

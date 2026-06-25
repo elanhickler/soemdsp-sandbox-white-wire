@@ -680,6 +680,37 @@ function normalizeNodeUiDevSettings(settings = {}) {
 
 function readNodeUiDevSettingsFromControls(options = {}) {
   const includeWorkingPatch = options.includeWorkingPatch !== false;
+  const workingPatchForSettings = includeWorkingPatch && nodeGraphMvp.workingPatch
+    ? cloneNodeGraphPatch(nodeGraphMvp.workingPatch)
+    : null;
+  if (workingPatchForSettings && typeof normalizeNodeGraphPatchView === "function") {
+    workingPatchForSettings.view = {
+      ...normalizeNodeGraphPatchView(workingPatchForSettings.view),
+      zoom: typeof nodeGraphZoom === "function" ? nodeGraphZoom() : nodeGraphMvp.zoom,
+    };
+  }
+  if (
+    workingPatchForSettings &&
+    nodeGraphMvp.sharedInspectorActive === "traceDisplaySettings" &&
+    typeof readNodeGraphTraceDisplaySettingsForm === "function" &&
+    typeof assignNodeGraphTypedDisplaySettingsToNode === "function" &&
+    typeof nodeGraphModuleDisplayTypeForType === "function"
+  ) {
+    const popover = document.getElementById("nodeTraceDisplaySettingsPopover");
+    const targetNodeId = String(
+      nodeGraphMvp.traceDisplaySettingsTargetNode ||
+      popover?.dataset.displaySettingsTargetNode ||
+      "",
+    );
+    const workingNode = workingPatchForSettings.nodes?.find((node) => node.id === targetNodeId);
+    if (workingNode) {
+      assignNodeGraphTypedDisplaySettingsToNode(
+        workingNode,
+        nodeGraphModuleDisplayTypeForType(workingNode.type),
+        readNodeGraphTraceDisplaySettingsForm(),
+      );
+    }
+  }
   const controls = {};
   for (const definition of nodeUiDevSettingControls) {
     const input = document.getElementById(definition.id);
@@ -755,9 +786,7 @@ function readNodeUiDevSettingsFromControls(options = {}) {
       }),
       moduleStoreDepartment: normalizeNodeGraphModuleStoreDepartmentState(nodeGraphMvp.moduleStoreDepartment),
       savedPatchExplorerView: nodeGraphMvp.savedPatchExplorerView === "patches" ? "patches" : "banks",
-      workingPatch: includeWorkingPatch && nodeGraphMvp.workingPatch
-        ? cloneNodeGraphPatch(nodeGraphMvp.workingPatch)
-        : null,
+      workingPatch: workingPatchForSettings,
       currentSavedPatchFilename: includeWorkingPatch ? (nodeGraphMvp.currentSavedPatchFilename || "") : "",
       patchDirtyState: !includeWorkingPatch
         ? "untouched"
