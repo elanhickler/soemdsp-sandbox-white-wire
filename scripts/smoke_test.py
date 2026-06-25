@@ -12768,23 +12768,32 @@ def require_node_graph_mvp_contract() -> None:
     scope2d_start = node_graph_source.index("function drawNodeGraphScope2dItem")
     scope2d_end = node_graph_source.index("function drawNodeGraphModuleScopes", scope2d_start)
     scope2d_source = node_graph_source[scope2d_start:scope2d_end]
-    scope2d_helper_start = node_graph_source.index("function drawNodeGraphScope2dDotPass")
+    scope2d_buffer_start = node_graph_source.index("function nodeGraphModuleScopeCapturedScope2dBuffer")
+    scope2d_buffer_end = node_graph_source.index("function nodeGraphModuleScopeCapturedStereoNoiseXyBuffer", scope2d_buffer_start)
+    scope2d_buffer_source = node_graph_source[scope2d_buffer_start:scope2d_buffer_end]
+    scope2d_helper_start = node_graph_source.index("function nodeGraphScope2dPointFromSamples")
     scope2d_helper_source = node_graph_source[scope2d_helper_start:scope2d_start]
     require(
-        "const dotHalfLength = 0.01;" in scope2d_helper_source
-        and "point.x - dotHalfLength" in scope2d_helper_source
-        and "point.x + dotHalfLength" in scope2d_helper_source
+        "function nodeGraphScope2dSourceFrameCount(sampleRate, fps, validLength)" in node_graph_source
+        and "nodeGraphScope2dSourceFrameCount(sampleRate, fps, validLength)" in scope2d_buffer_source
+        and "nodeGraphTraceDisplayRenderPointBudget()" not in scope2d_buffer_source
+        and "nodeGraphScopeVisualPointLimit" not in scope2d_buffer_source
+        and "function nodeGraphScope2dInterpolationSpacingPx()" in scope2d_helper_source
+        and "return 0.5;" in scope2d_helper_source
+        and "appendNodeGraphScope2dSegment(pathPoints, previousPoint, point, interpolationSpacingPx)" in scope2d_source
+        and "canContinueFromPreviousPoint" in scope2d_source
+        and "firstIndex < count - 1" in scope2d_source
         and "nodeGraphScope2dSettingsForNode" in scope2d_source
         and "drawNodeGraphScope2dCanvasTrail(item, pixelRatio, square, buffer, settings)" in scope2d_source
-        and "const latestIndex = Math.max(0, count - 1)" in scope2d_source
         and "settings.dot1Enabled" in scope2d_source
         and "settings.dot2Enabled" in scope2d_source
         and "settings?.burn" in node_graph_source
         and "settings?.decay" in node_graph_source
+        and "function drawNodeGraphScope2dDotPass" not in node_graph_source
         and "function nodeGraphScope2dAgeIntensity" not in node_graph_source
         and "centerX - radius" not in scope2d_source
         and "centerX + radius" not in scope2d_source,
-        "2D Burn should draw a live point plus retained local pixel trail instead of sample-age history bars",
+        "2D Burn should draw a retained pixel-space interpolated trail from source audio-frame slices, independent of point budget",
     )
     require(
         "function nodeGraphModuleScopeSlotIsDrawable(slot)" in node_graph_source

@@ -4908,6 +4908,13 @@ function nodeGraphModuleScopeCapturedVisualOscilloscopeXyBuffer(slot, capturedBu
   };
 }
 
+function nodeGraphScope2dSourceFrameCount(sampleRate, fps, validLength) {
+  const safeSampleRate = Math.max(1, Number(sampleRate) || 44100);
+  const safeFps = Math.max(1, Number(fps) || 60);
+  const safeValidLength = Math.max(0, Math.floor(Number(validLength) || 0));
+  return Math.min(safeValidLength, Math.max(1, Math.ceil(safeSampleRate / safeFps)));
+}
+
 function nodeGraphModuleScopeCapturedScope2dBuffer(slot) {
   if (nodeGraphModuleDisplayTypeForSlot(slot) !== "scope2d") {
     return null;
@@ -4924,13 +4931,12 @@ function nodeGraphModuleScopeCapturedScope2dBuffer(slot) {
   const fps = typeof normalizeNodeGraphModuleScopeFramesPerSecond === "function"
     ? normalizeNodeGraphModuleScopeFramesPerSecond(nodeGraphMvp?.moduleScopeFramesPerSecond ?? 60)
     : 60;
-  const samplesPerDisplayFrame = Math.max(1, Math.ceil(sampleRate / Math.max(1, fps || 60)));
   const recentSamples = Math.min(
     Math.max(0, Math.floor(Number(xBuffer.nodeGraphScopeRecentSampleCount) || 0)),
     Math.max(0, Math.floor(Number(yBuffer.nodeGraphScopeRecentSampleCount) || 0)),
   );
   const validLength = recentSamples > 0 ? Math.min(recentSamples, length) : length;
-  const frames = Math.min(samplesPerDisplayFrame, validLength);
+  const frames = nodeGraphScope2dSourceFrameCount(sampleRate, fps, validLength);
   const start = Math.max(0, length - frames);
   const x = new Float32Array(frames);
   const y = new Float32Array(frames);
@@ -4951,7 +4957,6 @@ function nodeGraphModuleScopeCapturedScope2dBuffer(slot) {
       Number(yBuffer.nodeGraphScopeStartFrame) || 0,
     ),
     nodeGraphScopeUseFullWindow: true,
-    nodeGraphScopeVisualPointLimit: frames,
     nodeGraphScopeXy: true,
     x,
     y,
@@ -8730,25 +8735,6 @@ function drawNodeGraphLineBurnOscilloscopeItem(renderer, item, pixelRatio) {
   drawNodeGraphOneDimensionalBurnTrail(item, pixelRatio, { x, y }, settings);
 }
 
-function drawNodeGraphScope2dDotPass(renderer, item, pixelRatio, point, dotSpace, pass = {}) {
-  if (!renderer || !item || !point || pass.enabled === false) {
-    return;
-  }
-  const thicknessPx = Math.max(0, dotSpace * clampNodeSliderValue(Number(pass.size) || 0, 0, 1));
-  const brightness = Math.max(0, Number(pass.brightness) || 0);
-  const intensity = Math.max(0, Number(pass.intensity) || 0);
-  if (thicknessPx <= 0 || brightness <= 0 || intensity <= 0) {
-    return;
-  }
-  const dotHalfLength = 0.01;
-  drawNodeGraphOscilloscopeBeam(renderer, item, pixelRatio, point.x - dotHalfLength, point.y, point.x + dotHalfLength, point.y, {
-    blur: clampNodeSliderValue(Number(pass.blur) || 0, 0, 1),
-    color: nodeGraphScopeHexColorToRgb(pass.color),
-    intensity: brightness * intensity,
-    thicknessPx,
-  });
-}
-
 function nodeGraphScope2dPointFromSamples(square, x, y) {
   const sampleX = Number(x);
   const sampleY = Number(y);
@@ -8809,6 +8795,10 @@ function appendNodeGraphScope2dSegment(points, previousPoint, point, spacingPx =
   return point;
 }
 
+function nodeGraphScope2dInterpolationSpacingPx() {
+  return 0.5;
+}
+
 function drawNodeGraphScope2dCanvasTrail(item, pixelRatio, square, buffer, settings) {
   const canvas = nodeGraphModuleScopeLocalFallbackCanvas(item?.slot);
   const screenElement = item?.screenElement || item?.slot?.scopeElement;
@@ -8863,6 +8853,7 @@ function drawNodeGraphScope2dCanvasTrail(item, pixelRatio, square, buffer, setti
       firstIndex += 1;
     }
   }
+  const interpolationSpacingPx = nodeGraphScope2dInterpolationSpacingPx();
   const appendPointAt = (index) => {
     const point = nodeGraphScope2dPointToCanvas(
       item,
@@ -8872,7 +8863,7 @@ function drawNodeGraphScope2dCanvasTrail(item, pixelRatio, square, buffer, setti
     if (!point) {
       return;
     }
-    previousPoint = appendNodeGraphScope2dSegment(pathPoints, previousPoint, point, 0.5);
+    previousPoint = appendNodeGraphScope2dSegment(pathPoints, previousPoint, point, interpolationSpacingPx);
   };
   for (let index = firstIndex; index < count; index += 1) {
     appendPointAt(index);
