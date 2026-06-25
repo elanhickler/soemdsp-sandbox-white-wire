@@ -8873,20 +8873,6 @@ function nodeGraphScope2dCanvasSettingsSignature(settings) {
   ].join("|");
 }
 
-function scrubNodeGraphScope2dCanvasCenter(context, canvas) {
-  if (!context || !canvas?.width || !canvas?.height) {
-    return;
-  }
-  const radius = Math.max(8, Math.min(canvas.width, canvas.height) * 0.08);
-  context.save();
-  context.globalCompositeOperation = "destination-out";
-  context.fillStyle = "rgba(0, 0, 0, 1)";
-  context.beginPath();
-  context.arc(canvas.width * 0.5, canvas.height * 0.5, radius, 0, Math.PI * 2);
-  context.fill();
-  context.restore();
-}
-
 function drawNodeGraphScope2dCanvasTrail(item, pixelRatio, square, buffer, settings) {
   const canvas = nodeGraphModuleScopeLocalFallbackCanvas(item?.slot);
   const screenElement = item?.screenElement || item?.slot?.scopeElement;
@@ -8903,7 +8889,6 @@ function drawNodeGraphScope2dCanvasTrail(item, pixelRatio, square, buffer, setti
   }
   const settingsSignature = nodeGraphScope2dCanvasSettingsSignature(settings);
   if (canvas.dataset.scope2dSettingsSignature && canvas.dataset.scope2dSettingsSignature !== settingsSignature) {
-    scrubNodeGraphScope2dCanvasCenter(context, canvas);
     canvas.dataset.scope2dSettingsSignature = settingsSignature;
     scheduleNodeGraphModuleScopeDraw();
     return;

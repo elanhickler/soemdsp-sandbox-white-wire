@@ -12814,9 +12814,8 @@ def require_node_graph_mvp_contract() -> None:
         and "if (centerRunMask[index])" in scope2d_helper_source
         and "pathPoints.push(null);" in scope2d_helper_source
         and "function nodeGraphScope2dCanvasSettingsSignature(settings)" in scope2d_helper_source
-        and "function scrubNodeGraphScope2dCanvasCenter(context, canvas)" in scope2d_helper_source
         and "canvas.dataset.scope2dSettingsSignature !== settingsSignature" in scope2d_helper_source
-        and "scrubNodeGraphScope2dCanvasCenter(context, canvas)" in scope2d_helper_source
+        and "scrubNodeGraphScope2dCanvasCenter" not in scope2d_helper_source
         and "scheduleNodeGraphModuleScopeDraw();\n    return;" in scope2d_helper_source
         and "if (!nodeGraphScope2dSampleHasVisibleOffset(square, buffer.x[index], buffer.y[index])) {" in scope2d_helper_source
         and "skippedCenterSamples = 0;" in scope2d_helper_source
