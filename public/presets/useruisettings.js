@@ -689,10 +689,10 @@
     "sharedInspectorWindowState": {},
     "workspaceView": {
       "pan": {
-        "x": 779.8540555517679,
-        "y": 260.5440529124338
+        "x": 0,
+        "y": 0
       },
-      "zoom": 2.050768642724761
+      "zoom": 1
     },
     "moduleStoreDepartment": "",
     "savedPatchBankIndex": 0,
