@@ -182,6 +182,9 @@ function bindNodeGraphHeaderControlEvents() {
       setNodeGraphViewMode(settingsVisible ? "modular" : "settings");
     });
   document
+    .getElementById("nodeSettingsBackButton")
+    ?.addEventListener("click", () => setNodeGraphViewMode("modular"));
+  document
     .getElementById("nodeUserUiSettingsButton")
     .addEventListener("click", toggleNodeUserUiSettings);
   document

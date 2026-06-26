@@ -663,8 +663,8 @@
       "moduleBrowser": {
         "open": false,
         "position": {
-          "left": 55,
-          "top": 525
+          "left": 81,
+          "top": 162
         }
       },
       "visibilityMenu": {
@@ -692,14 +692,15 @@
         "x": 0,
         "y": 0
       },
-      "zoom": 1
+      "zoom": 0.5956522631507978
     },
     "moduleStoreDepartment": "",
     "savedPatchBankIndex": 0,
     "savedPatchBankName": "basic",
     "savedPatchGridColumns": 3,
-    "savedPatchExplorerView": "patches",
+    "savedPatchExplorerView": "banks",
+    "workingPatch": null,
+    "currentSavedPatchFilename": "",
     "patchDirtyState": "untouched"
   }
-}
-);
+});
