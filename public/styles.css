@@ -2517,6 +2517,11 @@ audio {
   overflow-wrap: normal;
 }
 
+#nodeDonateFiveButton[aria-disabled="true"] {
+  cursor: help;
+  opacity: 0.82;
+}
+
 #nodeDonateFiveButton:hover,
 #nodeDonateFiveButton:focus-visible,
 #nodeDownloadFiftyButton:hover,
