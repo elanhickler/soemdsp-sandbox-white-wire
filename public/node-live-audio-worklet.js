@@ -4229,42 +4229,30 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     ) {
       return null;
     }
-    const safeRate = Math.max(1, Number(rateHz) || sampleRate || 44100);
-    if (!state.nativeHandle || state.nativeSampleRate !== safeRate) {
-      if (state.nativeHandle && native.soemdsp_sabrina_reverb_destroy) {
-        native.soemdsp_sabrina_reverb_destroy(state.nativeHandle);
+    try {
+      const safeRate = Math.max(1, Number(rateHz) || sampleRate || 44100);
+      if (!state.nativeHandle || state.nativeSampleRate !== safeRate) {
+        if (state.nativeHandle && native.soemdsp_sabrina_reverb_destroy) {
+          native.soemdsp_sabrina_reverb_destroy(state.nativeHandle);
+        }
+        state.nativeHandle = native.soemdsp_sabrina_reverb_create(safeRate) || 0;
+        state.nativeSampleRate = safeRate;
+        state.nativeParamKey = "";
       }
-      state.nativeHandle = native.soemdsp_sabrina_reverb_create(safeRate) || 0;
-      state.nativeSampleRate = safeRate;
-      state.nativeParamKey = "";
-    }
-    if (!state.nativeHandle) {
-      return null;
-    }
-    const safeParams = {
-      delaySize: this.clampValue(this.safeFilterNumber(params.delaySize, null), 0, 1),
-      diffusionAmount: this.clampValue(this.safeFilterNumber(params.diffusionAmount, null), 0, 0.98),
-      diffusionSize: this.clampValue(this.safeFilterNumber(params.diffusionSize, null), 0, 1),
-      lfoAmplitude: this.clampValue(this.safeFilterNumber(params.lfoAmplitude, null), 0, 1),
-      lfoBaseSpeed: this.clampValue(this.safeFilterNumber(params.lfoBaseSpeed, null), 0, 1),
-      lfoVariation: this.clampValue(this.safeFilterNumber(params.lfoVariation, null), 0, 1),
-      mix: this.clampValue(this.safeFilterNumber(params.mix, null), 0, 1),
-      recycle: this.clampValue(this.safeFilterNumber(params.recycle, null), 0, 0.98),
-    };
-    const paramKey = [
-      safeParams.mix,
-      safeParams.diffusionSize,
-      safeParams.diffusionAmount,
-      safeParams.delaySize,
-      safeParams.recycle,
-      safeParams.lfoAmplitude,
-      safeParams.lfoBaseSpeed,
-      safeParams.lfoVariation,
-    ].map((value) => Math.round(value * 1000000)).join(":");
-    if (paramKey !== state.nativeParamKey && native.soemdsp_sabrina_reverb_set_params) {
-      state.nativeParamKey = paramKey;
-      native.soemdsp_sabrina_reverb_set_params(
-        state.nativeHandle,
+      if (!state.nativeHandle) {
+        return null;
+      }
+      const safeParams = {
+        delaySize: this.clampValue(this.safeFilterNumber(params.delaySize, null), 0, 1),
+        diffusionAmount: this.clampValue(this.safeFilterNumber(params.diffusionAmount, null), 0, 0.98),
+        diffusionSize: this.clampValue(this.safeFilterNumber(params.diffusionSize, null), 0, 1),
+        lfoAmplitude: this.clampValue(this.safeFilterNumber(params.lfoAmplitude, null), 0, 1),
+        lfoBaseSpeed: this.clampValue(this.safeFilterNumber(params.lfoBaseSpeed, null), 0, 1),
+        lfoVariation: this.clampValue(this.safeFilterNumber(params.lfoVariation, null), 0, 1),
+        mix: this.clampValue(this.safeFilterNumber(params.mix, null), 0, 1),
+        recycle: this.clampValue(this.safeFilterNumber(params.recycle, null), 0, 0.98),
+      };
+      const paramKey = [
         safeParams.mix,
         safeParams.diffusionSize,
         safeParams.diffusionAmount,
@@ -4273,18 +4261,46 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
         safeParams.lfoAmplitude,
         safeParams.lfoBaseSpeed,
         safeParams.lfoVariation,
+      ].map((value) => Math.round(value * 1000000)).join(":");
+      if (paramKey !== state.nativeParamKey && native.soemdsp_sabrina_reverb_set_params) {
+        state.nativeParamKey = paramKey;
+        native.soemdsp_sabrina_reverb_set_params(
+          state.nativeHandle,
+          safeParams.mix,
+          safeParams.diffusionSize,
+          safeParams.diffusionAmount,
+          safeParams.delaySize,
+          safeParams.recycle,
+          safeParams.lfoAmplitude,
+          safeParams.lfoBaseSpeed,
+          safeParams.lfoVariation,
+        );
+      }
+      native.soemdsp_sabrina_reverb_process(
+        state.nativeHandle,
+        this.safeFilterNumber(leftInput, null),
+        this.safeFilterNumber(rightInput, null),
       );
+      return {
+        Left: this.safeFilterNumber(native.soemdsp_sabrina_reverb_left?.(state.nativeHandle), null),
+        Right: this.safeFilterNumber(native.soemdsp_sabrina_reverb_right?.(state.nativeHandle), null),
+        Wet: this.safeFilterNumber(native.soemdsp_sabrina_reverb_wet?.(state.nativeHandle), null),
+      };
+    } catch (error) {
+      this.nativeSabrinaReverbReady = false;
+      if (state.nativeHandle && native.soemdsp_sabrina_reverb_destroy) {
+        native.soemdsp_sabrina_reverb_destroy(state.nativeHandle);
+      }
+      state.nativeHandle = 0;
+      state.nativeParamKey = "";
+      this.port.postMessage({
+        type: "nativeModuleStatus",
+        name: "sabrina_reverb",
+        status: "disabled",
+        message: String(error?.message || error || "native Sabrina failed"),
+      });
+      return null;
     }
-    native.soemdsp_sabrina_reverb_process(
-      state.nativeHandle,
-      this.safeFilterNumber(leftInput, null),
-      this.safeFilterNumber(rightInput, null),
-    );
-    return {
-      Left: this.safeFilterNumber(native.soemdsp_sabrina_reverb_left?.(state.nativeHandle), null),
-      Right: this.safeFilterNumber(native.soemdsp_sabrina_reverb_right?.(state.nativeHandle), null),
-      Wet: this.safeFilterNumber(native.soemdsp_sabrina_reverb_wet?.(state.nativeHandle), null),
-    };
   }
 
   sabrinaReverbSample(state, leftInput, rightInput, params, rateHz = sampleRate) {
