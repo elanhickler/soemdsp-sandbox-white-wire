@@ -31,8 +31,6 @@ const nodeGraphModuleStoreTypes = Object.freeze([
   "aizawaAttractor",
   "thomasAttractor",
   "halvorsenAttractor",
-  "noise",
-  "stereoNoise",
   "noiseGenerator",
   "randomWalk",
   "fractalBrownianNoise",
@@ -413,20 +411,10 @@ const nodeGraphModuleStoreCatalog = Object.freeze({
     label: "HalvorsenAttractor",
     notes: ["braided chaos", "dense orbit", "planned attractor"],
   },
-  noise: {
-    category: "Noise",
-    description: "Unstable broadband energy source for static, wind, percussion dust, and danger texture.",
-    notes: ["random source", "amplitude", "texture generator"],
-  },
-  stereoNoise: {
-    category: "Noise",
-    description: "Two independent broadband noise streams as X/Y vector outputs plus a summed mono output for clouds and textures.",
-    notes: ["x/y source", "independent channels", "amplitude"],
-  },
   noiseGenerator: {
     category: "Noise",
-    description: "Selectable random source for comparing uniform, gaussian, brown, pink, and crackle flavors side by side.",
-    notes: ["distribution choices", "seed control", "noise lab"],
+    description: "Stereo noise source with independent left/right channels and selectable uniform, gaussian, brown, pink, and crackle flavors.",
+    notes: ["stereo output", "distribution choices", "seed control"],
   },
   randomWalk: {
     category: "Noise",

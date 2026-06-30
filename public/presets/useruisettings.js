@@ -295,14 +295,6 @@
         "developer": true,
         "home": false
       },
-      "noise": {
-        "developer": true,
-        "home": false
-      },
-      "stereoNoise": {
-        "developer": true,
-        "home": false
-      },
       "noiseGenerator": {
         "developer": true,
         "home": false
@@ -612,15 +604,15 @@
       "commandCenter": {
         "open": true,
         "position": {
-          "left": 137,
-          "top": 439
+          "left": 318,
+          "top": 277
         }
       },
       "moduleActions": {
-        "open": false
+        "open": true
       },
       "metaparameters": {
-        "open": true
+        "open": false
       },
       "oscilloscopeSettings": {
         "open": false
@@ -628,70 +620,53 @@
       "patchExplorer": {
         "open": false,
         "position": {
-          "left": 98,
-          "top": 69
-        },
-        "size": {
-          "width": 171,
-          "height": 351
+          "left": 569,
+          "top": 512
         }
       },
       "moduleBrowser": {
         "open": true,
         "position": {
-          "left": 340,
-          "top": 107
+          "left": 49,
+          "top": 114
         },
         "size": {
-          "width": 164,
-          "height": 720
+          "width": 202,
+          "height": 657
         }
       },
       "visibilityMenu": {
-        "open": false,
-        "position": {
-          "left": 1553,
-          "top": 116
-        },
-        "size": {
-          "width": 136
-        }
+        "open": false
       },
       "uiSettings": {
-        "open": false,
+        "open": true,
         "position": {
-          "left": 477,
-          "top": 96
+          "left": 1528,
+          "top": 89
         }
       },
       "uiDev": {
         "open": false
       },
       "traceDisplaySettings": {
-        "open": false,
-        "locked": true,
-        "targetNode": "reverbEffect-1"
+        "open": false
       }
     },
-    "sharedInspectorActive": "metaparameters",
+    "sharedInspectorActive": "moduleActions",
     "sharedInspectorWindowState": {
       "position": {
-        "left": 1493,
-        "top": 233
-      },
-      "size": {
-        "width": 185,
-        "height": 620
+        "left": 1279,
+        "top": 186
       }
     },
     "workspaceView": {
       "pan": {
-        "x": 123.03571428571425,
-        "y": 408.1160714285714
+        "x": -574.0357142857143,
+        "y": -35.491071428571416
       },
-      "zoom": 0.7549238838327402
+      "zoom": 2.1591824360856156
     },
-    "moduleStoreDepartment": "",
+    "moduleStoreDepartment": "Noise",
     "savedPatchBankIndex": 0,
     "savedPatchBankName": "chaos",
     "savedPatchGridColumns": 3,
@@ -750,8 +725,8 @@
       "monitors": [],
       "nodes": [
         {
-          "gx": -2,
-          "gy": -27,
+          "gx": 6,
+          "gy": -4,
           "id": "output",
           "paramMeta": {
             "volume": {
@@ -779,7 +754,7 @@
             }
           },
           "params": {
-            "volume": 0.411323377374953
+            "volume": 0.640154150863261
           },
           "type": "output",
           "traceDisplaySettings": {
@@ -834,9 +809,9 @@
       },
       "uiItems": [],
       "view": {
-        "heightGu": 23,
-        "widthGu": 26,
-        "zoom": 0.7549238838327402
+        "heightGu": 28,
+        "widthGu": 50,
+        "zoom": 2.1591824360856156
       },
       "visual": {
         "background": {
@@ -861,7 +836,7 @@
         }
       }
     },
-    "currentSavedPatchFilename": "bank000-program000-lorenz-demonstration-chaos--lorenz--attractor--strange.json",
+    "currentSavedPatchFilename": "",
     "patchDirtyState": "edited"
   }
 });

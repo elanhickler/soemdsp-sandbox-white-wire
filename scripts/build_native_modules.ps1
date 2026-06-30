@@ -66,3 +66,35 @@ if (!(Test-Path -LiteralPath $clang)) {
   "-Wl,--export-memory" `
   -o "$root\native_modules\pll\pll.wasm" `
   "$root\native_modules\pll\pll.cpp"
+
+& $clang `
+  --target=wasm32 `
+  -O3 `
+  -nostdlib `
+  -fno-exceptions `
+  -fno-rtti `
+  "-Wl,--no-entry" `
+  "-Wl,--export=soemdsp_noise_generator_create" `
+  "-Wl,--export=soemdsp_noise_generator_destroy" `
+  "-Wl,--export=soemdsp_noise_generator_sample" `
+  "-Wl,--export=soemdsp_noise_generator_left" `
+  "-Wl,--export=soemdsp_noise_generator_right" `
+  "-Wl,--export=soemdsp_noise_generator_version" `
+  "-Wl,--export-memory" `
+  -o "$root\native_modules\noise_generator\noise_generator.wasm" `
+  "$root\native_modules\noise_generator\noise_generator.cpp"
+
+& $clang `
+  --target=wasm32 `
+  -O3 `
+  -nostdlib `
+  -fno-exceptions `
+  -fno-rtti `
+  "-Wl,--no-entry" `
+  "-Wl,--export=soemdsp_soft_clipper_sample" `
+  "-Wl,--export=soemdsp_soft_clipper_version" `
+  "-Wl,--export=soemdsp_soft_clipper_metadata_json" `
+  "-Wl,--export=soemdsp_soft_clipper_metadata_json_size" `
+  "-Wl,--export-memory" `
+  -o "$root\native_modules\soft_clipper\soft_clipper.wasm" `
+  "$root\native_modules\soft_clipper\soft_clipper.cpp"

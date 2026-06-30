@@ -199,8 +199,10 @@ function createNodeGraphPllState() {
 
 function createNodeGraphSampleHoldState() {
   return {
+    clockPhase: 0,
     held: 0,
     lastTrigger: 0,
+    noise: createNodeGraphNoiseGeneratorChannelState(),
   };
 }
 
@@ -290,23 +292,12 @@ function createNodeGraphFlowerChildEnvelopeFollowerState() {
   };
 }
 
-function createNodeGraphNoiseGeneratorState() {
-  return {
-    brown: 0,
-    gaussianSpare: null,
-    pink: [0, 0, 0, 0, 0, 0, 0],
-    seed: 0,
-    seedKey: "",
-  };
+function createNodeGraphNoiseGeneratorChannelState() {
+  return { brown: 0, gaussianSpare: null, pink: [0, 0, 0, 0, 0, 0, 0], seed: 0, seedKey: "" };
 }
 
-function createNodeGraphNoiseSampleHoldState() {
-  return {
-    held: 0,
-    initialized: false,
-    phase: 0,
-    seedKey: "",
-  };
+function createNodeGraphNoiseGeneratorState() {
+  return { left: createNodeGraphNoiseGeneratorChannelState(), right: createNodeGraphNoiseGeneratorChannelState() };
 }
 
 function createNodeGraphRandomWalkState() {
@@ -1208,11 +1199,24 @@ function nodeGraphPllSample(state, signalIn, cvIn, cvConnected, params, sampleRa
   }
 }
 
-function nodeGraphSampleHoldSample(state, input, trigger, threshold, runtime = null, nodeId = "") {
-  const safeInput = nodeGraphSafeFilterNumber(input, runtime, nodeId, null, "sample hold input");
+function nodeGraphSampleHoldSample(state, input, trigger, threshold, sampleFrequency, sampleRate, hasInConnected, runtime = null, nodeId = "") {
+  nodeGraphResetSeededState(state.noise, nodeId, 0, "sampleHoldNoise");
+  const safeInput = hasInConnected
+    ? nodeGraphSafeFilterNumber(input, runtime, nodeId, null, "sample hold input")
+    : nodeGraphNextSeededBipolar(state.noise);
   const safeTrigger = nodeGraphSafeFilterNumber(trigger, runtime, nodeId, null, "sample hold trigger");
   const safeThreshold = nodeGraphSafeFilterNumber(threshold, runtime, nodeId, null, "sample hold threshold");
-  if (state.lastTrigger <= safeThreshold && safeTrigger > safeThreshold) {
+  const safeFreq = Math.max(0, Number(sampleFrequency) || 0);
+  const safeRate = Math.max(1, Number(sampleRate) || 44100);
+  let internalFire = false;
+  if (safeFreq > 0) {
+    state.clockPhase += safeFreq / safeRate;
+    if (state.clockPhase >= 1) {
+      state.clockPhase -= Math.floor(state.clockPhase);
+      internalFire = true;
+    }
+  }
+  if ((state.lastTrigger <= safeThreshold && safeTrigger > safeThreshold) || internalFire) {
     state.held = safeInput;
   }
   state.lastTrigger = safeTrigger;
@@ -1487,34 +1491,45 @@ function nodeGraphNextSeededGaussian(state) {
   return magnitude * Math.cos(angle);
 }
 
-function nodeGraphNoiseGeneratorSample(state, params, runtime = null, nodeId = "") {
-  nodeGraphResetSeededState(state, nodeId, params.seed, "noiseGenerator");
-  const mode = Math.max(0, Math.min(4, Math.round(nodeGraphSafeFilterNumber(params.mode, runtime, nodeId, null, "noise generator mode"))));
-  const mean = nodeGraphSafeFilterNumber(params.mean, runtime, nodeId, null, "noise generator mean");
-  const deviation = Math.max(0, nodeGraphSafeFilterNumber(params.deviation, runtime, nodeId, null, "noise generator deviation"));
-  const level = nodeGraphSafeFilterNumber(params.level, runtime, nodeId, null, "noise generator level");
+function nodeGraphNoiseGeneratorChannelSample(state, mode, mean, deviation) {
   const white = nodeGraphNextSeededBipolar(state);
-  let output = white;
   if (mode === 1) {
-    output = mean + nodeGraphNextSeededGaussian(state) * deviation;
-  } else if (mode === 2) {
+    return mean + nodeGraphNextSeededGaussian(state) * deviation;
+  }
+  if (mode === 2) {
     state.brown = clampNodeSliderValue(state.brown + white * Math.max(0.001, deviation) * 0.05, -1, 1);
-    output = mean + state.brown;
-  } else if (mode === 3) {
+    return mean + state.brown;
+  }
+  if (mode === 3) {
     state.pink[0] = 0.99886 * state.pink[0] + white * 0.0555179;
     state.pink[1] = 0.99332 * state.pink[1] + white * 0.0750759;
     state.pink[2] = 0.969 * state.pink[2] + white * 0.153852;
     state.pink[3] = 0.8665 * state.pink[3] + white * 0.3104856;
     state.pink[4] = 0.55 * state.pink[4] + white * 0.5329522;
     state.pink[5] = -0.7616 * state.pink[5] - white * 0.016898;
-    output = mean + (state.pink[0] + state.pink[1] + state.pink[2] + state.pink[3] + state.pink[4] + state.pink[5] + state.pink[6] + white * 0.5362) * 0.11;
+    const out = mean + (state.pink[0] + state.pink[1] + state.pink[2] + state.pink[3] + state.pink[4] + state.pink[5] + state.pink[6] + white * 0.5362) * 0.11;
     state.pink[6] = white * 0.115926;
-  } else if (mode === 4) {
-    output = Math.abs(white) > 0.94 ? mean + Math.sign(white) * deviation : mean;
-  } else {
-    output = mean + white * deviation;
+    return out;
   }
-  return nodeGraphSafeFilterNumber(clampNodeSliderValue(output, -1, 1) * level, runtime, nodeId, null, "noise generator output");
+  if (mode === 4) {
+    return Math.abs(white) > 0.94 ? mean + Math.sign(white) * deviation : mean;
+  }
+  return mean + white * deviation;
+}
+
+function nodeGraphNoiseGeneratorSample(state, params, runtime = null, nodeId = "") {
+  nodeGraphResetSeededState(state.left, `${nodeId}:left`, params.seed, "noiseGenerator");
+  nodeGraphResetSeededState(state.right, `${nodeId}:right`, params.seed, "noiseGenerator");
+  const mode = Math.max(0, Math.min(4, Math.round(nodeGraphSafeFilterNumber(params.mode, runtime, nodeId, null, "noise generator mode"))));
+  const mean = nodeGraphSafeFilterNumber(params.mean, runtime, nodeId, null, "noise generator mean");
+  const deviation = Math.max(0, nodeGraphSafeFilterNumber(params.deviation, runtime, nodeId, null, "noise generator deviation"));
+  const level = nodeGraphSafeFilterNumber(params.level, runtime, nodeId, null, "noise generator level");
+  const left = clampNodeSliderValue(nodeGraphNoiseGeneratorChannelSample(state.left, mode, mean, deviation), -1, 1) * level;
+  const right = clampNodeSliderValue(nodeGraphNoiseGeneratorChannelSample(state.right, mode, mean, deviation), -1, 1) * level;
+  return {
+    "Left Out": nodeGraphSafeFilterNumber(left, runtime, nodeId, null, "noise generator left out"),
+    "Right Out": nodeGraphSafeFilterNumber(right, runtime, nodeId, null, "noise generator right out"),
+  };
 }
 
 function nodeGraphRationalCurve(value, skew) {
@@ -2405,72 +2420,6 @@ function evaluateNodeGraphPlanFrame(runtime, sampleRate, frame, frames) {
         nodeId,
         wrapNodeSliderValue(phase + Math.PI * 2 * phaseIncrement, 0, Math.PI * 2),
       );
-    } else if (node?.type === "noise") {
-      const state = runtime.noiseSampleHoldStates.get(nodeId) || createNodeGraphNoiseSampleHoldState();
-      runtime.noiseSampleHoldStates.set(nodeId, state);
-      const raw = nodeGraphNoiseSampleHoldSample(
-        runtime,
-        state,
-        nodeId,
-        readNodeGraphLiveEffectiveParam(
-          runtime,
-          node,
-          "seed",
-          1,
-          frame,
-          frames,
-          frameValues,
-        ),
-        readNodeGraphLiveEffectiveParam(
-          runtime,
-          node,
-          "speed",
-          1,
-          frame,
-          frames,
-          frameValues,
-        ),
-        sampleRate,
-      );
-      const level = readNodeGraphLiveEffectiveParam(
-        runtime,
-        node,
-        "level",
-        1,
-        frame,
-        frames,
-        frameValues,
-      );
-      value = {
-        Out: raw * level,
-        Raw: raw,
-      };
-    } else if (node?.type === "stereoNoise") {
-      const level = readNodeGraphLiveEffectiveParam(
-        runtime,
-        node,
-        "level",
-        1,
-        frame,
-        frames,
-        frameValues,
-      );
-      const seed = readNodeGraphLiveEffectiveParam(
-        runtime,
-        node,
-        "seed",
-        1,
-        frame,
-        frames,
-        frameValues,
-      );
-      const left = nextNodeGraphSeededNoiseSample(runtime, nodeId, seed, "left") * level;
-      const right = nextNodeGraphSeededNoiseSample(runtime, nodeId, seed, "right") * level;
-      value = {
-        Out: (left + right) * 0.5,
-        X: left,
-        Y: right,
-      };
     } else if (node?.type === "noiseGenerator") {
       const state = runtime.noiseGeneratorStates.get(nodeId) || createNodeGraphNoiseGeneratorState();
       runtime.noiseGeneratorStates.set(nodeId, state);
@@ -3124,6 +3073,9 @@ function evaluateNodeGraphPlanFrame(runtime, sampleRate, frame, frames) {
         mixInput(nodeId, "In"),
         mixInput(nodeId, "Trigger"),
         readNodeGraphLiveEffectiveParam(runtime, node, "threshold", 0, frame, frames, frameValues),
+        readNodeGraphLiveEffectiveParam(runtime, node, "sampleFrequency", 0, frame, frames, frameValues),
+        sampleRate,
+        hasInput(nodeId, "In"),
         runtime,
         nodeId,
       );

@@ -1727,47 +1727,6 @@ function nodeGraphModuleScopeStableSeed(text) {
   return seed || 0x12345678;
 }
 
-function nodeGraphModuleScopeAdvanceNoiseSeed(seed, steps) {
-  let delta = Math.max(0, Math.floor(Number(steps) || 0)) >>> 0;
-  let accumulatedMultiplier = 1;
-  let accumulatedIncrement = 0;
-  let currentMultiplier = 1664525;
-  let currentIncrement = 1013904223;
-  while (delta > 0) {
-    if (delta & 1) {
-      accumulatedMultiplier = Math.imul(accumulatedMultiplier, currentMultiplier) >>> 0;
-      accumulatedIncrement = (Math.imul(accumulatedIncrement, currentMultiplier) + currentIncrement) >>> 0;
-    }
-    currentIncrement = (Math.imul(currentMultiplier + 1, currentIncrement)) >>> 0;
-    currentMultiplier = Math.imul(currentMultiplier, currentMultiplier) >>> 0;
-    delta >>>= 1;
-  }
-  return (Math.imul(accumulatedMultiplier, seed >>> 0) + accumulatedIncrement) >>> 0;
-}
-
-function nodeGraphModuleScopeNoiseSeedToSample(seed) {
-  return ((seed >>> 0) / 0xffffffff) * 2 - 1;
-}
-
-function nodeGraphModuleScopeNoiseSeedKey(nodeId, seedValue, channel = "") {
-  const seed = Math.max(0, Math.min(99999, Math.floor(Number(seedValue) || 0)));
-  return `${nodeId}${channel ? `:${channel}` : ""}:seed:${seed}`;
-}
-
-function nodeGraphModuleScopeNoiseHoldSample(nodeId, seedValue, speed, sampleIndex, sampleRate) {
-  const safeSampleRate = Math.max(1, Number(sampleRate) || nodeGraphMvp.sampleRate || 44100);
-  const safeSpeed = clampNodeSliderValue(Number(speed) || 0, 0, 1);
-  const clockRate = safeSpeed * safeSampleRate * 0.5;
-  const holdIndex = clockRate > 0
-    ? Math.floor(Math.max(0, Number(sampleIndex) || 0) / Math.max(1, safeSampleRate / clockRate))
-    : 0;
-  const seed = nodeGraphModuleScopeAdvanceNoiseSeed(
-    nodeGraphModuleScopeStableSeed(nodeGraphModuleScopeNoiseSeedKey(nodeId, seedValue)),
-    holdIndex + 1,
-  );
-  return nodeGraphModuleScopeNoiseSeedToSample(seed);
-}
-
 function nodeGraphModuleScopeLinearToDb(value) {
   const amplitude = Math.abs(Number(value) || 0);
   return amplitude > 0.000001 ? 20 * Math.log10(amplitude) : -Infinity;
@@ -1971,13 +1930,6 @@ function nodeGraphModuleScopeOfflineSignalSample(context, nodeId, localTime, sam
       Number(nodeGraphModuleScopeState.sampleRate) || nodeGraphMvp.sampleRate || 44100,
     );
   }
-  if (node.type === "noise") {
-    const level = clampNodeSliderValue(nodeGraphModuleScopeNodeParam(node, "level", 0.5), 0, 1);
-    const seedValue = nodeGraphModuleScopeNodeParam(node, "seed", 1);
-    const speed = nodeGraphModuleScopeNodeParam(node, "speed", 1);
-    const sampleRate = Number(nodeGraphModuleScopeState.sampleRate) || nodeGraphMvp.sampleRate || 44100;
-    return nodeGraphModuleScopeNoiseHoldSample(node.id, seedValue, speed, sampleIndex, sampleRate) * level;
-  }
   if (node.type === "clock") {
     const rate = Math.max(0, nodeGraphModuleScopeNodeParam(node, "rate", 0));
     const duty = clampNodeSliderValue(nodeGraphModuleScopeNodeParam(node, "duty", 0.5), 0, 1);
@@ -2146,79 +2098,6 @@ function nodeGraphModuleScopeOscillatorPhasor(slot, frequency, cycles, modelTime
   phasor.lastTime = now;
   phasor.renderTime = now;
   return phasor;
-}
-
-function nodeGraphModuleScopeOfflineNoiseBuffer(slot) {
-  if (slot?.type !== "noise") {
-    return null;
-  }
-  const node = nodeGraphModuleScopeNodeForSlot(slot);
-  if (!node) {
-    return null;
-  }
-  const level = clampNodeSliderValue(nodeGraphModuleScopeNodeParam(node, "level", 0.5), 0, 1);
-  const seedValue = nodeGraphModuleScopeNodeParam(node, "seed", 1);
-  const speed = nodeGraphModuleScopeNodeParam(node, "speed", 1);
-  const sampleRate = Math.max(1, Number(nodeGraphModuleScopeState.sampleRate) || nodeGraphMvp.sampleRate || 44100);
-  const frames = 2048;
-  const currentSample = Math.max(0, Math.floor(nodeGraphModuleScopeModelFrameTime(slot) * sampleRate));
-  const startSample = Math.max(0, currentSample - frames);
-  const buffer = new Float32Array(frames);
-  for (let index = 0; index < frames; index += 1) {
-    buffer[index] = clampNodeSliderValue(
-      nodeGraphModuleScopeNoiseHoldSample(slot.nodeId, seedValue, speed, startSample + index, sampleRate) * level,
-      -1,
-      1,
-    );
-  }
-  buffer.nodeGraphScopeDrawProgress = 1;
-  buffer.nodeGraphScopeMinPointSpacingPx = 0.5;
-  buffer.nodeGraphScopeVisualPointLimit = 16384;
-  buffer.nodeGraphScopeUseFullWindow = true;
-  return buffer;
-}
-
-function nodeGraphModuleScopeOfflineStereoNoiseXyBuffer(slot) {
-  if (slot?.type !== "stereoNoise") {
-    return null;
-  }
-  const node = nodeGraphModuleScopeNodeForSlot(slot);
-  if (!node) {
-    return null;
-  }
-  const level = clampNodeSliderValue(nodeGraphModuleScopeNodeParam(node, "level", 0.5), 0, 1);
-  const seedValue = nodeGraphModuleScopeNodeParam(node, "seed", 1);
-  const sampleRate = Math.max(1, Number(nodeGraphModuleScopeState.sampleRate) || nodeGraphMvp.sampleRate || 44100);
-  const startSample = Math.max(0, Math.floor(nodeGraphModuleScopeModelFrameTime(slot) * sampleRate));
-  const frames = nodeGraphModuleScopeXyTraceFrameCount(16384);
-  const stride = 8;
-  const historySamples = frames * stride;
-  const historyStartSample = Math.max(0, startSample - historySamples);
-  const x = new Float32Array(frames);
-  const y = new Float32Array(frames);
-  let leftSeed = nodeGraphModuleScopeAdvanceNoiseSeed(
-    nodeGraphModuleScopeStableSeed(nodeGraphModuleScopeNoiseSeedKey(slot.nodeId, seedValue, "left")),
-    historyStartSample,
-  );
-  let rightSeed = nodeGraphModuleScopeAdvanceNoiseSeed(
-    nodeGraphModuleScopeStableSeed(nodeGraphModuleScopeNoiseSeedKey(slot.nodeId, seedValue, "right")),
-    historyStartSample,
-  );
-  for (let index = 0; index < frames; index += 1) {
-    leftSeed = nodeGraphModuleScopeAdvanceNoiseSeed(leftSeed, stride);
-    rightSeed = nodeGraphModuleScopeAdvanceNoiseSeed(rightSeed, stride);
-    x[index] = clampNodeSliderValue(nodeGraphModuleScopeNoiseSeedToSample(leftSeed) * level, -1, 1);
-    y[index] = clampNodeSliderValue(nodeGraphModuleScopeNoiseSeedToSample(rightSeed) * level, -1, 1);
-  }
-  return {
-    length: frames,
-    nodeGraphScopeDrawProgress: 1,
-    nodeGraphScopeUseFullWindow: true,
-    nodeGraphScopeVisualPointLimit: frames,
-    nodeGraphScopeXy: true,
-    x,
-    y,
-  };
 }
 
 function nodeGraphModuleScopeCapturedCurrentLightTarget(capturedBuffer) {
@@ -3340,11 +3219,7 @@ function nodeGraphModuleScopeOfflineConnectionSum(context, connections, localTim
 function nodeGraphModuleScopeDisplayBuffer(slot, capturedBuffer = null) {
   let buffer = null;
   const renderer = nodeGraphModuleDisplayRendererForSlot(slot);
-  if (slot?.type === "noise" && capturedBuffer) {
-    buffer = capturedBuffer;
-  } else if (slot?.type === "stereoNoise") {
-    buffer = nodeGraphModuleScopeCapturedStereoNoiseXyBuffer(slot, capturedBuffer) || capturedBuffer;
-  } else if (renderer === "scope2dTrace") {
+  if (renderer === "scope2dTrace") {
     const settings = nodeGraphScope2dTraceSettingsForNode(nodeGraphModuleScopeNodeForSlot(slot));
     const source = nodeGraphModuleScopeSlotUsesWiredInputs(slot)
       ? null
@@ -5130,36 +5005,6 @@ function nodeGraphModuleScopeCapturedScope2dBuffer(slot, options = {}) {
     nodeGraphScopeDrawProgress: 1,
     nodeGraphScopeStartFrame: startFrame,
     nodeGraphScopeUseFullWindow: true,
-    nodeGraphScopeXy: true,
-    x,
-    y,
-  };
-}
-
-function nodeGraphModuleScopeCapturedStereoNoiseXyBuffer(slot, capturedBuffer = null) {
-  if (slot?.type !== "stereoNoise") {
-    return null;
-  }
-  const xBuffer = nodeGraphModuleScopeState.buffers.get(`${slot.nodeId}:X`);
-  const yBuffer = nodeGraphModuleScopeState.buffers.get(`${slot.nodeId}:Y`);
-  const length = Math.min(xBuffer?.length || 0, yBuffer?.length || 0);
-  if (length <= 1) {
-    return null;
-  }
-  const frames = nodeGraphModuleScopeXyTraceFrameCount(length);
-  const start = Math.max(0, length - frames);
-  const x = new Float32Array(frames);
-  const y = new Float32Array(frames);
-  for (let index = 0; index < frames; index += 1) {
-    x[index] = Number(xBuffer[start + index]) || 0;
-    y[index] = Number(yBuffer[start + index]) || 0;
-  }
-  return {
-    length: frames,
-    nodeGraphScopeCapturedOutput: true,
-    nodeGraphScopeDrawProgress: 1,
-    nodeGraphScopeUseFullWindow: true,
-    nodeGraphScopeVisualPointLimit: frames,
     nodeGraphScopeXy: true,
     x,
     y,

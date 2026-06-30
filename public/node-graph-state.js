@@ -213,7 +213,6 @@ var nodeGraphMvp = {
     screenSpaceShader: 0,
     slewLimiter: 0,
     spiral: 0,
-    stereoNoise: 0,
     stepSequencer: 0,
     textBox: 0,
     triggerCounter: 0,

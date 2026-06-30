@@ -129,6 +129,10 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     this.nativeSabrinaReverbReady = false;
     this.nativePll = null;
     this.nativePllReady = false;
+    this.nativeNoiseGenerator = null;
+    this.nativeNoiseGeneratorReady = false;
+    this.nativeSoftClipper = null;
+    this.nativeSoftClipperReady = false;
     this.pllStates = new Map();
     this.fractalBrownianNoiseStates = new Map();
     this.graphInputConnections = new Map();
@@ -142,7 +146,6 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     this.lorenzAttractorStates = new Map();
     this.lowpassStates = new Map();
     this.noiseGeneratorStates = new Map();
-    this.noiseSampleHoldStates = new Map();
     this.oscResetStates = new Map();
     this.graphLfoStates = new Map();
     this.oscillatorLastPhaseIncrements = new Map();
@@ -416,6 +419,36 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
         });
         return;
       }
+      if (name === "noise_generator" || targetType === "noiseGenerator") {
+        for (const state of this.noiseGeneratorStates.values()) {
+          this.destroyNoiseGeneratorNativeState(state);
+        }
+        this.nativeNoiseGenerator = exports;
+        this.nativeNoiseGeneratorReady = Boolean(
+          this.nativeNoiseGenerator?.soemdsp_noise_generator_create &&
+          this.nativeNoiseGenerator?.soemdsp_noise_generator_sample &&
+          this.nativeNoiseGenerator?.soemdsp_noise_generator_left &&
+          this.nativeNoiseGenerator?.soemdsp_noise_generator_right,
+        );
+        this.port.postMessage({
+          type: "nativeModuleStatus",
+          name: "noise_generator",
+          status: this.nativeNoiseGeneratorReady ? "ready" : "missing exports",
+        });
+        return;
+      }
+      if (name === "soft_clipper" || targetType === "softClipper") {
+        this.nativeSoftClipper = exports;
+        this.nativeSoftClipperReady = Boolean(
+          this.nativeSoftClipper?.soemdsp_soft_clipper_sample,
+        );
+        this.port.postMessage({
+          type: "nativeModuleStatus",
+          name: "soft_clipper",
+          status: this.nativeSoftClipperReady ? "ready" : "missing exports",
+        });
+        return;
+      }
       this.port.postMessage({
         type: "nativeModuleStatus",
         name,
@@ -485,7 +518,6 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     this.lorenzAttractorStates = new Map();
     this.lowpassStates = new Map();
     this.noiseGeneratorStates = new Map();
-    this.noiseSampleHoldStates = new Map();
     this.oscResetStates = new Map();
     this.graphLfoStates = new Map();
     this.pluckEnvelopeStates = new Map();
@@ -696,16 +728,8 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       if (nodeLiveIsPolyBlepOscillatorType(node?.type) && !this.triangleStates.has(id)) {
         this.triangleStates.set(id, 0);
       }
-      if ((nodeLiveIsPolyBlepOscillatorType(node?.type) || node?.type === "noise") && !this.noiseSeeds.has(id)) {
+      if (nodeLiveIsPolyBlepOscillatorType(node?.type) && !this.noiseSeeds.has(id)) {
         this.noiseSeeds.set(id, this.stableSeed(id));
-      }
-      if (node?.type === "stereoNoise") {
-        if (!this.noiseSeeds.has(`${id}:left`)) {
-          this.noiseSeeds.set(`${id}:left`, this.stableSeed(`${id}:left`));
-        }
-        if (!this.noiseSeeds.has(`${id}:right`)) {
-          this.noiseSeeds.set(`${id}:right`, this.stableSeed(`${id}:right`));
-        }
       }
       if (node?.type === "spiral" && !this.spiralStates.has(id)) {
         this.spiralStates.set(id, this.createSpiralState());
@@ -772,9 +796,6 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       }
       if (node?.type === "noiseGenerator" && !this.noiseGeneratorStates.has(id)) {
         this.noiseGeneratorStates.set(id, this.createNoiseGeneratorState());
-      }
-      if (node?.type === "noise" && !this.noiseSampleHoldStates.has(id)) {
-        this.noiseSampleHoldStates.set(id, this.createNoiseSampleHoldState());
       }
       if (node?.type === "randomWalk" && !this.randomWalkStates.has(id)) {
         this.randomWalkStates.set(id, this.createRandomWalkState());
@@ -970,12 +991,8 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     }
     for (const id of [...this.noiseGeneratorStates.keys()]) {
       if (!ids.has(id)) {
+        this.destroyNoiseGeneratorNativeState(this.noiseGeneratorStates.get(id));
         this.noiseGeneratorStates.delete(id);
-      }
-    }
-    for (const id of [...this.noiseSampleHoldStates.keys()]) {
-      if (!ids.has(id)) {
-        this.noiseSampleHoldStates.delete(id);
       }
     }
     for (const id of [...this.randomWalkStates.keys()]) {
@@ -2277,41 +2294,6 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     return `${nodeId}${channel ? `:${channel}` : ""}:seed:${seed}`;
   }
 
-  nextSeededNoiseSample(nodeId, seedValue, channel = "") {
-    const noiseId = channel ? `${nodeId}:${channel}` : nodeId;
-    const seedKey = this.noiseSeedKey(nodeId, seedValue, channel);
-    if (this.noiseSeedKeys.get(noiseId) !== seedKey) {
-      this.noiseSeedKeys.set(noiseId, seedKey);
-      this.noiseSeeds.set(noiseId, this.stableSeed(seedKey));
-    }
-    return this.nextNoiseSample(noiseId);
-  }
-
-  noiseSampleHoldSample(state, nodeId, seedValue, speed, rate = sampleRate) {
-    const safeRate = Math.max(1, Number(rate) || sampleRate || 44100);
-    const safeSpeed = this.clampValue(Number(speed) || 0, 0, 1);
-    const seedKey = this.noiseSeedKey(nodeId, seedValue);
-    if (state.seedKey !== seedKey) {
-      state.seedKey = seedKey;
-      state.initialized = false;
-      state.phase = 0;
-    }
-    if (!state.initialized) {
-      state.held = this.nextSeededNoiseSample(nodeId, seedValue);
-      state.initialized = true;
-    }
-    const clockRate = safeSpeed * safeRate * 0.5;
-    if (clockRate <= 0) {
-      return state.held;
-    }
-    state.phase += clockRate / safeRate;
-    while (state.phase >= 1) {
-      state.phase -= 1;
-      state.held = this.nextSeededNoiseSample(nodeId, seedValue);
-    }
-    return state.held;
-  }
-
   polyBlep(phaseCycle, phaseIncrement) {
     const dt = this.clampValue(Math.abs(Number(phaseIncrement) || 0), 1e-6, 0.5);
     if (phaseCycle < dt) {
@@ -2782,8 +2764,10 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
 
   createSampleHoldState() {
     return {
+      clockPhase: 0,
       held: 0,
       lastTrigger: 0,
+      noise: this.createNoiseGeneratorChannelState(),
     };
   }
 
@@ -2873,23 +2857,19 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     };
   }
 
-  createNoiseGeneratorState() {
-    return {
-      brown: 0,
-      gaussianSpare: null,
-      pink: [0, 0, 0, 0, 0, 0, 0],
-      seed: 0,
-      seedKey: "",
-    };
+  createNoiseGeneratorChannelState() {
+    return { brown: 0, gaussianSpare: null, pink: [0, 0, 0, 0, 0, 0, 0], seed: 0, seedKey: "" };
   }
 
-  createNoiseSampleHoldState() {
-    return {
-      held: 0,
-      initialized: false,
-      phase: 0,
-      seedKey: "",
-    };
+  createNoiseGeneratorState() {
+    return { left: this.createNoiseGeneratorChannelState(), nativeHandle: 0, right: this.createNoiseGeneratorChannelState() };
+  }
+
+  destroyNoiseGeneratorNativeState(state) {
+    if (state.nativeHandle && this.nativeNoiseGenerator?.soemdsp_noise_generator_destroy) {
+      this.nativeNoiseGenerator.soemdsp_noise_generator_destroy(state.nativeHandle);
+      state.nativeHandle = 0;
+    }
   }
 
   createRandomWalkState() {
@@ -3202,7 +3182,6 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     runtime.linearEnvelopeStates = new Map();
     runtime.lowpassStates = new Map();
     runtime.noiseGeneratorStates = new Map();
-    runtime.noiseSampleHoldStates = new Map();
     runtime.oscResetStates = new Map();
     runtime.graphLfoStates = new Map();
     runtime.outputNode = plan?.outputNode || "output";
@@ -3260,12 +3239,8 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
         this.oscResetStates.set(id, this.createOscResetState());
         this.triangleStates.set(id, 0);
       }
-      if (nodeLiveIsPolyBlepOscillatorType(node?.type) || node?.type === "noise") {
+      if (nodeLiveIsPolyBlepOscillatorType(node?.type)) {
         this.noiseSeeds.set(id, this.stableSeed(id));
-      }
-      if (node?.type === "stereoNoise") {
-        this.noiseSeeds.set(`${id}:left`, this.stableSeed(`${id}:left`));
-        this.noiseSeeds.set(`${id}:right`, this.stableSeed(`${id}:right`));
       }
       if (node?.type === "spiral") this.spiralStates.set(id, this.createSpiralState());
       if (node?.type === "lorenzAttractor") this.lorenzAttractorStates.set(id, this.createLorenzAttractorState());
@@ -3291,7 +3266,6 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       if (node?.type === "expAdsr") this.expAdsrStates.set(id, this.createExpAdsrState());
       if (node?.type === "linearEnvelope") this.linearEnvelopeStates.set(id, this.createLinearEnvelopeState());
       if (node?.type === "noiseGenerator") this.noiseGeneratorStates.set(id, this.createNoiseGeneratorState());
-      if (node?.type === "noise") this.noiseSampleHoldStates.set(id, this.createNoiseSampleHoldState());
       if (node?.type === "randomWalk") this.randomWalkStates.set(id, this.createRandomWalkState());
       if (node?.type === "fractalBrownianNoise") this.fractalBrownianNoiseStates.set(id, this.createFractalBrownianNoiseState());
       if (node?.type === "flowerChildEnvelopeFollower") this.flowerChildEnvelopeFollowerStates.set(id, this.createFlowerChildEnvelopeFollowerState());
@@ -3637,6 +3611,31 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     const scaleY = 1 / scaleX;
     const shiftY = -shiftX * scaleY;
     return shiftY + scaleY * Math.tanh(scaleX * (Number(input) || 0) + shiftX);
+  }
+
+  nativeSoftClipperSample(input, center = 0, width = 2) {
+    if (!this.nativeSoftClipperReady || !this.nativeSoftClipper?.soemdsp_soft_clipper_sample) {
+      return this.softClipperSample(input, center, width);
+    }
+    try {
+      return this.safeFilterNumber(
+        this.nativeSoftClipper.soemdsp_soft_clipper_sample(
+          Number(input) || 0,
+          Number(center) || 0,
+          Number(width) || 2,
+        ),
+        null,
+      );
+    } catch (error) {
+      this.nativeSoftClipperReady = false;
+      this.port.postMessage({
+        type: "nativeModuleStatus",
+        name: "soft_clipper",
+        status: "disabled",
+        message: String(error?.message || error || "native Soft Clipper failed"),
+      });
+      return this.softClipperSample(input, center, width);
+    }
   }
 
   onePoleHighpassSample(state, input, frequency, rate = sampleRate) {
@@ -4301,11 +4300,24 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     return { "Left Dry": dryLeft, "Mono Dry": dryMono, "Right Dry": dryRight, "Left Mix": dryLeft, "Mono Mix": dryMono, "Right Mix": dryRight };
   }
 
-  sampleHoldSample(state, input, trigger, threshold) {
-    const safeInput = this.safeFilterNumber(input, null);
+  sampleHoldSample(state, input, trigger, threshold, sampleFrequency, sampleRate, hasInConnected, nodeId) {
+    this.resetSeededState(state.noise, nodeId, 0, "sampleHoldNoise");
+    const safeInput = hasInConnected
+      ? this.safeFilterNumber(input, null)
+      : this.nextSeededBipolar(state.noise);
     const safeTrigger = this.safeFilterNumber(trigger, null);
     const safeThreshold = this.safeFilterNumber(threshold, null);
-    if (state.lastTrigger <= safeThreshold && safeTrigger > safeThreshold) {
+    const safeFreq = Math.max(0, Number(sampleFrequency) || 0);
+    const safeRate = Math.max(1, Number(sampleRate) || 44100);
+    let internalFire = false;
+    if (safeFreq > 0) {
+      state.clockPhase += safeFreq / safeRate;
+      if (state.clockPhase >= 1) {
+        state.clockPhase -= Math.floor(state.clockPhase);
+        internalFire = true;
+      }
+    }
+    if ((state.lastTrigger <= safeThreshold && safeTrigger > safeThreshold) || internalFire) {
       state.held = safeInput;
     }
     state.lastTrigger = safeTrigger;
@@ -4577,34 +4589,55 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     return magnitude * Math.cos(angle);
   }
 
+  noiseGeneratorChannelSample(chanState, mode, mean, deviation) {
+    const white = this.nextSeededBipolar(chanState);
+    if (mode === 1) {
+      return mean + this.nextSeededGaussian(chanState) * deviation;
+    }
+    if (mode === 2) {
+      chanState.brown = this.clampValue(chanState.brown + white * Math.max(0.001, deviation) * 0.05, -1, 1);
+      return mean + chanState.brown;
+    }
+    if (mode === 3) {
+      chanState.pink[0] = 0.99886 * chanState.pink[0] + white * 0.0555179;
+      chanState.pink[1] = 0.99332 * chanState.pink[1] + white * 0.0750759;
+      chanState.pink[2] = 0.969   * chanState.pink[2] + white * 0.153852;
+      chanState.pink[3] = 0.8665  * chanState.pink[3] + white * 0.3104856;
+      chanState.pink[4] = 0.55    * chanState.pink[4] + white * 0.5329522;
+      chanState.pink[5] = -0.7616 * chanState.pink[5] - white * 0.016898;
+      const out = mean + (chanState.pink[0] + chanState.pink[1] + chanState.pink[2] + chanState.pink[3] + chanState.pink[4] + chanState.pink[5] + chanState.pink[6] + white * 0.5362) * 0.11;
+      chanState.pink[6] = white * 0.115926;
+      return out;
+    }
+    if (mode === 4) {
+      return Math.abs(white) > 0.94 ? mean + Math.sign(white) * deviation : mean;
+    }
+    return mean + white * deviation;
+  }
+
   noiseGeneratorSample(state, params, nodeId) {
-    this.resetSeededState(state, nodeId, params.seed, "noiseGenerator");
     const mode = Math.max(0, Math.min(4, Math.round(this.safeFilterNumber(params.mode, null))));
     const mean = this.safeFilterNumber(params.mean, null);
     const deviation = Math.max(0, this.safeFilterNumber(params.deviation, null));
     const level = this.safeFilterNumber(params.level, null);
-    const white = this.nextSeededBipolar(state);
-    let output = white;
-    if (mode === 1) {
-      output = mean + this.nextSeededGaussian(state) * deviation;
-    } else if (mode === 2) {
-      state.brown = this.clampValue(state.brown + white * Math.max(0.001, deviation) * 0.05, -1, 1);
-      output = mean + state.brown;
-    } else if (mode === 3) {
-      state.pink[0] = 0.99886 * state.pink[0] + white * 0.0555179;
-      state.pink[1] = 0.99332 * state.pink[1] + white * 0.0750759;
-      state.pink[2] = 0.969 * state.pink[2] + white * 0.153852;
-      state.pink[3] = 0.8665 * state.pink[3] + white * 0.3104856;
-      state.pink[4] = 0.55 * state.pink[4] + white * 0.5329522;
-      state.pink[5] = -0.7616 * state.pink[5] - white * 0.016898;
-      output = mean + (state.pink[0] + state.pink[1] + state.pink[2] + state.pink[3] + state.pink[4] + state.pink[5] + state.pink[6] + white * 0.5362) * 0.11;
-      state.pink[6] = white * 0.115926;
-    } else if (mode === 4) {
-      output = Math.abs(white) > 0.94 ? mean + Math.sign(white) * deviation : mean;
-    } else {
-      output = mean + white * deviation;
+    const seed = this.safeFilterNumber(params.seed, null);
+    if (this.nativeNoiseGeneratorReady) {
+      if (!state.nativeHandle) {
+        state.nativeHandle = this.nativeNoiseGenerator.soemdsp_noise_generator_create();
+      }
+      if (state.nativeHandle) {
+        this.nativeNoiseGenerator.soemdsp_noise_generator_sample(state.nativeHandle, seed, mode, mean, deviation, level);
+        return {
+          "Left Out": this.safeFilterNumber(this.nativeNoiseGenerator.soemdsp_noise_generator_left(state.nativeHandle), null),
+          "Right Out": this.safeFilterNumber(this.nativeNoiseGenerator.soemdsp_noise_generator_right(state.nativeHandle), null),
+        };
+      }
     }
-    return this.safeFilterNumber(this.clampValue(output, -1, 1) * level, null);
+    this.resetSeededState(state.left, `${nodeId}:left`, seed, "noiseGenerator");
+    this.resetSeededState(state.right, `${nodeId}:right`, seed, "noiseGenerator");
+    const left = this.safeFilterNumber(this.clampValue(this.noiseGeneratorChannelSample(state.left, mode, mean, deviation), -1, 1) * level, null);
+    const right = this.safeFilterNumber(this.clampValue(this.noiseGeneratorChannelSample(state.right, mode, mean, deviation), -1, 1) * level, null);
+    return { "Left Out": left, "Right Out": right };
   }
 
   rationalCurve(value, skew) {
@@ -5436,31 +5469,6 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
           nodeId,
           this.wrapValue(phase + Math.PI * 2 * phaseIncrement, 0, Math.PI * 2),
         );
-      } else if (node?.type === "noise") {
-        const state = this.noiseSampleHoldStates.get(nodeId) || this.createNoiseSampleHoldState();
-        this.noiseSampleHoldStates.set(nodeId, state);
-        const raw = this.noiseSampleHoldSample(
-          state,
-          nodeId,
-          this.readEffectiveParameter(node, "seed", 1, frame, frames, frameValues),
-          this.readEffectiveParameter(node, "speed", 1, frame, frames, frameValues),
-          safeRate,
-        );
-        const level = this.readEffectiveParameter(node, "level", 1, frame, frames, frameValues);
-        value = {
-          Out: raw * level,
-          Raw: raw,
-        };
-      } else if (node?.type === "stereoNoise") {
-        const level = this.readEffectiveParameter(node, "level", 1, frame, frames, frameValues);
-        const seed = this.readEffectiveParameter(node, "seed", 1, frame, frames, frameValues);
-        const left = this.nextSeededNoiseSample(nodeId, seed, "left") * level;
-        const right = this.nextSeededNoiseSample(nodeId, seed, "right") * level;
-        value = {
-          Out: (left + right) * 0.5,
-          X: left,
-          Y: right,
-        };
       } else if (node?.type === "noiseGenerator") {
         const state = this.noiseGeneratorStates.get(nodeId) || this.createNoiseGeneratorState();
         this.noiseGeneratorStates.set(nodeId, state);
@@ -5859,7 +5867,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
         value = mixInput(nodeId) +
           this.readEffectiveParameter(node, "offset", 0, frame, frames, frameValues);
       } else if (node?.type === "softClipper") {
-        value = this.softClipperSample(
+        value = this.nativeSoftClipperSample(
           mixInput(nodeId),
           this.readEffectiveParameter(node, "center", 0, frame, frames, frameValues),
           this.readEffectiveParameter(node, "width", 2, frame, frames, frameValues),
@@ -6029,6 +6037,10 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
           mixInput(nodeId, "In"),
           mixInput(nodeId, "Trigger"),
           this.readEffectiveParameter(node, "threshold", 0, frame, frames, frameValues),
+          this.readEffectiveParameter(node, "sampleFrequency", 0, frame, frames, frameValues),
+          safeRate,
+          hasInput(nodeId, "In"),
+          nodeId,
         );
       } else if (node?.type === "expAdsr") {
         const state = this.expAdsrStates.get(nodeId) || this.createExpAdsrState();

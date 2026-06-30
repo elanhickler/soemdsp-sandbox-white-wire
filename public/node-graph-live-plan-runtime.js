@@ -251,7 +251,6 @@ function createNodeGraphLiveRuntime(plan) {
   const lowpassStates = new Map();
   const moduleGroupRuntimes = new Map();
   const noiseGeneratorStates = new Map();
-  const noiseSampleHoldStates = new Map();
   const oscillatorLastPhaseIncrements = new Map();
   const oscillatorStoppedSamples = new Map();
   const patchCommandStates = new Map();
@@ -278,12 +277,8 @@ function createNodeGraphLiveRuntime(plan) {
       oscResetStates.set(node.id, createNodeGraphOscResetState());
       triangleStates.set(node.id, 0);
     }
-    if (nodeGraphModuleIsRealtimeOscillatorType(node.type) || node.type === "noise") {
+    if (nodeGraphModuleIsRealtimeOscillatorType(node.type)) {
       noiseSeeds.set(node.id, nodeGraphStableSeed(node.id));
-    }
-    if (node.type === "stereoNoise") {
-      noiseSeeds.set(`${node.id}:left`, nodeGraphStableSeed(`${node.id}:left`));
-      noiseSeeds.set(`${node.id}:right`, nodeGraphStableSeed(`${node.id}:right`));
     }
     if (node.type === "spiral") {
       spiralStates.set(node.id, createJerobeamSpiralState());
@@ -350,9 +345,6 @@ function createNodeGraphLiveRuntime(plan) {
     }
     if (node.type === "noiseGenerator") {
       noiseGeneratorStates.set(node.id, createNodeGraphNoiseGeneratorState());
-    }
-    if (node.type === "noise") {
-      noiseSampleHoldStates.set(node.id, createNodeGraphNoiseSampleHoldState());
     }
     if (node.type === "randomWalk") {
       randomWalkStates.set(node.id, createNodeGraphRandomWalkState());
@@ -440,7 +432,6 @@ function createNodeGraphLiveRuntime(plan) {
     noiseSeedKeys,
     noiseSeeds,
     noiseGeneratorStates,
-    noiseSampleHoldStates,
     pluckEnvelopeStates,
     randomClockStates,
     highpassStates,
@@ -582,9 +573,6 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
   if (!runtime.noiseGeneratorStates) {
     runtime.noiseGeneratorStates = new Map();
   }
-  if (!runtime.noiseSampleHoldStates) {
-    runtime.noiseSampleHoldStates = new Map();
-  }
   if (!runtime.randomWalkStates) {
     runtime.randomWalkStates = new Map();
   }
@@ -632,16 +620,8 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
     if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.triangleStates.has(node.id)) {
       runtime.triangleStates.set(node.id, 0);
     }
-    if ((nodeGraphModuleIsRealtimeOscillatorType(node.type) || node.type === "noise") && !runtime.noiseSeeds.has(node.id)) {
+    if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.noiseSeeds.has(node.id)) {
       runtime.noiseSeeds.set(node.id, nodeGraphStableSeed(node.id));
-    }
-    if (node.type === "stereoNoise") {
-      if (!runtime.noiseSeeds.has(`${node.id}:left`)) {
-        runtime.noiseSeeds.set(`${node.id}:left`, nodeGraphStableSeed(`${node.id}:left`));
-      }
-      if (!runtime.noiseSeeds.has(`${node.id}:right`)) {
-        runtime.noiseSeeds.set(`${node.id}:right`, nodeGraphStableSeed(`${node.id}:right`));
-      }
     }
     if (node.type === "spiral" && !runtime.spiralStates.has(node.id)) {
       runtime.spiralStates.set(node.id, createJerobeamSpiralState());
@@ -708,9 +688,6 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
     }
     if (node.type === "noiseGenerator" && !runtime.noiseGeneratorStates.has(node.id)) {
       runtime.noiseGeneratorStates.set(node.id, createNodeGraphNoiseGeneratorState());
-    }
-    if (node.type === "noise" && !runtime.noiseSampleHoldStates.has(node.id)) {
-      runtime.noiseSampleHoldStates.set(node.id, createNodeGraphNoiseSampleHoldState());
     }
     if (node.type === "randomWalk" && !runtime.randomWalkStates.has(node.id)) {
       runtime.randomWalkStates.set(node.id, createNodeGraphRandomWalkState());
@@ -916,11 +893,6 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
   for (const id of [...runtime.noiseGeneratorStates.keys()]) {
     if (!nodeIds.has(id)) {
       runtime.noiseGeneratorStates.delete(id);
-    }
-  }
-  for (const id of [...runtime.noiseSampleHoldStates.keys()]) {
-    if (!nodeIds.has(id)) {
-      runtime.noiseSampleHoldStates.delete(id);
     }
   }
   for (const id of [...runtime.randomWalkStates.keys()]) {

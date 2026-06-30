@@ -566,9 +566,7 @@ function compileNodeGraphExecutionPlan(patch = nodeGraphMvp.patch) {
       type === "additiveOsc" ||
       type === "gpuAdditiveOsc" ||
       type === "randomWalk" ||
-      type === "spiral" ||
-      type === "stereoNoise" ||
-      type === "noise";
+      type === "spiral";
   });
   const inactiveNodes = graph.nodes
     .filter((node) => !reachableNodes.has(node.id))
