@@ -1306,8 +1306,10 @@ function fillNodeMetadataPopover(slider) {
   populateNodeMetadataKindChoices();
   const metadata = nodeSliderMetadata(slider);
   const sliderLabel = nodeSliderLabelText(slider);
-  document.getElementById("metadataPopoverTitle").textContent = "PARAMETER";
-  document.getElementById("metadataPopoverSubtitle").textContent = "Settings";
+  const moduleNodeId = slider.closest(".dsp-node")?.dataset.node;
+  const moduleLabel = moduleNodeId ? nodeGraphNodeDisplayName(moduleNodeId) : "";
+  document.getElementById("metadataPopoverTitle").textContent = sliderLabel || "PARAMETER";
+  document.getElementById("metadataPopoverSubtitle").textContent = moduleLabel || "Settings";
   document.getElementById("metadataScriptTarget").textContent = sliderLabel;
   document.getElementById("metadataAliasValue").placeholder = sliderLabel;
   writeNodeMetadataEditorValues(metadata);
