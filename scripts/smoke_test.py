@@ -12686,15 +12686,84 @@ def require_node_graph_mvp_contract() -> None:
     require('"lineBurnOscilloscope"' in module_store_source and 'label: "1D Burn"' in module_store_source, "1D Burn oscilloscope should exist")
     require('"scope2d"' in module_store_source and 'label: "2D Burn"' in module_store_source, "2D Burn oscilloscope should exist")
     require('"scope2dTrace"' in module_store_source and 'label: "2D Trace"' in module_store_source, "2D Trace oscilloscope should exist")
-    require('"dotOscilloscope",\n  "valueOscilloscope",\n  "lineBurnOscilloscope",\n  "scope2d",\n  "scope2dTrace"' in module_store_source, "Oscilloscope modules should be listed together")
+    require('"dotOscilloscope",\n  "valueOscilloscope",\n  "numberReadout",\n  "lineBurnOscilloscope",\n  "scope2d",\n  "scope2dTrace"' in module_store_source, "Oscilloscope modules should be listed together")
     require('nodeGraphModuleStoreUnderConstructionTypes = Object.freeze(new Set([\n  "groupInput",\n  "groupOutput",\n  "shootingStarTail",\n]));' in module_store_source, "Only group portals and shooting star tail should remain under construction in the store set")
-    for oscilloscope_type in ["dotOscilloscope", "valueOscilloscope", "lineBurnOscilloscope", "scope2d", "scope2dTrace"]:
+    for oscilloscope_type in ["dotOscilloscope", "valueOscilloscope", "numberReadout", "lineBurnOscilloscope", "scope2d", "scope2dTrace"]:
         require(f"{oscilloscope_type}: {{" in module_definitions_source, f"{oscilloscope_type} should have a spawnable module definition")
     require('displayType: "dot"' in module_definitions_source, "0D Burn oscilloscope should declare dot display type")
     require('displayType: "value"' in module_definitions_source, "0D Value oscilloscope should declare value display type")
     require('displayType: "lineBurn"' in module_definitions_source, "1D Burn oscilloscope should declare lineBurn display type")
     require('displayType: "scope2d"' in module_definitions_source, "2D Burn should declare scope2d display type")
     require('displayType: "scope2dTrace"' in module_definitions_source, "2D Trace should declare scope2dTrace display type")
+    require('displayType: "numberReadout"' in module_definitions_source, "Number Readout should declare its own numberReadout display type")
+    require(
+        'numberReadout: {\n    bufferedInputs: ["In"],\n    displayHeightGu: 1,\n    displayType: "numberReadout",' in module_definitions_source
+        and 'outputs: []' in module_definitions_source,
+        "Number Readout should be its own module type, not a variant of 0D Value, with no audio outputs and a 1gu minimum height",
+    )
+    number_readout_defaults_start = node_graph_source.index("const nodeGraphNumberReadoutSettingsDefaults")
+    number_readout_defaults_end = node_graph_source.index("const nodeGraphScope2dSettingsDefaults", number_readout_defaults_start)
+    number_readout_defaults_source = node_graph_source[number_readout_defaults_start:number_readout_defaults_end]
+    number_readout_normalize_start = node_graph_source.index("function normalizeNodeGraphNumberReadoutSettings")
+    number_readout_normalize_end = node_graph_source.index("function normalizeNodeGraphScope2dSettings", number_readout_normalize_start)
+    number_readout_normalize_source = node_graph_source[number_readout_normalize_start:number_readout_normalize_end]
+    require(
+        "const nodeGraphNumberReadoutSettingsDefaults = Object.freeze({" in number_readout_defaults_source
+        and "brightness: 0.92," in number_readout_defaults_source
+        and "color: \"#75ebff\"," in number_readout_defaults_source
+        and "decimals: 2," in number_readout_defaults_source
+        and "zoomSeconds" not in number_readout_defaults_source
+        and "cycles" not in number_readout_defaults_source
+        and "burn" not in number_readout_defaults_source
+        and "decay" not in number_readout_defaults_source
+        and "capSize" not in number_readout_defaults_source
+        and "capLength" not in number_readout_defaults_source
+        and "lineThickness" not in number_readout_defaults_source
+        and "scale" not in number_readout_defaults_source
+        and "sourceSync" not in number_readout_defaults_source
+        and "skipDiscontinuities" not in number_readout_defaults_source
+        and "function normalizeNodeGraphNumberReadoutSettings(settings = {})" in number_readout_normalize_source
+        and "zoomSeconds" not in number_readout_normalize_source
+        and "cycles" not in number_readout_normalize_source
+        and "burn" not in number_readout_normalize_source
+        and "decay" not in number_readout_normalize_source
+        and "capSize" not in number_readout_normalize_source
+        and "capLength" not in number_readout_normalize_source
+        and "lineThickness" not in number_readout_normalize_source
+        and "scale" not in number_readout_normalize_source
+        and "sourceSync" not in number_readout_normalize_source
+        and "skipDiscontinuities" not in number_readout_normalize_source,
+        "Number Readout settings must not inherit Trace, Dot, Caps, Burn, Zoom, Sync, or 2D fields",
+    )
+    require(
+        'numberReadout: Object.freeze({\n    fields: Object.freeze(["decimals", "dot1Brightness"]),\n    colors: Object.freeze(["dot1Color"]),\n    toggles: Object.freeze([]),' in node_graph_source,
+        "Number Readout active display-settings controls should be limited to decimals, brightness, and color",
+    )
+    require(
+        '} else if (slot?.type === "numberReadout") {\n    // Number Readout must only ever show real captured input' in node_graph_source
+        and "buffer = capturedBuffer;" in node_graph_source,
+        "Number Readout must read only real captured input, never an offline model-guess buffer",
+    )
+    require(
+        "function nodeGraphNumberReadoutCanvasForSlot(slot)" in node_graph_source
+        and '.node-number-readout-canvas' in node_graph_source
+        and "function syncNodeGraphNumberReadoutCanvas(canvas, screenElement, pixelRatio)" in node_graph_source
+        and "nodeGraphScope2dBurnCanvasForSlot" not in node_graph_source[
+            node_graph_source.index("function nodeGraphNumberReadoutCanvasForSlot"):
+            node_graph_source.index("function drawNodeGraphNumberReadoutItem")
+        ],
+        "Number Readout should own a dedicated canvas, not the shared 1D/2D burn retained canvas",
+    )
+    require(
+        "canvas._nodeGraphNumberReadoutText === text" in node_graph_source
+        and "canvas._nodeGraphNumberReadoutColor === settings.color" in node_graph_source
+        and "canvas._nodeGraphNumberReadoutBrightness === settings.brightness" in node_graph_source,
+        "Number Readout should redraw only when the formatted value or its style changes, not per sample",
+    )
+    require(
+        'if (displayRenderer === "numberReadout") {\n    drawNodeGraphNumberReadoutItem(renderer, item, pixelRatio);' in node_graph_source,
+        "Number Readout should have its own renderer dispatch entry",
+    )
     require(
         'if (nodeGraphModuleDefinitions?.[type]) {\n    return "trace";\n  }' in node_graph_source
         and 'nodeGraphModuleDisplayRendererForNode(node) !== "legacy"' in script_sources["./public/node-graph-execution-plan.js"],

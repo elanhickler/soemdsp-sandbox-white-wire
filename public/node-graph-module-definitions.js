@@ -77,6 +77,7 @@ const nodeGraphNodeLabels = Object.freeze({
   traceDisplay: "1D Trace",
   dotOscilloscope: "0D Burn",
   valueOscilloscope: "0D Value",
+  numberReadout: "Number Readout",
   lineBurnOscilloscope: "1D Burn",
   scope2d: "2D Burn",
   scope2dTrace: "2D Trace",
@@ -2016,6 +2017,19 @@ const nodeGraphModuleDefinitions = Object.freeze({
     parameters: [],
     visualInputs: [
       { key: "valueOscilloscope", label: "In", port: "In" },
+    ],
+    visualSink: true,
+  },
+  numberReadout: {
+    bufferedInputs: ["In"],
+    displayHeightGu: 1,
+    displayType: "numberReadout",
+    inputs: ["In"],
+    layout: "traceDisplay",
+    outputs: [],
+    parameters: [],
+    visualInputs: [
+      { key: "numberReadout", label: "In", port: "In" },
     ],
     visualSink: true,
   },

@@ -2330,6 +2330,15 @@ const nodeGraphValueOscilloscopeSettingsDefaults = Object.freeze({
   lineThickness: 0.2,
 });
 
+// numberReadout owns a fully independent schema: only decimals, color, and
+// brightness. It deliberately does not carry any Trace/Dot/Caps/Burn/Zoom/
+// Sync/2D field so those renderers' settings can never leak into it.
+const nodeGraphNumberReadoutSettingsDefaults = Object.freeze({
+  brightness: 0.92,
+  color: "#75ebff",
+  decimals: 2,
+});
+
 const nodeGraphScope2dSettingsDefaults = Object.freeze({
   burn: 0.82,
   decay: 0.12,
@@ -2537,6 +2546,21 @@ function normalizeNodeGraphValueOscilloscopeSettings(settings = {}) {
   };
 }
 
+function normalizeNodeGraphNumberReadoutSettings(settings = {}) {
+  const source = settings && typeof settings === "object" ? settings : {};
+  const defaults = nodeGraphNumberReadoutSettingsDefaults;
+  return {
+    brightness: normalizeNodeGraphTraceDisplayNumber(
+      source.brightness ?? source.dot1Brightness,
+      defaults.brightness,
+      0,
+      2,
+    ),
+    color: normalizeNodeGraphTraceDisplayColor(source.color ?? source.dot1Color, defaults.color),
+    decimals: normalizeNodeGraphTraceDisplayNumber(source.decimals, defaults.decimals, 0, 8, true),
+  };
+}
+
 function normalizeNodeGraphScope2dSettings(settings = {}) {
   const source = settings && typeof settings === "object" ? settings : {};
   const defaults = nodeGraphScope2dSettingsDefaults;
@@ -2632,6 +2656,13 @@ function nodeGraphLineBurnSettingsForNode(node) {
   return normalizeNodeGraphLineBurnSettings(node.traceDisplaySettings);
 }
 
+function nodeGraphNumberReadoutSettingsForNode(node) {
+  if (!node) {
+    return normalizeNodeGraphNumberReadoutSettings();
+  }
+  return normalizeNodeGraphNumberReadoutSettings(node.traceDisplaySettings);
+}
+
 function nodeGraphScope2dSettingsForNode(node) {
   if (!node) {
     return normalizeNodeGraphScope2dSettings();
@@ -2662,7 +2693,7 @@ function nodeGraphTraceDisplaySettingsEditingTraceDefaults() {
   return nodeGraphModuleDisplaySettingsSchemaForNode(node) === "trace";
 }
 
-const nodeGraphDisplayModeRenderers = Object.freeze(["trace", "clock", "dot", "value", "lineBurn", "scope2d", "scope2dTrace"]);
+const nodeGraphDisplayModeRenderers = Object.freeze(["trace", "clock", "dot", "value", "lineBurn", "scope2d", "scope2dTrace", "numberReadout"]);
 const nodeGraphDisplayModeSignalKinds = Object.freeze(["scalar", "xy", "buffer"]);
 
 function nodeGraphDisplayModeSettingsSchemaForRenderer(renderer) {
@@ -2837,7 +2868,7 @@ function nodeGraphModuleDisplayTypeForSlot(slot) {
 }
 
 function nodeGraphModuleScopeSlotUsesWiredInputs(slot) {
-  return ["traceDisplay", "dotOscilloscope", "valueOscilloscope", "lineBurnOscilloscope", "scope2d", "scope2dTrace", "visualOscilloscope"].includes(slot?.type);
+  return ["traceDisplay", "dotOscilloscope", "valueOscilloscope", "lineBurnOscilloscope", "scope2d", "scope2dTrace", "visualOscilloscope", "numberReadout"].includes(slot?.type);
 }
 
 function nodeGraphModuleDisplaySourceForSlot(slot) {
@@ -3256,6 +3287,10 @@ function nodeGraphModuleScopeDisplayBuffer(slot, capturedBuffer = null) {
       : {}) || capturedBuffer;
   } else if (slot?.type === "valueOscilloscope") {
     buffer = capturedBuffer;
+  } else if (slot?.type === "numberReadout") {
+    // Number Readout must only ever show real captured input — never an
+    // offline model guess. No fallback chain here on purpose.
+    buffer = capturedBuffer;
   } else if (slot?.type === "clock") {
     buffer = nodeGraphModuleScopeDotOscilloscopeLightBuffer(capturedBuffer) ||
       nodeGraphModuleScopeOfflineClockBlinkBuffer(slot, capturedBuffer);
@@ -3296,6 +3331,7 @@ const nodeGraphTraceDisplaySettingFields = Object.freeze([
   ["decay", "Decay"],
   ["padding", "Amp"],
   ["cycles", "Cycles"],
+  ["decimals", "Decimals"],
 
   ["dot1Size", "Dot 1 size"],
   ["lineThickness", "Dot 1 blur"],
@@ -3404,6 +3440,12 @@ const nodeGraphTraceDisplayActiveControlsByType = Object.freeze({
     toggles: Object.freeze(["dot1Enabled", "dot2Enabled"]),
     choices: Object.freeze([]),
   }),
+  numberReadout: Object.freeze({
+    fields: Object.freeze(["decimals", "dot1Brightness"]),
+    colors: Object.freeze(["dot1Color"]),
+    toggles: Object.freeze([]),
+    choices: Object.freeze([]),
+  }),
 });
 
 function nodeGraphTraceDisplayActiveControlsForType(type = nodeGraphTraceDisplaySettingsFormType()) {
@@ -3434,7 +3476,7 @@ const nodeGraphTraceDisplaySectionControls = Object.freeze({
     choices: Object.freeze([]),
   }),
   trace: Object.freeze({
-    fields: Object.freeze(["burn", "decay", "zoomSeconds", "historySeconds", "scale", "padding"]),
+    fields: Object.freeze(["burn", "decay", "zoomSeconds", "historySeconds", "scale", "padding", "decimals"]),
     colors: Object.freeze([]),
     toggles: Object.freeze(["sourceSync", "skipDiscontinuities"]),
     choices: Object.freeze([]),
@@ -3570,6 +3612,14 @@ function nodeGraphTraceDisplaySettingsElement() {
             <button type="button" data-trace-display-step-target="cycles" data-trace-display-step-direction="-1">-</button>
             <input id="nodeTraceDisplayCycles" type="text" inputmode="decimal" data-trace-display-field="cycles">
             <button type="button" data-trace-display-step-target="cycles" data-trace-display-step-direction="1">+</button>
+          </span>
+        </label>
+        <label class="node-trace-display-trace-thickness-row">
+          <span>Decimals</span>
+          <span class="metadata-stepper-control">
+            <button type="button" data-trace-display-step-target="decimals" data-trace-display-step-direction="-1">-</button>
+            <input id="nodeTraceDisplayDecimals" type="text" inputmode="decimal" data-trace-display-field="decimals">
+            <button type="button" data-trace-display-step-target="decimals" data-trace-display-step-direction="1">+</button>
           </span>
         </label>
         <label class="node-trace-display-dot2-thickness-row">
@@ -3874,7 +3924,9 @@ function setNodeGraphTraceDisplaySettingsFormType(node = null) {
           ? "2D"
           : formType === "scope2dTrace"
             ? "Trace"
-            : "Trace";
+            : formType === "numberReadout"
+              ? "Readout"
+              : "Trace";
   }
   setNodeGraphTraceDisplaySectionVisible(popover, "value", nodeGraphTraceDisplaySectionHasActiveControls("value", formType));
   setNodeGraphTraceDisplaySectionVisible(popover, "dot1", nodeGraphTraceDisplaySectionHasActiveControls("dot1", formType));
@@ -3910,6 +3962,9 @@ function nodeGraphDisplaySettingsDefaultsForFormType(type = nodeGraphTraceDispla
   if (type === "scope2dTrace") {
     return normalizeNodeGraphScope2dTraceSettings(nodeGraphScope2dTraceSettingsDefaults);
   }
+  if (type === "numberReadout") {
+    return normalizeNodeGraphNumberReadoutSettings(nodeGraphNumberReadoutSettingsDefaults);
+  }
   return normalizeNodeGraphTraceDisplaySettings(nodeGraphTraceDisplaySettingsDefaults);
 }
 
@@ -3932,6 +3987,9 @@ function normalizeNodeGraphDisplaySettingsForFormType(settings, type = nodeGraph
   }
   if (type === "scope2dTrace") {
     return normalizeNodeGraphScope2dTraceSettings(settings);
+  }
+  if (type === "numberReadout") {
+    return normalizeNodeGraphNumberReadoutSettings(settings);
   }
   return normalizeNodeGraphTraceDisplaySettings(settings);
 }
@@ -3998,6 +4056,9 @@ function nodeGraphTraceDisplayCurrentSettingsForFormType(formType = nodeGraphTra
   }
   if (settingsSchema === "scope2dTrace") {
     return normalizeNodeGraphScope2dTraceSettings(node.traceDisplaySettings);
+  }
+  if (settingsSchema === "numberReadout") {
+    return normalizeNodeGraphNumberReadoutSettings(node.traceDisplaySettings);
   }
   return nodeGraphGlobalTraceSettings();
 }
@@ -4101,7 +4162,7 @@ function nodeGraphTraceDisplayStepperQuantum(input) {
   if (!input) {
     return 0.1;
   }
-  if (input.dataset?.traceDisplayField === "cycles") {
+  if (["cycles", "decimals"].includes(input.dataset?.traceDisplayField)) {
     return 1;
   }
   return 0.1;
@@ -4177,6 +4238,7 @@ const nodeGraphTraceDisplaySharedValueClamps = Object.freeze({
   capSize: nodeGraphTraceDisplayClampUnit,
   cycles: (value) => Math.max(1, Math.min(64, Math.round(Number(value) || 0))),
   decay: nodeGraphTraceDisplayClampUnit,
+  decimals: (value) => Math.max(0, Math.min(8, Math.round(Number(value) || 0))),
   dot1Brightness: nodeGraphTraceDisplayClampBrightness,
   dot1Size: nodeGraphTraceDisplayClampUnit,
   dot2Brightness: nodeGraphTraceDisplayClampBrightness,
@@ -8666,6 +8728,104 @@ function drawNodeGraphValueOscilloscopeItem(renderer, item, pixelRatio) {
   }
 }
 
+// Number Readout owns a dedicated canvas/state, separate from the burn
+// renderers' shared retained canvas. It draws the latest formatted value as
+// text and redraws only when the formatted string (or its style) changes —
+// deliberately not per-sample — so it stays cheap regardless of sample rate.
+// A future sample-bin/decay burn extension can layer on top of this same
+// canvas without needing to touch the 1D/2D burn compositor.
+function nodeGraphNumberReadoutCanvasForSlot(slot) {
+  const screenElement = slot?.scopeElement;
+  if (!screenElement) {
+    return null;
+  }
+  let canvas = screenElement.querySelector(":scope > .node-number-readout-canvas");
+  if (!canvas) {
+    canvas = document.createElement("canvas");
+    canvas.className = "node-number-readout-canvas";
+    canvas.setAttribute("aria-hidden", "true");
+    screenElement.appendChild(canvas);
+  }
+  return canvas;
+}
+
+function syncNodeGraphNumberReadoutCanvas(canvas, screenElement, pixelRatio) {
+  if (!canvas || !screenElement) {
+    return false;
+  }
+  const rect = screenElement.getBoundingClientRect();
+  const width = Math.max(1, Math.round(rect.width * pixelRatio));
+  const height = Math.max(1, Math.round(rect.height * pixelRatio));
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  return true;
+}
+
+function nodeGraphNumberReadoutFormatValue(sample, decimals) {
+  const value = Number(sample);
+  if (!Number.isFinite(value)) {
+    return "--";
+  }
+  return value.toFixed(clampNodeSliderValue(Math.round(Number(decimals) || 0), 0, 8));
+}
+
+function drawNodeGraphNumberReadoutItem(renderer, item, pixelRatio) {
+  const rect = item?.scopeRect;
+  const slot = item?.slot;
+  if (!rect || !slot) {
+    return;
+  }
+  renderNodeGraphModuleScopeAnalyzer(slot, item.buffer);
+  const screenElement = item?.screenElement || slot?.scopeElement;
+  const canvas = nodeGraphNumberReadoutCanvasForSlot(slot);
+  if (!canvas || !syncNodeGraphNumberReadoutCanvas(canvas, screenElement, pixelRatio)) {
+    return;
+  }
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return;
+  }
+  const node = nodeGraphModuleScopeNodeForSlot(slot);
+  const settings = nodeGraphNumberReadoutSettingsForNode(node);
+  const hasSample = item?.buffer?.length > 0 && !item.buffer?.nodeGraphScopeXy;
+  const text = hasSample
+    ? nodeGraphNumberReadoutFormatValue(nodeGraphOscilloscopeLatestSample(item.buffer, 0), settings.decimals)
+    : "--";
+  if (
+    canvas._nodeGraphNumberReadoutText === text &&
+    canvas._nodeGraphNumberReadoutColor === settings.color &&
+    canvas._nodeGraphNumberReadoutBrightness === settings.brightness &&
+    canvas._nodeGraphNumberReadoutWidth === canvas.width &&
+    canvas._nodeGraphNumberReadoutHeight === canvas.height
+  ) {
+    return;
+  }
+  canvas._nodeGraphNumberReadoutText = text;
+  canvas._nodeGraphNumberReadoutColor = settings.color;
+  canvas._nodeGraphNumberReadoutBrightness = settings.brightness;
+  canvas._nodeGraphNumberReadoutWidth = canvas.width;
+  canvas._nodeGraphNumberReadoutHeight = canvas.height;
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  const screenRect = item?.screenRect || rect;
+  const left = (Number(rect.left) - Number(screenRect.left)) * pixelRatio;
+  const top = (Number(rect.top) - Number(screenRect.top)) * pixelRatio;
+  const width = Math.max(1, Number(rect.width) || 1) * pixelRatio;
+  const height = Math.max(1, Number(rect.height) || 1) * pixelRatio;
+  const charCount = Math.max(1, text.length);
+  const fontSize = Math.max(1, Math.min(height * 0.72, (width / charCount) * 1.7));
+  const rgb = nodeGraphScopeRgbFloatsToCanvasRgb(nodeGraphScopeHexColorToRgb(settings.color));
+  const alpha = clampNodeSliderValue(settings.brightness, 0, 2) / 2;
+  context.save();
+  context.font = `${fontSize}px "Consolas", "Courier New", monospace`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.max(0.15, alpha).toFixed(4)})`;
+  context.fillText(text, left + width * 0.5, top + height * 0.5, width);
+  context.restore();
+}
+
 function nodeGraphOneDimensionalBurnSampleToY(sample, rect) {
   return rect.top + rect.height * 0.5 - clampNodeSliderValue(sample, -1, 1) * rect.height * 0.44;
 }
@@ -10119,6 +10279,10 @@ function drawNodeGraphModuleScopeTypedItem(renderer, item, pixelRatio) {
   }
   if (displayRenderer === "scope2d") {
     drawNodeGraphScope2dItem(renderer, item, pixelRatio);
+    return true;
+  }
+  if (displayRenderer === "numberReadout") {
+    drawNodeGraphNumberReadoutItem(renderer, item, pixelRatio);
     return true;
   }
   return false;

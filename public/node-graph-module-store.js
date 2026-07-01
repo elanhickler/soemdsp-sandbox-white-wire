@@ -96,6 +96,7 @@ const nodeGraphModuleStoreTypes = Object.freeze([
   "traceDisplay",
   "dotOscilloscope",
   "valueOscilloscope",
+  "numberReadout",
   "lineBurnOscilloscope",
   "scope2d",
   "scope2dTrace",
@@ -833,6 +834,12 @@ const nodeGraphModuleStoreCatalog = Object.freeze({
     description: "Single-value oscilloscope that draws the latest input as one horizontal line across the display.",
     label: "0D Value",
     notes: ["value display", "horizontal line", "latest value"],
+  },
+  numberReadout: {
+    category: "Oscilloscope",
+    description: "Digital readout that draws the latest input value as formatted text. Redraws only when the displayed value changes.",
+    label: "Number Readout",
+    notes: ["numeric display", "digital readout", "text display", "latest value"],
   },
   lineBurnOscilloscope: {
     category: "Oscilloscope",
