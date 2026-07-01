@@ -10070,10 +10070,11 @@ function drawNodeGraphTraceDisplayCanvasLayer(context, points, settings, pass, c
 }
 
 // The Output module shows its Left/Right channels as two separate colored
-// traces (left red, right blue) instead of the usual single dot1/dot2 glow
-// pass -- those two "dots" are a per-trace inner/outer glow layer, not a
-// stereo pair, so this is a distinct drawing path rather than a reuse of
-// dot1/dot2 coloring.
+// traces, mapped onto the trace display's existing dot1/dot2 slots (dot1 =
+// Left, dot2 = Right) so each channel's visibility and color use the
+// standard trace settings toggles/color pickers instead of being hardcoded.
+// Red/blue below are only the fallback defaults when the user hasn't set
+// dot1Color/dot2Color themselves.
 const nodeGraphOutputTraceLeftColor = "#ff4d4d";
 const nodeGraphOutputTraceRightColor = "#4d8dff";
 
@@ -10112,10 +10113,17 @@ function drawNodeGraphTraceDisplayCanvasItem(item, pixelRatio) {
     const rightBuffer = prepareNodeGraphTraceDisplayBuffer(stereoBuffers.right, settings);
     const leftPoints = buildNodeGraphTraceDisplayCanvasPoints(leftBuffer, canvas, slot);
     const rightPoints = buildNodeGraphTraceDisplayCanvasPoints(rightBuffer, canvas, slot);
-    const leftSettings = { ...settings, color: nodeGraphOutputTraceLeftColor };
-    const rightSettings = { ...settings, color: nodeGraphOutputTraceRightColor };
+    const rawTraceSettings = nodeGraphModuleScopeNodeForSlot(slot)?.traceDisplaySettings || {};
+    const leftSettings = {
+      ...settings,
+      color: rawTraceSettings.color ?? rawTraceSettings.dot1Color ?? nodeGraphOutputTraceLeftColor,
+    };
+    const rightSettings = {
+      ...settings,
+      dot2Color: rawTraceSettings.dot2Color ?? nodeGraphOutputTraceRightColor,
+    };
     context.clearRect(0, 0, canvas.width, canvas.height);
-    drawNodeGraphTraceDisplayCanvasLayer(context, rightPoints, rightSettings, "dot1", canvas);
+    drawNodeGraphTraceDisplayCanvasLayer(context, rightPoints, rightSettings, "dot2", canvas);
     drawNodeGraphTraceDisplayCanvasLayer(context, leftPoints, leftSettings, "dot1", canvas);
     recordNodeGraphModuleScopeRenderMetrics(leftPoints.length + rightPoints.length, leftPoints.length + rightPoints.length);
     rememberNodeGraphTraceDisplaySignature(slot, item, buffer, settings);
