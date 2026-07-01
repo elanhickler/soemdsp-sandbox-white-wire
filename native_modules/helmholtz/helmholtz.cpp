@@ -3,15 +3,8 @@
 // soemdsp-native-target: helmholtzPitch
 // soemdsp-native-kind: analysis
 
-// Monophonic pitch detector using McLeod Pitch Method (MPM): normalized
-// square difference function (NSDF) over a sliding window, key-maximum
-// peak picking with a fidelity threshold (rejects non-periodic / noisy
-// frames), and 3-point parabolic interpolation for sub-sample precision.
-//
-// This is an original implementation of the published MPM algorithm
-// (P. McLeod & G. Wyvill, "A Smarter Way to Find Pitch", 2005) — the
-// same method behind Pure Data's [helmholtz~] object — written from the
-// algorithm description, not derived from any existing source.
+// Monophonic pitch detector using the McLeod Pitch Method: NSDF over a
+// sliding window, peak picking, and parabolic interpolation.
 
 namespace {
 

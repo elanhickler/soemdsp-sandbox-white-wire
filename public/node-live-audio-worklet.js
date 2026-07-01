@@ -3009,41 +3009,30 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
   }
 
   createPassiveFilterState() {
-    return {
-      highpass: this.createHighpassState(),
-      lowpass: this.createLowpassState(),
-      nativeHandle: 0,
-    };
+    return { nativeHandle: 0 };
   }
 
   passiveFilterSample(state, input, mode, lowFrequency, highFrequency, rate) {
-    if (this.nativePassiveFilterReady) {
-      if (!state.nativeHandle) {
-        state.nativeHandle = this.nativePassiveFilter.soemdsp_passive_filter_create();
-      }
-      if (state.nativeHandle) {
-        return this.nativePassiveFilter.soemdsp_passive_filter_sample(
-          state.nativeHandle,
-          input,
-          Math.round(Number(mode)) || 0,
-          Number(lowFrequency) || 0,
-          Number(highFrequency) || 0,
-          rate,
-        );
-      }
+    if (!this.nativePassiveFilterReady) {
+      throw new Error("native Passive Filter not ready");
     }
-    // JS fallback
-    const safeMode = Math.round(Number(mode)) || 0;
-    if (safeMode === 1) {
-      const lo = Math.max(0, Number(lowFrequency) || 0);
-      const hi = Math.max(0, Number(highFrequency) || 0);
-      const hp = this.onePoleHighpassSample(state.highpass, input, Math.min(lo, hi), rate);
-      return this.onePoleLowpassSample(state.lowpass, hp, Math.max(lo, hi), rate);
+    if (!state.nativeHandle) {
+      state.nativeHandle = this.nativePassiveFilter.soemdsp_passive_filter_create();
     }
-    if (safeMode === 2) {
-      return this.onePoleHighpassSample(state.highpass, input, lowFrequency, rate);
+    if (!state.nativeHandle) {
+      throw new Error("native Passive Filter failed to create instance");
     }
-    return this.onePoleLowpassSample(state.lowpass, input, highFrequency, rate);
+    return this.safeFilterNumber(
+      this.nativePassiveFilter.soemdsp_passive_filter_sample(
+        state.nativeHandle,
+        this.safeFilterNumber(input, state),
+        Math.round(Number(mode)) || 0,
+        Number(lowFrequency) || 0,
+        Number(highFrequency) || 0,
+        Math.max(1, Number(rate) || sampleRate || 44100),
+      ),
+      state,
+    );
   }
 
   createRandomWalkState() {
@@ -4052,60 +4041,27 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
   }
 
   tb303FilterSample(state, input, params, rate = sampleRate) {
-    if (this.nativeTb303FilterReady) {
-      if (!state.nativeHandle) {
-        state.nativeHandle = this.nativeTb303Filter.soemdsp_tb303_filter_create();
-      }
-      if (state.nativeHandle) {
-        return this.nativeTb303Filter.soemdsp_tb303_filter_sample(
-          state.nativeHandle,
-          this.safeFilterNumber(input, state),
-          Math.max(200, this.safeFilterNumber(params.cutoff, state)),
-          Math.max(0, Math.min(100, this.safeFilterNumber(params.resonance, state))),
-          Math.max(0, Math.min(14, Math.round(Number(params.mode) || 4))),
-          Number(params.drive) || 0,
-          Math.max(1, Number(rate) || sampleRate || 44100),
-        );
-      }
+    if (!this.nativeTb303FilterReady) {
+      throw new Error("native TB-303 Filter not ready");
     }
-    // JS fallback — mirror of frame evaluator logic
-    const safeRate = Math.max(1, Number(rate) || sampleRate || 44100);
-    const safeCutoff = Math.max(200, Math.min(20000, Math.min(safeRate * 0.49, this.safeFilterNumber(params.cutoff, state))));
-    const resonanceRaw = Math.max(0, Math.min(1, (this.safeFilterNumber(params.resonance, state)) * 0.01));
-    const drive = this.safeFilterNumber(params.drive, state);
-    const driveFactor = Math.pow(10, Math.max(-24, Math.min(24, drive)) / 20);
-    const safeMode = Math.max(0, Math.min(14, Math.round(Number(params.mode) || 4)));
-    const r = (1 - Math.exp(-3 * resonanceRaw)) / (1 - Math.exp(-3));
-    const wc = Math.max(1e-9, Math.min(Math.PI * 0.98, 2 * Math.PI * safeCutoff / safeRate));
-    const sinWc = Math.sin(wc), cosWc = Math.cos(wc), tanWc = Math.tan(0.25 * (wc - Math.PI));
-    const denomA = sinWc - cosWc * tanWc;
-    const a1 = r * (Math.abs(denomA) < 1e-15 ? -1 : tanWc / denomA) + (1 - r) * (-Math.exp(-wc));
-    const b0 = 1 + a1;
-    const gsqD = Math.max(1e-12, 1 + a1 * a1 + 2 * a1 * cosWc);
-    const k = r / Math.max(1e-24, Math.pow(b0 * b0 / gsqD, 2));
-    if (!state.y) state.y = [0, 0, 0, 0];
-    if (!state.hpP || state.lastRate !== safeRate) {
-      state.hpP = Math.exp(-2 * Math.PI * 150 / safeRate);
-      state.hpB0 = (1 + state.hpP) * 0.5;
-      state.hpX = 0; state.hpY = 0;
-      state.lastRate = safeRate;
+    if (!state.nativeHandle) {
+      state.nativeHandle = this.nativeTb303Filter.soemdsp_tb303_filter_create();
     }
-    const fbIn = k * state.y[3];
-    const fbHp = this.safeFilterNumber(state.hpB0 * (fbIn - (state.hpX || 0)) + state.hpP * (state.hpY || 0), state);
-    state.hpX = fbIn; state.hpY = fbHp;
-    const y0 = this.safeFilterNumber(0.125 * driveFactor * this.safeFilterNumber(input, state) - fbHp, state);
-    const ny1 = this.safeFilterNumber(y0  + a1 * (y0  - state.y[0]), state);
-    const ny2 = this.safeFilterNumber(ny1 + a1 * (ny1 - state.y[1]), state);
-    const ny3 = this.safeFilterNumber(ny2 + a1 * (ny2 - state.y[2]), state);
-    const ny4 = this.safeFilterNumber(ny3 + a1 * (ny3 - state.y[3]), state);
-    state.y[0] = ny1; state.y[1] = ny2; state.y[2] = ny3; state.y[3] = ny4;
-    const modes = [
-      [1,0,0,0,0],[0,1,0,0,0],[0,0,1,0,0],[0,0,0,1,0],[0,0,0,0,1],
-      [1,-1,0,0,0],[1,-2,1,0,0],[1,-3,3,-1,0],[1,-4,6,-4,1],
-      [0,0,1,-2,1],[0,0,0,1,-1],[0,1,-3,3,-1],[0,0,1,-1,0],[0,1,-2,1,0],[0,1,-1,0,0],
-    ];
-    const c = modes[safeMode] || modes[4];
-    return this.safeFilterNumber(8 * (c[0]*y0 + c[1]*ny1 + c[2]*ny2 + c[3]*ny3 + c[4]*ny4), state);
+    if (!state.nativeHandle) {
+      throw new Error("native TB-303 Filter failed to create instance");
+    }
+    return this.safeFilterNumber(
+      this.nativeTb303Filter.soemdsp_tb303_filter_sample(
+        state.nativeHandle,
+        this.safeFilterNumber(input, state),
+        Math.max(200, this.safeFilterNumber(params.cutoff, state)),
+        Math.max(0, Math.min(100, this.safeFilterNumber(params.resonance, state))),
+        Math.max(0, Math.min(14, Math.round(Number(params.mode) || 4))),
+        Number(params.drive) || 0,
+        Math.max(1, Number(rate) || sampleRate || 44100),
+      ),
+      state,
+    );
   }
 
   slewLimiterSample(state, input, upTime, downTime, rate = sampleRate) {

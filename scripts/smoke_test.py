@@ -3497,11 +3497,15 @@ def require_node_graph_mvp_contract() -> None:
     )
     live_plan_runtime_source = script_sources["./public/node-graph-live-plan-runtime.js"]
     require(
-        "if (nodeGraphModuleIsRealtimeOscillatorType(node.type)) {\n      phases.set(node.id, 0);" in live_plan_runtime_source
+        "if (nodeGraphModuleIsRealtimeOscillatorType(node.type))" in live_plan_runtime_source
+        and "phases.set(node.id, 0)" in live_plan_runtime_source
+        and "oscResetStates.set(node.id, createNodeGraphOscResetState())" in live_plan_runtime_source
+        and "triangleStates.set(node.id, 0)" in live_plan_runtime_source
+        and "noiseSeeds.set(node.id, nodeGraphStableSeed(node.id))" in live_plan_runtime_source
         and "if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.phases.has(node.id))" in live_plan_runtime_source
         and "if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.oscResetStates.has(node.id))" in live_plan_runtime_source
         and "if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.triangleStates.has(node.id))" in live_plan_runtime_source
-        and "nodeGraphModuleIsRealtimeOscillatorType(node.type) || node.type === \"noise\"" in live_plan_runtime_source,
+        and "if (nodeGraphModuleIsRealtimeOscillatorType(node.type) && !runtime.noiseSeeds.has(node.id))" in live_plan_runtime_source,
         "polyBlep should share live-plan oscillator state initialization with osc and F/B PolyBLEP",
     )
     node_graph_module_definitions_source = script_sources["./public/node-graph-module-definitions.js"]
@@ -4205,7 +4209,7 @@ def require_node_graph_mvp_contract() -> None:
         (
             "worklet cache",
             delay_contract_sources["live runtime"],
-            ['node-live-audio-worklet.js?v=display-mode-sources-20260646'],
+            ['node-live-audio-worklet.js?v='],
         ),
     ]:
         for snippet in snippets:
@@ -6446,13 +6450,13 @@ def require_node_graph_mvp_contract() -> None:
         "Render Sample",
         "toggleDebugButton",
         '<body class="debug-collapsed node-boot-loading">',
-        '<script src="./public/boot-loading.js?v=loading-watchdog-1"></script>',
+        '<script src="./public/boot-loading.js?v=loading-steps-1"></script>',
         "node-boot-loading-screen",
         'aria-label="loading"',
         "nodeBootLoadingLabel",
         "nodeBootLoadingBarFill",
         'role="progressbar"',
-        'aria-valuenow="8"',
+        'aria-valuenow="4"',
         "nodeEarProtectionFault",
         "Audio Safety Circuit Open",
         "Ear Protection Tripped",
@@ -7117,8 +7121,8 @@ def require_node_graph_mvp_contract() -> None:
                 'inputs: ["Reset", "Speed", "Phase"]',
                 'outputs: ["Mono", "Left", "Right", "Phase", "Trigger"]',
                 'key: "transport"',
-                'choices: ["Off (reset)", "Stop", "Pause", "Play", "Loop"]',
-                'defaultValue: "3"',
+                'choices: ["Off (reset)", "Stop", "Pause", "Loop", "Play"]',
+                'defaultValue: "4"',
                 'label: "Play Mode"',
                 'key: "speed", label: "Speed", linearSmoothing: false',
                 'max: "8"',
@@ -7261,7 +7265,7 @@ def require_node_graph_mvp_contract() -> None:
                 "for (const type of Object.keys(nodeGraphModuleDefinitions || {}))",
                 "sampleBuffers: new Map()",
                 "await nodeGraphEnsureLiveSamplesForPlan(plan, nodeGraphMvp.patch)",
-                'node-live-audio-worklet.js?v=display-mode-sources-20260646',
+                'node-live-audio-worklet.js?v=',
                 "phase: Number(message.audioPlayerPhase) || 0",
             ],
         ),
@@ -7543,10 +7547,9 @@ def require_node_graph_mvp_contract() -> None:
         'layout: "sliderWidget"',
         'outputs: ["Bias"]',
         'label: "Bias"',
-        "highpass: \"Highpass\"",
-        "highpass: {",
-        "lowpass: \"Lowpass\"",
-        "lowpass: {",
+        "passiveFilter: \"Passive Filter\"",
+        "passiveFilter: {",
+        'choices: ["LP", "BP", "HP"]',
         "slewLimiter: \"Up/Down Slew\"",
         "slewLimiter: {",
         "key: \"upTime\"",
@@ -7583,10 +7586,8 @@ def require_node_graph_mvp_contract() -> None:
         'inputs: ["Trigger", "Reset"]',
         'outputs: ["Out", "Gate"]',
         "key: \"step8\"",
-        "bandpass: \"Bandpass\"",
-        "bandpass: {",
-        "highpass: {",
-        "lowpass: {",
+        'key: "lowFrequency"',
+        'key: "highFrequency"',
         "ladderFilter: {",
         "cookbookFilter: \"Multi Stage Filter\"",
         "cookbookFilter: {",
@@ -7880,20 +7881,8 @@ def require_node_graph_mvp_contract() -> None:
         "max: \"1\"",
         "mid: \"0.5\"",
         "step: \"any\"",
-        "noise: {",
         "defaultValue: \"1\"",
-        "key: \"level\"",
-        "label: \"Amplitude\"",
-        "key: \"speed\"",
-        "label: \"Speed\"",
-        "key: \"seed\"",
-        "label: \"Seed\"",
         "maxDigits: 5",
-        "stereoNoise: \"Stereo Noise\"",
-        "stereoNoise: {",
-        'outputs: ["X", "Y", "Out"]',
-        "key: \"seed\"",
-        "label: \"Seed\"",
         "noiseGenerator: \"Noise Generator\"",
         "noiseGenerator: {",
         "choices: [\"Uniform\", \"Gaussian\", \"Brown\", \"Pink\", \"Crackle\"]",
@@ -8031,7 +8020,6 @@ def require_node_graph_mvp_contract() -> None:
         "const nodeGraphWireInteractions = window.createNodeGraphWireInteractionController({",
         "helpers: nodeGraphWireHelpers",
         "function createNodeGraphWireInteractionController(deps)",
-        "function beginWireDrag(event)",
         "if (event.button !== 0) {\n    return;",
         "function endpointHitboxClientRect(endpoint, hitboxElement = null)",
         "const rect = element.getBoundingClientRect()",
@@ -8044,26 +8032,13 @@ def require_node_graph_mvp_contract() -> None:
         "function patchPointTargetFromPoint(clientX, clientY)",
         "nodeGraphElementPatchPointClientCenter(visualElement, endpoint.io)",
         'document.querySelectorAll(".node-port, .node-io-row, .node-param-port.modulation-input, .node-param-port.graph-input")',
-        "function beginPatchPointWireDrag(event)",
         "function handlePatchPointHover(event)",
-        'target?.closest?.(".node-port, .node-io-row, .node-param-port.modulation-input, .node-param-port.graph-input, .node-slider-readout, input, textarea, select")',
         'target.closest?.(".node-port, .node-io-row, .node-param-port.modulation-input, .node-param-port.graph-input")',
         "patch-point-hover",
-        "function dragWire(event)",
-        "function endWireDrag(event)",
-        "const connected = helpers.connectEndpoints(dragging.endpoint, targetEndpoint);",
-        "from: helpers.endpointPoint(endpoint, port)",
         "function straightPath(from, to)",
         "pathData: explicitPathData = null",
         "function createGradient(svg, id, from, to",
         "function drawPath(svg, options)",
-        "function nodeGraphTraceSingleMovePoint(from, points, point)",
-        "function nodeGraphTraceAppendSingleMovePoint(from, points, point)",
-        "function nodeGraphTraceFinalApproachPoint(from, points, point)",
-        "function nodeGraphTraceAppendFinalApproachPoint(from, points, point)",
-        "return { x: previous.x, y: target.y }",
-        "function nodeGraphTraceCleanFinalDestinationPoints(from, points, to)",
-        "nodeGraphTracePointBetween(target.y, start.y, end.y)",
         "function nodeGraphSelfTraceModuleRect(nodeId)",
         "function nodeGraphSelfTracePoints(wire, from, to)",
         "function nodeGraphBackwardTracePoints(wire, from, to)",
@@ -8081,10 +8056,7 @@ def require_node_graph_mvp_contract() -> None:
         "{ x: destinationSideX, y: belowTitleY }",
         "function nodeGraphManualTracePathOptions(wire, from, to)",
         "nodeGraphBackwardTracePoints(wire, from, to)",
-        "const previewPoint = nodeGraphTraceSingleMovePoint(trace.from, trace.points, trace.to)",
         "nodeGraphTracePathFromPoints(from, tracePoints, to)",
-        "if (event.ctrlKey || event.metaKey)",
-        "function handleManualTracePointerDown(event)",
         "wireType: nodeGraphWireTypes.trace",
         "function animateDestroyedWire(from, to)",
         "path.setAttribute(\"d\", helpers.straightPath(from, to))",
@@ -8681,7 +8653,7 @@ def require_node_graph_mvp_contract() -> None:
         "button.dataset.alias = `${nodeGraphNodeDisplayName(node)}.${parameter.key} slider`",
         "button.dataset.alias = `${nodeGraphNodeDisplayName(node)}.${parameter.key} mod`",
         "function ensureNodeGraphDragHandle(node)",
-        "function handleNodeGraphIoRowWirePointerDown(event)",
+        "function handleNodeGraphIoRowWireClick(event)",
         "function attachNodeGraphNodeEvents(node)",
         'for (const row of node.querySelectorAll(".node-io-row"))',
         'for (const port of node.querySelectorAll(".node-param-port.modulation-input"))',
@@ -9265,14 +9237,8 @@ def require_node_graph_mvp_contract() -> None:
         "const nodeGraphModuleStoreTypes = Object.freeze([",
         "\"additiveOsc\"",
         "\"gpuAdditiveOsc\"",
-        'category: "Additive"',
         "developerOnly: true",
-        "Harmonic additive tone source using SOEMDSP waveform partial recipes.",
-        "\"distortionOscillator\"",
-        "\"dsfOscillator\"",
         "\"ellipsoid\"",
-        "SOEMDSP ellipsoid motion oscillator.",
-        "x/y output",
         "\"polyBlep\"",
         "Anti-aliased PolyBLEP oscillator for clean saw, ramp, square, triangle, sine, and noise waveform outputs.",
         'notes: ["anti-aliasing", "polyblep", "realtime oscillator"]',
@@ -9280,7 +9246,6 @@ def require_node_graph_mvp_contract() -> None:
         "Table-driven sine/cosine oscillator with pitch, frequency, amplitude, and Nyquist-edge fade.",
         'label: "SinCos"',
         'notes: ["implemented", "wavetable", "sin/cos"]',
-        "\"jerobeamNyqistShannon\"",
         "\"drumMachine\"",
         "\"kickDrum\"",
         "\"snareDrum\"",
@@ -9303,13 +9268,10 @@ def require_node_graph_mvp_contract() -> None:
         "\"melodySequencer\"",
         "\"chordSequencer\"",
         "\"arpeggiator\"",
-        "\"stereoNoise\"",
         "\"noiseGenerator\"",
         "\"randomWalk\"",
         "\"fractalBrownianNoise\"",
-        "\"highpass\"",
-        "\"lowpass\"",
-        "\"bandpass\"",
+        "\"passiveFilter\"",
         "\"ladderFilter\"",
         "\"slewLimiter\"",
         "\"delayEffect\"",
@@ -9556,7 +9518,6 @@ def require_node_graph_mvp_contract() -> None:
         'pitch: "Loop-file shelf. Empty by default',
         "nodeGraphModuleStoreVisualGroups",
         "Generate",
-        'departments: Object.freeze(["Oscillator", "Chaos", "OMS", "Noise", "Additive", "Drum", "Sequence"])',
         'spiral: {\n    category: "OMS"',
         'label: "Spiral Generator"',
         "Process",
@@ -9564,13 +9525,10 @@ def require_node_graph_mvp_contract() -> None:
         'label: "Rotation 3D to 2D"',
         "Interact",
         "Memory",
-        "DistortionOscillator",
-        "DSFOscillator",
         "Ellipsoid",
         "PolyBLEP",
         "GPU Additive",
         "SinCos",
-        "JerobeamNyqistShannon",
         "DrumMachine",
         "KickDrum",
         "SnareDrum",
@@ -9712,7 +9670,7 @@ def require_node_graph_mvp_contract() -> None:
         "function nodeGraphModuleOutputPorts(type)",
         "function nodeGraphParameterOutputPort(typeOrNode, port)",
         "function compileNodeGraphExecutionPlan(patch = nodeGraphMvp.patch)",
-        "const passthroughTypes = new Set([\"badvalMonitor\", \"bandpass\", \"bias\", \"cookbookFilter\", \"gain\", \"highpass\", \"ladderFilter\", \"lowpass\", \"reverbEffect\", \"sampleHold\", \"slewLimiter\", \"softClipper\", \"speakerProtection\"])",
+        "const passthroughTypes = new Set([\"badvalMonitor\", \"bias\", \"cookbookFilter\", \"gain\", \"helmholtzPitch\", \"ladderFilter\", \"passiveFilter\", \"pll\", \"reverbEffect\", \"sampleHold\", \"slewLimiter\", \"softClipper\", \"speakerProtection\"])",
         "nodeGraphModuleDefinitions[node?.type]?.visualSink",
         "function nodeGraphVisualSinkActiveInPlan(node, options = {})",
         "return true;",
@@ -9967,7 +9925,7 @@ def require_node_graph_mvp_contract() -> None:
         "lorenzAttractorStates",
         "function createNodeGraphHighpassState()",
         "function createNodeGraphLowpassState()",
-        "function createNodeGraphBandpassState()",
+        "function createNodeGraphPassiveFilterState()",
         "function createNodeGraphLadderFilterState()",
         "function createNodeGraphOscResetState()",
         "function createNodeGraphSlewLimiterState()",
@@ -10007,7 +9965,7 @@ def require_node_graph_mvp_contract() -> None:
         "function nodeGraphBadValueMonitorSample(value, runtime, nodeId)",
         "function nodeGraphOnePoleHighpassSample(state, input, frequency, sampleRate, runtime = null, nodeId = \"\")",
         "function nodeGraphOnePoleLowpassSample(state, input, frequency, sampleRate, runtime = null, nodeId = \"\")",
-        "function nodeGraphOnePoleBandpassSample(state, input, lowFrequency, highFrequency, sampleRate, runtime = null, nodeId = \"\")",
+        "function nodeGraphPassiveFilterSample(state, input, mode, lowFrequency, highFrequency, sampleRate, runtime, nodeId)",
         "function nodeGraphLadderFilterSample(state, input, params, sampleRate, runtime = null, nodeId = \"\")",
         "function nodeGraphLadderFilterCoefficients(frequency, resonance, mode, stages, sampleRate, runtime = null, nodeId = \"\", state = null)",
         "nodeGraphLadderFilterComputeFeedbackFactor",
@@ -10022,7 +9980,7 @@ def require_node_graph_mvp_contract() -> None:
         "function createNodeGraphRandomClockState()",
         "function nodeGraphRandomClockSample(state, reset, params, sampleRate, runtime = null, nodeId = \"\")",
         "function nodeGraphDelayedTriggerSample(state, trigger, reset, params, sampleRate, runtime = null, nodeId = \"\")",
-        "function nodeGraphSampleHoldSample(state, input, trigger, threshold, runtime = null, nodeId = \"\")",
+        "function nodeGraphSampleHoldSample(state, input, trigger, threshold, sampleFrequency, sampleRate, hasInConnected, runtime = null, nodeId = \"\")",
         "function nodeGraphStepSequencerSample(state, trigger, reset, params, runtime = null, nodeId = \"\")",
         "function nodeGraphTriggerCounterSample(state, trigger, reset, params, sampleRate, runtime = null, nodeId = \"\")",
         "function nodeGraphTriggerDividerSample(state, trigger, reset, params, sampleRate, runtime = null, nodeId = \"\")",
@@ -10051,9 +10009,7 @@ def require_node_graph_mvp_contract() -> None:
         "Math.exp(-Math.log((1 + safeRatio) / safeRatio) / safeRate)",
         "b0 * safeInput + b1 * state.inputBuffer + a1 * state.outputBuffer",
         "b0 * safeInput + a1 * state.outputBuffer",
-        'node?.type === "highpass"',
-        'node?.type === "lowpass"',
-        'node?.type === "bandpass"',
+        'node?.type === "passiveFilter"',
         'node?.type === "slewLimiter"',
         'node?.type === "ladderFilter"',
         'node?.type === "clockDivider"',
@@ -10116,9 +10072,6 @@ def require_node_graph_mvp_contract() -> None:
         "Increment: increment",
         "ScopeOff: scopeTracesOff",
         'node?.type === "noiseGenerator"',
-        'node?.type === "stereoNoise"',
-        '"stereoNoise"',
-        'type === "stereoNoise"',
         'node?.type === "randomWalk"',
         'node?.type === "fractalBrownianNoise"',
         'node?.type === "groupInput"',
@@ -10132,9 +10085,7 @@ def require_node_graph_mvp_contract() -> None:
         "runtime.speakerProtectionMuteCount",
         'node?.type === "speakerProtection"',
         "nodeGraphSpeakerProtectionSample(mixInput(nodeId), runtime, nodeId)",
-        "runtime.highpassStates",
-        "runtime.lowpassStates",
-        "runtime.bandpassStates",
+        "runtime.passiveFilterStates",
         "runtime.cookbookFilterStates",
         "runtime.ladderFilterStates",
         "runtime.slewLimiterStates",
@@ -10152,15 +10103,12 @@ def require_node_graph_mvp_contract() -> None:
         "runtime.vactrolEnvelopeStates",
         "runtime.flowerChildEnvelopeFollowerStates",
         "function createNodeGraphVisualControlState()",
-        "function createNodeGraphNoiseSampleHoldState()",
         "function resetNodeGraphRuntimeVisualControls(runtime)",
         "const visualControlState = createNodeGraphVisualControlState()",
         "resetNodeGraphRuntimeVisualControls(runtime)",
         "runtime.visualControls",
         "runtime.visualControlStates",
         "runtime.noiseGeneratorStates",
-        "runtime.noiseSampleHoldStates",
-        "nextNodeGraphSeededNoiseSample(runtime, nodeId, seed, \"left\")",
         "runtime.randomWalkStates",
         "runtime.fractalBrownianNoiseStates",
         "nodeGraphFeedbackText(feedbackConnections = [], feedbackModulations = [])",
@@ -10842,26 +10790,9 @@ def require_node_graph_mvp_contract() -> None:
         "Math.round((Number(value) || 0) - 0.5) + 0.5",
         "function nodeGraphTraceWaypointAttribute(points)",
         "function nodeGraphTracePushPoint(points, point)",
-        "function nodeGraphTraceSingleMovePoint(from, points, point)",
-        "function nodeGraphTraceAppendSingleMovePoint(from, points, point)",
-        "function nodeGraphTraceFinalApproachPoint(from, points, point)",
-        "function nodeGraphTraceAppendFinalApproachPoint(from, points, point)",
-        "return { x: previous.x, y: target.y }",
-        "function nodeGraphTraceCleanFinalDestinationPoints(from, points, to)",
-        "nodeGraphTracePointBetween(target.y, start.y, end.y)",
         "function nodeGraphTraceOrthogonalPoints(from, points, to)",
         "function nodeGraphTracePathFromPoints(from, points, to)",
-        "manualTrace: null",
-        "function beginManualTrace(event, port)",
-        "function cancelManualTrace()",
         "wireType: nodeGraphWireTypes.trace",
-        "const tracePoints = normalizeNodeGraphTracePoints(trace.points)",
-        "nodeGraphTraceAppendFinalApproachPoint(trace.from, tracePoints, endpointPoint)",
-        "const cleanedTracePoints = nodeGraphTraceCleanFinalDestinationPoints(",
-        "tracePoints: cleanedTracePoints",
-        "nodeGraphTraceAppendSingleMovePoint(trace.from, trace.points, deps.clientPoint(event))",
-        "trace.to = nodeGraphTraceLastPoint(trace.from, trace.points)",
-        "replaceDuplicate: true",
         "path.dataset.tracePoints = nodeGraphTraceWaypointAttribute(tracePoints)",
         "function nodeGraphSelfTraceModuleRect(nodeId)",
         "function nodeGraphSelfTracePoints(wire, from, to)",
@@ -11033,11 +10964,8 @@ def require_node_graph_mvp_contract() -> None:
         'for (const port of node.querySelectorAll(".node-port"))',
         'for (const row of node.querySelectorAll(".node-io-row"))',
         'for (const port of node.querySelectorAll(".node-param-port.modulation-input"))',
-        "const visualPort = helpers.dragVisualElement(port)",
         "function visualEndpointElement(element)",
-        "dragVisualElement: visualEndpointElement",
         'element.classList?.contains("node-io-row")',
-        "from: helpers.endpointPoint(endpoint, port)",
         "function endpointFromElement(element)",
         "parameterOutput: element.classList.contains(\"parameter-output\")",
         "function connectEndpoints(a, b, options = {})",
@@ -11051,8 +10979,6 @@ def require_node_graph_mvp_contract() -> None:
         "function endpointsShareNode(a, b)",
         "if (endpointsShareNode(a, b))",
         "endpointsAreDuplicate(a, b)",
-        "return patchPointTargetFromPoint(clientX, clientY)",
-        "const target = helpers.dropTargetFromPoint(event.clientX, event.clientY)",
         "return deps.connectModulation(a.node, a.port, b.node, b.param, options)",
         "return deps.connectModulation(b.node, b.port, a.node, a.param, reversedOptions())",
         'a.io === "output" && b.io === "output"',
@@ -11068,8 +10994,8 @@ def require_node_graph_mvp_contract() -> None:
         "if (!explicit) {\n    return false;",
         "function nodeGraphFloatingWindowPosition(element, x, y, options = {})",
         "const halfWidth = width * 0.5",
-        "const visibleHeight = Math.max(1, Math.min(height, Number(options.visibleHeight) || 48))",
-        "const maxTop = viewportHeight - visibleHeight",
+        "const visibleWidth = Math.max(1, Math.min(width, Number(options.visibleWidth) || halfWidth))",
+        "const maxTop = viewportHeight - height * 0.5",
         'bindNodeGraphSceneElementEvent("nodeSceneCloseMenu", "click", () =>\n    closeNodeSceneContextMenu({ explicit: true }))',
         'addEventListener("click", (event) => zoomNodeGraphBy(-1, event))',
         'addEventListener("click", (event) => zoomNodeGraphBy(1, event))',
@@ -11966,10 +11892,7 @@ def require_node_graph_mvp_contract() -> None:
         "nodeGraphModuleScopeState.modelFrameTimes.set(nodeId, state)",
         "function nodeGraphModuleScopeStableSeed(text)",
         "Math.imul(seed ^ character.charCodeAt(0), 16777619)",
-        "function nodeGraphModuleScopeAdvanceNoiseSeed(seed, steps)",
         "Math.imul(1664525",
-        "function nodeGraphModuleScopeNoiseSeedToSample(seed)",
-        "function nodeGraphModuleScopeNoiseSeedKey(nodeId, seedValue, channel = \"\")",
         "function nodeGraphModuleScopeLinearToDb(value)",
         "20 * Math.log10(amplitude)",
         "function nodeGraphModuleScopeFormatDb(value)",
@@ -12020,32 +11943,11 @@ def require_node_graph_mvp_contract() -> None:
         "buffer.nodeGraphScopeDrawStartProgress = 0",
         "buffer.nodeGraphScopeDrawWrap = false",
         "buffer.nodeGraphScopeUseFullWindow = true",
-        "function nodeGraphModuleScopeOfflineNoiseBuffer(slot)",
-        "slot?.type !== \"noise\"",
-        "const level = clampNodeSliderValue(nodeGraphModuleScopeNodeParam(node, \"level\", 0.5), 0, 1)",
-        "const seedValue = nodeGraphModuleScopeNodeParam(node, \"seed\", 1)",
-        "const speed = nodeGraphModuleScopeNodeParam(node, \"speed\", 1)",
-        "const currentSample = Math.max(0, Math.floor(nodeGraphModuleScopeModelFrameTime(slot) * sampleRate))",
-        "const startSample = Math.max(0, currentSample - frames)",
-        "function nodeGraphModuleScopeNoiseHoldSample(nodeId, seedValue, speed, sampleIndex, sampleRate)",
-        "const clockRate = safeSpeed * safeSampleRate * 0.5",
-        "nodeGraphModuleScopeNoiseHoldSample(slot.nodeId, seedValue, speed, startSample + index, sampleRate) * level",
         "buffer.nodeGraphScopeDrawProgress = 1",
         "buffer.nodeGraphScopeMinPointSpacingPx = 0.5",
-        "buffer.nodeGraphScopeVisualPointLimit = 16384",
-        "nodeGraphModuleScopeOfflineNoiseBuffer(slot)",
-        "function nodeGraphModuleScopeOfflineStereoNoiseXyBuffer(slot)",
-        "slot?.type !== \"stereoNoise\"",
-        "const historySamples = frames * stride",
-        "const historyStartSample = Math.max(0, startSample - historySamples)",
         "const x = new Float32Array(frames)",
         "const y = new Float32Array(frames)",
-        "const seedValue = nodeGraphModuleScopeNodeParam(node, \"seed\", 1)",
-        "nodeGraphModuleScopeNoiseSeedKey(slot.nodeId, seedValue, \"left\")",
-        "nodeGraphModuleScopeNoiseSeedKey(slot.nodeId, seedValue, \"right\")",
         "nodeGraphScopeXy: true",
-        "nodeGraphModuleScopeOfflineStereoNoiseXyBuffer(slot)",
-        "const frames = nodeGraphModuleScopeXyTraceFrameCount(16384)",
         "function nodeGraphModuleScopeXyTraceFrameCount(length)",
         "return safeLength",
         "function nodeGraphModuleScopeCapturedXyTraceFrameCount(slot, length)",
@@ -12127,7 +12029,6 @@ def require_node_graph_mvp_contract() -> None:
         "function nodeGraphModuleScopeCapturedBufferForSlot(slot)",
         "const selectedPort = nodeGraphModuleScopeShaderOutputPortForSlot(slot)",
         "nodeGraphModuleScopeState.buffers.get(`${nodeId}:${selectedPort}`)",
-        "function nodeGraphModuleScopeCapturedStereoNoiseXyBuffer(slot, capturedBuffer = null)",
         "nodeGraphScopeCapturedOutput: true",
         "function captureNodeGraphLiveModuleScopeOutput(runtime, nodeId, output)",
         "for (const [port, value] of Object.entries(output))",
@@ -12589,7 +12490,7 @@ def require_node_graph_mvp_contract() -> None:
         "nodeSandboxStartupProgress",
         "setNodeSandboxStartupProgress(88, \"settling layout\")",
         "setNodeSandboxStartupProgress(100, \"ready\")",
-        "Sandbox startup step timed out:",
+        "Startup step timed out:",
         "nodeSandboxStartupTask(\"manifest\", loadManifest)",
         "nodeSandboxStartupTask(\"node graph\", initNodeGraphMvp)",
         "document.documentElement.dataset.nodeSandboxInterfaceError = message;",
@@ -12892,21 +12793,10 @@ def require_node_graph_mvp_contract() -> None:
         "Fractal Brownian Noise should declare explicit display modes for Out X/Y/Z",
     )
     require(
-        'noise: {\n    displaySignals:' in module_definitions_source
-        and 'key: "rawTrace", label: "Raw Trace", renderer: "trace", settingsSchema: "trace", source: { value: "Raw" }' in module_definitions_source
-        and 'key: "postLevelTrace", label: "Post-Level Trace", renderer: "trace", settingsSchema: "trace", source: { value: "Out" }' in module_definitions_source
-        and "Raw: raw" in script_sources["./public/node-graph-live-frame-evaluator.js"]
-        and "Raw: raw" in worklet_source,
-        "Noise should expose raw and post-level display streams without visible ports",
-    )
-    require(
-        'stereoNoise: {\n    displaySignals:' in module_definitions_source
-        and 'key: "xyBurn", label: "X/Y Burn", renderer: "scope2d", settingsSchema: "scope2d", source: { x: "X", y: "Y" }' in module_definitions_source
-        and 'key: "monoTrace", label: "Mono Trace", renderer: "trace", settingsSchema: "trace", source: { value: "Out" }' in module_definitions_source
-        and 'ellipsoid: {\n    displayType: "scope2d",\n    displaySignals:' in module_definitions_source
+        'ellipsoid: {\n    displayType: "scope2d",\n    displaySignals:' in module_definitions_source
         and 'spiral: {\n    displayType: "scope2d",\n    displaySignals:' in module_definitions_source
         and 'lorenzAttractor: {\n    displayType: "scope2d",\n    displaySignals:' in module_definitions_source,
-        "Stereo Noise and chaos modules should declare explicit display modes",
+        "Chaos modules should declare explicit display modes",
     )
     require(
         "function normalizeNodeGraphScope2dTraceSettings(settings = {})" in node_graph_source
@@ -13024,7 +12914,7 @@ def require_node_graph_mvp_contract() -> None:
     line_burn_source = node_graph_source[line_burn_start:line_burn_end]
     require(
         "function nodeGraphOneDimensionalBurnSampleToY(sample, rect)" in node_graph_source
-        and "function nodeGraphOneDimensionalBurnFrameProgress(frame, settings, sampleRate)" in node_graph_source
+        and "function nodeGraphOneDimensionalBurnInitTriggerState(buffer, sampleRate)" in node_graph_source
         and "function nodeGraphOneDimensionalBurnPointBudget(canvas)" in node_graph_source
         and "return Math.max(64, Math.min(2048, Math.ceil(width * 4)));" in node_graph_source
         and "function reduceNodeGraphOneDimensionalBurnSubpath(points, start, end, budget, output)" in node_graph_source
@@ -13069,7 +12959,7 @@ def require_node_graph_mvp_contract() -> None:
     require(
         '"burn"' in line_burn_registry_source
         and '"decay"' in line_burn_registry_source
-        and '"zoomSeconds"' in line_burn_registry_source
+        and '"cycles"' in line_burn_registry_source
         and '"dot1Size"' in line_burn_registry_source
         and '"lineThickness"' in line_burn_registry_source
         and '"dot1Brightness"' in line_burn_registry_source
@@ -13078,7 +12968,7 @@ def require_node_graph_mvp_contract() -> None:
         and '"dot2Size"' not in line_burn_registry_source
         and '"dot2Brightness"' not in line_burn_registry_source
         and '"dot2Enabled"' not in line_burn_registry_source,
-        "1D Burn display settings should match the 2D Burn dot1 settings plus zoom",
+        "1D Burn display settings should match the 2D Burn dot1 settings plus trigger-synced cycles",
     )
     display_settings_apply_start = node_graph_source.index("function applyNodeGraphTraceDisplaySettingsForm(options = {})")
     display_settings_apply_end = node_graph_source.index("function setNodeGraphTraceDisplaySettingsDefaults()", display_settings_apply_start)
@@ -13221,7 +13111,7 @@ def require_node_graph_mvp_contract() -> None:
     scope2d_end = node_graph_source.index("function drawNodeGraphModuleScopes", scope2d_start)
     scope2d_source = node_graph_source[scope2d_start:scope2d_end]
     scope2d_buffer_start = node_graph_source.index("function nodeGraphModuleScopeCapturedScope2dBuffer")
-    scope2d_buffer_end = node_graph_source.index("function nodeGraphModuleScopeCapturedStereoNoiseXyBuffer", scope2d_buffer_start)
+    scope2d_buffer_end = node_graph_source.index("function captureNodeGraphLiveModuleScopeOutput", scope2d_buffer_start)
     scope2d_buffer_source = node_graph_source[scope2d_buffer_start:scope2d_buffer_end]
     scope2d_helper_start = node_graph_source.index("function nodeGraphScope2dFiniteSample")
     scope2d_helper_source = node_graph_source[scope2d_helper_start:scope2d_start]
@@ -13571,7 +13461,7 @@ def require_node_graph_mvp_contract() -> None:
         and "--node-text-light-level: 0.46;" in style_source
         and ".node-graph-workspace.shader-enabled .dsp-node" in style_source
         and ".node-slider-readout-value," in style_source
-        and "node-graph-shader-script.js?v=shader-prefs-0163" in index_source,
+        and "node-graph-shader-script.js?v=" in index_source,
         "world shader should default to the dark-room bloom glow pass with wire and screen illumination hooks",
     )
 
@@ -13756,10 +13646,10 @@ def require_node_graph_mvp_contract() -> None:
     )
     require(
         'osc: {\n    displayType: "trace"' in module_definitions_source
-        and 'polyBlep: {\n    displayType: "trace"' in module_definitions_source
+        and 'polyBlep: {\n    displayType: "lineBurn"' in module_definitions_source
         and 'fbPolyBlepOsc: {\n    displayType: "trace"' in module_definitions_source
         and "return nodeGraphModuleDisplayModesForType(type)[0]?.renderer || nodeGraphModuleDeclaredDisplayTypeForType(type);" in node_graph_source,
-        "Oscillator module faces should resolve to the typed 1D Trace renderer",
+        "Oscillator module faces should resolve to their declared typed renderers",
     )
     trace_slot_settings_source = node_graph_source[
         node_graph_source.index("function nodeGraphTraceDisplaySettingsForSlot"):
@@ -13859,10 +13749,11 @@ def require_node_graph_mvp_contract() -> None:
     ]
     require(
         '["burn", "decay", "dot1Size", "dot2Size", "lineLength", "capSize", "capLength"].includes(key)' in trace_value_normalize_source
-        and 'formType === "dot" && ["dot1Brightness", "dot2Brightness", "lineThickness", "dot2LineThickness"].includes(key)' in trace_value_normalize_source
-        and '["dot1Brightness", "dot2Brightness", "lineThickness", "dot2LineThickness"].includes(key)' in trace_value_normalize_source
+        and 'formType === "dot" && ["lineThickness", "dot2LineThickness"].includes(key)' in trace_value_normalize_source
+        and '["dot1Brightness", "dot2Brightness"].includes(key)' in trace_value_normalize_source
+        and "return clampNodeSliderValue(Number(value) || 0, 0, 2);" in trace_value_normalize_source
         and "return Math.max(0, Number(value) || 0);" in trace_value_normalize_source,
-        "Trace settings numeric ranges should clamp size to 0..1 and keep brightness/thickness nonnegative",
+        "Trace settings numeric ranges should clamp size to 0..1, brightness to 0..2, and keep thickness nonnegative",
     )
     for snippet in [
         "function nodeGraphTraceDisplayTimingEnabled()",
@@ -13995,8 +13886,8 @@ def require_node_graph_mvp_contract() -> None:
         and "settings.dot2Enabled !== false && settings.dot2Brightness > 0 && outerThickness > 0" in node_graph_source
         and "settings.dot1Enabled !== false && settings.dot1Brightness > 0 && innerThickness > 0" in node_graph_source
         and '["burn", "decay", "dot1Size", "dot2Size", "lineLength", "capSize", "capLength"].includes(key)' in node_graph_source
-        and 'formType === "dot" && ["dot1Brightness", "dot2Brightness", "lineThickness", "dot2LineThickness"].includes(key)' in node_graph_source
-        and '["dot1Brightness", "dot2Brightness", "lineThickness", "dot2LineThickness"].includes(key)' in node_graph_source
+        and 'formType === "dot" && ["lineThickness", "dot2LineThickness"].includes(key)' in node_graph_source
+        and '["dot1Brightness", "dot2Brightness"].includes(key)' in node_graph_source
         and "function setNodeGraphTraceDisplaySettingsFormType(node = null)" in node_graph_source
         and "nodeGraphTraceDisplayActiveControlsByType" in node_graph_source
         and "dot: Object.freeze({" in node_graph_source
@@ -14008,10 +13899,10 @@ def require_node_graph_mvp_contract() -> None:
         and "[\"dot1Size\", \"dot2Size\", \"capSize\"].includes(key)" in node_graph_source
         and "[\"dot1Brightness\", \"dot2Brightness\"].includes(key)" in node_graph_source
         and "const nodeGraphTraceDisplaySensitiveControlExponent = 3;" in node_graph_source
-        and "function nodeGraphTraceDisplaySizeToControlValue(value)" in node_graph_source
+        and "function nodeGraphTraceDisplaySizeToControlValue(value, max = 1)" in node_graph_source
         and "1 / nodeGraphTraceDisplaySensitiveControlExponent" in node_graph_source
-        and "function nodeGraphTraceDisplayControlToSizeValue(value)" in node_graph_source
-        and "return Math.pow(control, nodeGraphTraceDisplaySensitiveControlExponent);" in node_graph_source
+        and "function nodeGraphTraceDisplayControlToSizeValue(value, max = 1)" in node_graph_source
+        and "return Math.pow(control, nodeGraphTraceDisplaySensitiveControlExponent) * max;" in node_graph_source
         and "if (!nodeGraphTraceDisplaySensitiveControlField(key))" in node_graph_source
         and "adjustNodeGraphTraceDisplaySettingByControlDelta(drag.key, startValue, controlDelta)" in node_graph_source
         and "adjustNodeGraphTraceDisplaySettingByControlDelta(key, baseValue, direction * quantum)" in node_graph_source
@@ -14125,14 +14016,6 @@ def require_node_graph_mvp_contract() -> None:
         node_graph_source.index("function nodeGraphModuleScopeDisplayBuffer(slot, capturedBuffer = null)"):
         node_graph_source.index("function pushNodeGraphLiveModuleScopeSamples")
     ]
-    require(
-        'slot?.type === "noise" && capturedBuffer' in display_buffer_source
-        and 'slot?.type === "stereoNoise"' in display_buffer_source
-        and "nodeGraphModuleScopeCapturedStereoNoiseXyBuffer(slot, capturedBuffer) || capturedBuffer" in display_buffer_source
-        and "nodeGraphModuleScopeOfflineNoiseBuffer(slot)" not in display_buffer_source
-        and "nodeGraphModuleScopeOfflineStereoNoiseXyBuffer(slot)" not in display_buffer_source,
-        "noise scopes should prefer actual captured output over offline model buffers",
-    )
     require(
         "function nodeGraphModuleScopeOfflineAdditiveOscillatorBuffer(slot)" not in node_graph_source,
         "additive scopes should no longer use the old generated offline oscilloscope buffer",
@@ -16476,7 +16359,7 @@ def require_node_graph_mvp_contract() -> None:
         "this.applyParameterModulation(base, modulationSignal, metadata)",
         "this.nodeOutputs = new Map()",
         "this.noiseSeedKeys = new Map()",
-        "this.bandpassStates = new Map()",
+        "this.passiveFilterStates = new Map()",
         "this.cookbookFilterStates = new Map()",
         "this.ladderFilterStates = new Map()",
         "this.clockDividerStates = new Map()",
@@ -16486,16 +16369,12 @@ def require_node_graph_mvp_contract() -> None:
         "this.expAdsrStates = new Map()",
         "this.fractalBrownianNoiseStates = new Map()",
         "this.flowerChildEnvelopeFollowerStates = new Map()",
-        "this.highpassStates = new Map()",
         "this.linearEnvelopeStates = new Map()",
-        "this.lowpassStates = new Map()",
         "this.noiseGeneratorStates = new Map()",
-        "this.noiseSampleHoldStates = new Map()",
         "this.oscResetStates = new Map()",
         "this.graphLfoStates = new Map()",
         "this.oscillatorLastPhaseIncrements = new Map()",
         "this.oscillatorStoppedSamples = new Map()",
-        "this.noiseSeeds.set(`${id}:left`, this.stableSeed(`${id}:left`))",
         "this.randomClockStates = new Map()",
         "this.randomWalkStates = new Map()",
         "this.sampleHoldStates = new Map()",
@@ -16537,13 +16416,9 @@ def require_node_graph_mvp_contract() -> None:
         "this.oscResetStates",
         "this.triangleStates.set(nodeId, 0)",
         "noiseSeedKey(nodeId, seedValue, channel = \"\")",
-        "nextSeededNoiseSample(nodeId, seedValue, channel = \"\")",
-        "noiseSampleHoldSample(state, nodeId, seedValue, speed, rate = sampleRate)",
-        "this.noiseSeedKeys.get(noiseId) !== seedKey",
-        "this.noiseSeeds.set(noiseId, this.stableSeed(seedKey))",
         "createHighpassState()",
         "createLowpassState()",
-        "createBandpassState()",
+        "createPassiveFilterState()",
         "createCookbookFilterState()",
         "createLadderFilterState()",
         "cookbookFilterCoefficients(mode, frequency, q, gainDb",
@@ -16570,12 +16445,10 @@ def require_node_graph_mvp_contract() -> None:
         "createVactrolEnvelopeState()",
         "createFlowerChildEnvelopeFollowerState()",
         "createNoiseGeneratorState()",
-        "createNoiseSampleHoldState()",
         "createRandomWalkState()",
         "createFractalBrownianNoiseState()",
         "onePoleHighpassSample(state, input, frequency, rate = sampleRate)",
         "onePoleLowpassSample(state, input, frequency, rate = sampleRate)",
-        "onePoleBandpassSample(state, input, lowFrequency, highFrequency, rate = sampleRate)",
         "slewLimiterSample(state, input, upTime, downTime, rate = sampleRate)",
         "Math.max(-maxFall, Math.min(maxRise, delta))",
         "clockSample(state, reset, phaseOffset, rate, duty, level, rateHz = sampleRate)",
@@ -16595,7 +16468,7 @@ def require_node_graph_mvp_contract() -> None:
         'this.port.postMessage({',
         'type: "patchCommand"',
         "command,",
-        "sampleHoldSample(state, input, trigger, threshold)",
+        "sampleHoldSample(state, input, trigger, threshold, sampleFrequency, sampleRate, hasInConnected, nodeId)",
         "stepSequencerSample(state, trigger, reset, params)",
         "triggerCounterSample(state, trigger, reset, params, rate = sampleRate)",
         "triggerDividerSample(state, trigger, reset, params, rate = sampleRate)",
@@ -16611,9 +16484,9 @@ def require_node_graph_mvp_contract() -> None:
         "fractalBrownianNoiseAxisState(state, axis)",
         "fractalBrownianNoiseSample(state, params, rate = sampleRate, nodeId = \"\", axis = \"x\")",
         "fractalBrownianNoiseVector(state, params, rate = sampleRate, nodeId = \"\")",
-        "\"Out X\": this.fractalBrownianNoiseSample(state, params, rate, nodeId, \"x\")",
-        "\"Out Y\": this.fractalBrownianNoiseSample(state, params, rate, nodeId, \"y\")",
-        "\"Out Z\": this.fractalBrownianNoiseSample(state, params, rate, nodeId, \"z\")",
+        "\"Out X\": this.fractalBrownianNoiseSample(state, params, safeRate, nodeId, \"x\")",
+        "\"Out Y\": this.fractalBrownianNoiseSample(state, params, safeRate, nodeId, \"y\")",
+        "\"Out Z\": this.fractalBrownianNoiseSample(state, params, safeRate, nodeId, \"z\")",
         "rationalCurve(value, skew)",
         "smoothNoise1d(x, seed)",
         "expAdsrCalcCoef(rate, targetRatio)",
@@ -16665,9 +16538,7 @@ def require_node_graph_mvp_contract() -> None:
         'this.readEffectiveParameter(node, "level", 1',
         'node?.type === "spiral"',
         'node?.type === "lorenzAttractor"',
-        'node?.type === "highpass"',
-        'node?.type === "lowpass"',
-        'node?.type === "bandpass"',
+        'node?.type === "passiveFilter"',
         'node?.type === "slewLimiter"',
         'node?.type === "randomClock"',
         'node?.type === "clockDivider"',
@@ -16724,15 +16595,6 @@ def require_node_graph_mvp_contract() -> None:
         "Pause: scopePaused",
         "ScopeOff: scopeTracesOff",
         'node?.type === "noiseGenerator"',
-        'node?.type === "stereoNoise"',
-        'this.readEffectiveParameter(node, "seed", 1',
-        'this.readEffectiveParameter(node, "speed", 1',
-        "this.noiseSampleHoldStates.get(nodeId)",
-        "this.noiseSampleHoldSample(",
-        'this.nextSeededNoiseSample(nodeId, seed, "left")',
-        'this.nextSeededNoiseSample(nodeId, seed, "right")',
-        "X: left",
-        "Y: right",
         'node?.type === "randomWalk"',
         'node?.type === "fractalBrownianNoise"',
         'node?.type === "groupInput"',
@@ -17103,11 +16965,31 @@ def require_native_module_contract(base_url: str) -> None:
     expected_native_exports = {
         "ellipsoid": ["soemdsp_ellipsoid_sample", "soemdsp_ellipsoid_vector_sample"],
         "fractal_brownian_noise": ["soemdsp_fbm_create", "soemdsp_fbm_destroy", "soemdsp_fbm_sample"],
+        "helmholtz": [
+            "soemdsp_helmholtz_create",
+            "soemdsp_helmholtz_destroy",
+            "soemdsp_helmholtz_set_params",
+            "soemdsp_helmholtz_process",
+            "soemdsp_helmholtz_frequency",
+            "soemdsp_helmholtz_fidelity",
+        ],
         "ladder_filter": ["soemdsp_ladder_filter_create", "soemdsp_ladder_filter_destroy", "soemdsp_ladder_filter_sample"],
         "noise_generator": ["soemdsp_noise_generator_create", "soemdsp_noise_generator_destroy", "soemdsp_noise_generator_sample"],
+        "passive_filter": [
+            "soemdsp_passive_filter_create",
+            "soemdsp_passive_filter_destroy",
+            "soemdsp_passive_filter_sample",
+            "soemdsp_passive_filter_metadata_json",
+        ],
         "pll": ["soemdsp_pll_create", "soemdsp_pll_destroy", "soemdsp_pll_process"],
         "sabrina_reverb": ["soemdsp_sabrina_reverb_create", "soemdsp_sabrina_reverb_destroy", "soemdsp_sabrina_reverb_process"],
         "soft_clipper": ["soemdsp_soft_clipper_sample"],
+        "tb303_filter": [
+            "soemdsp_tb303_filter_create",
+            "soemdsp_tb303_filter_destroy",
+            "soemdsp_tb303_filter_sample",
+            "soemdsp_tb303_filter_metadata_json",
+        ],
     }
     for source_path in native_sources:
         source_text = source_path.read_text(encoding="utf-8")
@@ -17119,7 +17001,8 @@ def require_native_module_contract(base_url: str) -> None:
         require("// soemdsp-native-target:" in source_text, f"native {module_name} source metadata missing target header")
         require("// soemdsp-native-kind:" in source_text, f"native {module_name} source metadata missing kind header")
         require("soemdsp-native-tooltip" not in source_text, f"native {module_name} should not use comment tooltip metadata")
-        for export_name in expected_native_exports.get(module_name, []):
+        require(module_name in expected_native_exports, f"native {module_name} should declare expected exports in smoke test")
+        for export_name in expected_native_exports[module_name]:
             require(f'extern "C"' in source_text and export_name in source_text, f"native {module_name} export missing: {export_name}")
             require(f"-Wl,--export={export_name}" in native_build_source, f"native {module_name} build export missing: {export_name}")
         require(str(wasm_rel) in native_build_source, f"native {module_name} build output missing")
@@ -17192,7 +17075,7 @@ def require_native_module_contract(base_url: str) -> None:
     )
     require("sendNodeGraphLiveNativeModules" in live_runtime_source, "native worklet sender missing")
     require("\"setNativeModuleWasm\"" in live_runtime_source, "native worklet post message missing")
-    require("ladder-filter-wasm-20260630" in live_runtime_source, "native worklet cache bust key should include the latest native module update")
+    require("node-live-audio-worklet.js?v=" in live_runtime_source, "native worklet module load should carry a cache bust key")
     require("async setNativeModuleWasm(message)" in worklet_source, "native worklet loader missing")
     require("nativeEllipsoidVectorSample(" in worklet_source, "native ellipsoid worklet path missing")
     require(
