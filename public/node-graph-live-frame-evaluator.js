@@ -1163,6 +1163,54 @@ function nodeGraphDelayEffectSample(state, input, params, sampleRate, runtime = 
   };
 }
 
+// DspBinding for Sabrina Reverb (offline/preview evaluator path): resolves
+// clamped native params, checks whether they've actually changed since the
+// last apply (paramKey dirty check), and only then syncs them into native
+// DSP memory via soemdsp_sabrina_reverb_set_params. Pure extraction of the
+// duplicate block previously inline in nodeGraphSabrinaReverbSample -- same
+// clamps, same key construction, same condition, same call args. Mirrors
+// applySabrinaDspBindingIfDirty in node-live-audio-worklet.js (a plain
+// function here since this evaluator module isn't class-based).
+function applySabrinaDspBindingIfDirty(native, state, params, runtime, nodeId) {
+  const safeParams = {
+    delaySize: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.delaySize, runtime, nodeId, null, "Sabrina delay size"))),
+    diffusionAmount: Math.max(0, Math.min(0.98, nodeGraphSafeFilterNumber(params.diffusionAmount, runtime, nodeId, null, "Sabrina diffusion amount"))),
+    diffusionSize: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.diffusionSize, runtime, nodeId, null, "Sabrina diffusion size"))),
+    lfoAmplitude: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.lfoAmplitude, runtime, nodeId, null, "Sabrina lfo amplitude"))),
+    lfoBaseSpeed: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.lfoBaseSpeed, runtime, nodeId, null, "Sabrina lfo speed"))),
+    lfoVariation: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.lfoVariation, runtime, nodeId, null, "Sabrina lfo variation"))),
+    mix: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.mix, runtime, nodeId, null, "Sabrina mix"))),
+    recycle: Math.max(0, Math.min(0.98, nodeGraphSafeFilterNumber(params.recycle, runtime, nodeId, null, "Sabrina recycle"))),
+    seed: Math.max(0, Math.min(99999, Math.round(nodeGraphSafeFilterNumber(params.seed, runtime, nodeId, null, "Sabrina seed")))),
+  };
+  const paramKey = [
+    safeParams.mix,
+    safeParams.diffusionSize,
+    safeParams.diffusionAmount,
+    safeParams.delaySize,
+    safeParams.recycle,
+    safeParams.lfoAmplitude,
+    safeParams.lfoBaseSpeed,
+    safeParams.lfoVariation,
+  ].map((value) => Math.round(value * 1000000)).join(":") + `:${safeParams.seed}`;
+  if (paramKey === state.nativeParamKey || !native.soemdsp_sabrina_reverb_set_params) {
+    return;
+  }
+  state.nativeParamKey = paramKey;
+  native.soemdsp_sabrina_reverb_set_params(
+    state.nativeHandle,
+    safeParams.mix,
+    safeParams.diffusionSize,
+    safeParams.diffusionAmount,
+    safeParams.delaySize,
+    safeParams.recycle,
+    safeParams.lfoAmplitude,
+    safeParams.lfoBaseSpeed,
+    safeParams.lfoVariation,
+    safeParams.seed,
+  );
+}
+
 function nodeGraphSabrinaReverbSample(state, leftInput, rightInput, params, sampleRate, runtime = null, nodeId = "") {
   const dryLeft = nodeGraphSafeFilterNumber(leftInput, runtime, nodeId, null, "Sabrina left input");
   const dryRight = nodeGraphSafeFilterNumber(rightInput, runtime, nodeId, null, "Sabrina right input");
@@ -1185,42 +1233,7 @@ function nodeGraphSabrinaReverbSample(state, leftInput, rightInput, params, samp
     if (!state.nativeHandle) {
       return dry;
     }
-    const safeParams = {
-      delaySize: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.delaySize, runtime, nodeId, null, "Sabrina delay size"))),
-      diffusionAmount: Math.max(0, Math.min(0.98, nodeGraphSafeFilterNumber(params.diffusionAmount, runtime, nodeId, null, "Sabrina diffusion amount"))),
-      diffusionSize: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.diffusionSize, runtime, nodeId, null, "Sabrina diffusion size"))),
-      lfoAmplitude: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.lfoAmplitude, runtime, nodeId, null, "Sabrina lfo amplitude"))),
-      lfoBaseSpeed: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.lfoBaseSpeed, runtime, nodeId, null, "Sabrina lfo speed"))),
-      lfoVariation: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.lfoVariation, runtime, nodeId, null, "Sabrina lfo variation"))),
-      mix: Math.max(0, Math.min(1, nodeGraphSafeFilterNumber(params.mix, runtime, nodeId, null, "Sabrina mix"))),
-      recycle: Math.max(0, Math.min(0.98, nodeGraphSafeFilterNumber(params.recycle, runtime, nodeId, null, "Sabrina recycle"))),
-      seed: Math.max(0, Math.min(99999, Math.round(nodeGraphSafeFilterNumber(params.seed, runtime, nodeId, null, "Sabrina seed")))),
-    };
-    const paramKey = [
-      safeParams.mix,
-      safeParams.diffusionSize,
-      safeParams.diffusionAmount,
-      safeParams.delaySize,
-      safeParams.recycle,
-      safeParams.lfoAmplitude,
-      safeParams.lfoBaseSpeed,
-      safeParams.lfoVariation,
-    ].map((value) => Math.round(value * 1000000)).join(":") + `:${safeParams.seed}`;
-    if (paramKey !== state.nativeParamKey && native.soemdsp_sabrina_reverb_set_params) {
-      state.nativeParamKey = paramKey;
-      native.soemdsp_sabrina_reverb_set_params(
-        state.nativeHandle,
-        safeParams.mix,
-        safeParams.diffusionSize,
-        safeParams.diffusionAmount,
-        safeParams.delaySize,
-        safeParams.recycle,
-        safeParams.lfoAmplitude,
-        safeParams.lfoBaseSpeed,
-        safeParams.lfoVariation,
-        safeParams.seed,
-      );
-    }
+    applySabrinaDspBindingIfDirty(native, state, params, runtime, nodeId);
     native.soemdsp_sabrina_reverb_process(state.nativeHandle, dryLeft, dryRight);
     const mixLeft = nodeGraphSafeFilterNumber(native.soemdsp_sabrina_reverb_left?.(state.nativeHandle), runtime, nodeId, null, "Sabrina mix left");
     const mixRight = nodeGraphSafeFilterNumber(native.soemdsp_sabrina_reverb_right?.(state.nativeHandle), runtime, nodeId, null, "Sabrina mix right");
