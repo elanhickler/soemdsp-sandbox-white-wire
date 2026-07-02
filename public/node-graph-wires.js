@@ -118,15 +118,25 @@
       gradient.setAttribute("y2", String(to.y));
 
       const [fromColor, toColor] = colors || [null, null];
-      const middleColor = fromColor && toColor ? mixWireColor(fromColor, toColor) : null;
+      // Same color on both ends: skip the opacity dip entirely rather than
+      // faking a transition that never actually changes color -- app-wide
+      // policy, not specific to any one wire kind.
+      const sameColor = Boolean(fromColor) && Boolean(toColor) && fromColor === toColor;
+      const middleColor = !sameColor && fromColor && toColor ? mixWireColor(fromColor, toColor) : null;
       // Legacy smoke contract strings: ["48%", "0.36", fromColor], ["52%", "0.36", toColor].
-      for (const [offset, opacity, color] of [
-        ["0%", "1", fromColor],
-        ["48%", "0.36", fromColor],
-        ["50%", "0.34", middleColor],
-        ["52%", "0.36", toColor],
-        ["100%", "1", toColor],
-      ]) {
+      const stops = sameColor
+        ? [
+            ["0%", "1", fromColor],
+            ["100%", "1", toColor],
+          ]
+        : [
+            ["0%", "1", fromColor],
+            ["48%", "0.36", fromColor],
+            ["50%", "0.34", middleColor],
+            ["52%", "0.36", toColor],
+            ["100%", "1", toColor],
+          ];
+      for (const [offset, opacity, color] of stops) {
         const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
         stop.setAttribute("class", stopClass);
         stop.setAttribute("offset", offset);
