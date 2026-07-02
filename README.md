@@ -1,3 +1,29 @@
+# soemdsp-sandbox — Jerobeam Modules Fork
+
+This is a fork of [soemdsp-sandbox](https://github.com/soundemote/soemdsp-sandbox)
+focused on one thing: giving each of Jerobeam Fenderson's "under construction"
+motion/oscillator patches — Blubb, Boing, Kepler-Bouwkamp, Mushroom,
+Nyquist-Shannon, Radar, Torus, and WirdoSpiral — a real native C++ WASM
+implementation in the sandbox, alongside the already-working Spiral module.
+
+Each port is built directly from the reference C++ in
+`soemdsp/include/soemdsp/oscillator/`, faithfully reproducing the original
+Gen~/Max patch math (phasors, trisaw shaping, `sin`/`cos` on a 0..1 phase
+domain, splash/quantize layers, and so on) as a self-contained
+`-nostdlib` WASM module, wired into both the realtime audio worklet and the
+offline preview evaluator.
+
+## Dedication
+
+To Jerobeam Fenderson — for building these strange, beautiful little
+generators in Max/Gen and sharing the math behind them freely. Blubb, Boing,
+Kepler-Bouwkamp, Mushroom, Nyquist-Shannon, Radar, Torus, WirdoSpiral, and
+Spiral all exist because you took the time to work out the curves and put
+them where other people could learn from them. This fork exists to make sure
+that work keeps running.
+
+---
+
 # soemdsp-sandbox
 
 ## Live Demo: http://soundemote.io/sandbox
