@@ -199,6 +199,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     this.slewLimiterStates = new Map();
     this.smoothers = new Map();
     this.spiralStates = new Map();
+    this.fractalSpiralStates = new Map();
     this.stepSequencerStates = new Map();
     this.timing = this.normalizePatchTiming();
     this.triggerCounterStates = new Map();
@@ -940,6 +941,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     this.scopeCounter = 0;
     this.smoothers = new Map();
     this.spiralStates = new Map();
+    this.fractalSpiralStates = new Map();
     this.stepSequencerStates = new Map();
     this.triggerCounterStates = new Map();
     this.triggerDividerStates = new Map();
@@ -1135,6 +1137,9 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       }
       if (node?.type === "spiral" && !this.spiralStates.has(id)) {
         this.spiralStates.set(id, this.createSpiralState());
+      }
+      if (node?.type === "fractalSpiral" && !this.fractalSpiralStates.has(id)) {
+        this.fractalSpiralStates.set(id, this.createFractalSpiralState());
       }
       if (node?.type === "lorenzAttractor" && !this.lorenzAttractorStates.has(id)) {
         this.lorenzAttractorStates.set(id, this.createLorenzAttractorState());
@@ -1332,6 +1337,11 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
     for (const id of [...this.nodeOutputs.keys()]) {
       if (!ids.has(id)) {
         this.nodeOutputs.delete(id);
+      }
+    }
+    for (const id of [...this.fractalSpiralStates.keys()]) {
+      if (!ids.has(id)) {
+        this.fractalSpiralStates.delete(id);
       }
     }
     for (const id of [...this.spiralStates.keys()]) {
@@ -3933,6 +3943,7 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
         this.noiseSeeds.set(id, this.stableSeed(id));
       }
       if (node?.type === "spiral") this.spiralStates.set(id, this.createSpiralState());
+      if (node?.type === "fractalSpiral") this.fractalSpiralStates.set(id, this.createFractalSpiralState());
       if (node?.type === "lorenzAttractor") this.lorenzAttractorStates.set(id, this.createLorenzAttractorState());
       if (node?.type === "logisticMap") this.logisticMapStates.set(id, this.createLogisticMapState());
       if (node?.type === "henonMap") this.henonMapStates.set(id, this.createHenonMapState());
@@ -5917,6 +5928,69 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
       rotY: 0,
       zHistory: 0,
     };
+  }
+
+  createFractalSpiralState() {
+    return {
+      phase: 0,
+      spinPhase: 0,
+    };
+  }
+
+  fractalSpiralWrap01(value) {
+    return value - Math.floor(value);
+  }
+
+  // Self-affine Weierstrass-style fractal spiral -- see
+  // public/node-graph-fractal-spiral.js for the full derivation. Mirrors
+  // that file exactly.
+  fractalSpiralSample(state, options = {}) {
+    const sampleRateValue = Math.max(1, Number(options.sampleRate) || sampleRate || 44100);
+    const frequency = Number(options.frequency) || 0;
+    const spin = Number(options.spin) || 0;
+    const size = Math.max(0, Number(options.size) || 0);
+    const growth = Number(options.growth) || 0;
+    const gain = Math.max(0.001, Math.min(0.98, Number(options.gain)));
+    const lacunarity = Math.max(1.0001, Number(options.lacunarity) || 1);
+    const octaveCount = Math.max(1, Math.min(16, Math.round(Number(options.octaves) || 1)));
+    const twist = Number(options.twist) || 0;
+
+    const mainPhase = this.fractalSpiralWrap01(state.phase);
+    state.phase = this.fractalSpiralWrap01(state.phase + frequency / sampleRateValue);
+    const spinPhaseValue = this.fractalSpiralWrap01(state.spinPhase);
+    state.spinPhase = this.fractalSpiralWrap01(state.spinPhase + spin / sampleRateValue);
+
+    const theta = mainPhase * Math.PI * 2;
+    const envelope = Math.exp(growth * (mainPhase - 0.5));
+
+    let sumX = 0;
+    let sumY = 0;
+    let ampSum = 0;
+    let amp = 1;
+    let angleMultiplier = 1;
+    for (let k = 0; k < octaveCount; k++) {
+      const angle = angleMultiplier * theta + k * twist * Math.PI * 2;
+      sumX += amp * Math.cos(angle);
+      sumY += amp * Math.sin(angle);
+      ampSum += amp;
+      amp *= gain;
+      angleMultiplier *= lacunarity;
+    }
+    const normX = ampSum > 0 ? sumX / ampSum : 0;
+    const normY = ampSum > 0 ? sumY / ampSum : 0;
+
+    const radius = envelope * size;
+    const rawX = normX * radius;
+    const rawY = normY * radius;
+
+    const spinAngle = spinPhaseValue * Math.PI * 2;
+    const cosSpin = Math.cos(spinAngle);
+    const sinSpin = Math.sin(spinAngle);
+    const x = rawX * cosSpin - rawY * sinSpin;
+    const y = rawX * sinSpin + rawY * cosSpin;
+    const z = envelope - 1;
+
+    return { x, y, z };
   }
 
   createLorenzAttractorState() {
@@ -8483,6 +8557,34 @@ class NodeLiveAudioProcessor extends AudioWorkletProcessor {
           X: spiral.x * level,
           Y: spiral.y * level,
           Z: spiral.z * level,
+        };
+      } else if (node?.type === "fractalSpiral") {
+        const state = this.fractalSpiralStates.get(nodeId) || this.createFractalSpiralState();
+        this.fractalSpiralStates.set(nodeId, state);
+        const read = (key, fallback) => this.readEffectiveParameter(
+          node,
+          key,
+          fallback,
+          frame,
+          frames,
+          frameValues,
+        );
+        const fractal = this.fractalSpiralSample(state, {
+          frequency: read("frequency", 1),
+          gain: read("gain", 0.5),
+          growth: read("growth", 1.5),
+          lacunarity: read("lacunarity", 2),
+          octaves: read("octaves", 5),
+          sampleRate: safeRate,
+          size: read("size", 0.5),
+          spin: read("spin", 0.05),
+          twist: read("twist", 0.381966),
+        });
+        const fractalLevel = read("level", 1);
+        value = {
+          X: fractal.x * fractalLevel,
+          Y: fractal.y * fractalLevel,
+          Z: fractal.z * fractalLevel,
         };
       } else if (node?.type === "lorenzAttractor") {
         const state = this.lorenzAttractorStates.get(nodeId) || this.createLorenzAttractorState();

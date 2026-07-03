@@ -196,6 +196,7 @@ PUBLIC_SCRIPT_PATHS = (
     "./public/node-graph-live-parameter-runtime.js",
     "./public/node-graph-oscillator-runtime.js",
     "./public/node-graph-jerobeam-spiral.js",
+    "./public/node-graph-fractal-spiral.js",
     "./public/node-graph-lorenz-attractor.js",
     "./public/node-graph-logistic-map.js",
     "./public/node-graph-henon-map.js",

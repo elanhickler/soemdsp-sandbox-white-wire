@@ -28,6 +28,7 @@ const nodeGraphModuleStoreTypes = Object.freeze([
   "pitchQuantizer",
   "arpeggiator",
   "spiral",
+  "fractalSpiral",
   "blubb",
   "boing",
   "keplerBoukamp",
@@ -411,6 +412,12 @@ const nodeGraphModuleStoreCatalog = Object.freeze({
     description: "Jerobeam spiral engine. Emits X/Y/Z motion-signal for alien curves and audiovisual flight paths.",
     label: "Jerobeam Spiral",
     notes: ["attractor motion", "rotation", "density and morph controls"],
+  },
+  fractalSpiral: {
+    category: "Jerobeam",
+    description: "Self-affine Weierstrass-style fractal spiral: N rotating copies of itself, each spun faster and scaled down, summed into one curve with a real, tunable Hausdorff dimension.",
+    label: "Fractal Spiral",
+    notes: ["fractal", "self-similar", "logarithmic spiral", "Weierstrass function"],
   },
   blubb: {
     category: "Jerobeam",

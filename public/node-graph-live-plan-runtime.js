@@ -279,6 +279,7 @@ function createNodeGraphLiveRuntime(plan) {
   const slewLimiterStates = new Map();
   const stepSequencerStates = new Map();
   const spiralStates = new Map();
+  const fractalSpiralStates = new Map();
   const smoothers = new Map();
   const triggerCounterStates = new Map();
   const triggerDividerStates = new Map();
@@ -296,6 +297,9 @@ function createNodeGraphLiveRuntime(plan) {
     }
     if (node.type === "spiral") {
       spiralStates.set(node.id, createJerobeamSpiralState());
+    }
+    if (node.type === "fractalSpiral") {
+      fractalSpiralStates.set(node.id, createFractalSpiralState());
     }
     if (node.type === "lorenzAttractor") {
       lorenzAttractorStates.set(node.id, createNodeGraphLorenzAttractorState());
@@ -520,6 +524,7 @@ function createNodeGraphLiveRuntime(plan) {
     slewLimiterStates,
     smoothers,
     spiralStates,
+    fractalSpiralStates,
     stepSequencerStates,
     timing: normalizeNodeGraphPatchTiming(plan.timing),
     triggerCounterStates,
@@ -582,6 +587,9 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
   }
   if (!runtime.spiralStates) {
     runtime.spiralStates = new Map();
+  }
+  if (!runtime.fractalSpiralStates) {
+    runtime.fractalSpiralStates = new Map();
   }
   if (!runtime.passiveFilterStates) {
     runtime.passiveFilterStates = new Map();
@@ -737,6 +745,9 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
     }
     if (node.type === "spiral" && !runtime.spiralStates.has(node.id)) {
       runtime.spiralStates.set(node.id, createJerobeamSpiralState());
+    }
+    if (node.type === "fractalSpiral" && !runtime.fractalSpiralStates.has(node.id)) {
+      runtime.fractalSpiralStates.set(node.id, createFractalSpiralState());
     }
     if (node.type === "lorenzAttractor" && !runtime.lorenzAttractorStates.has(node.id)) {
       runtime.lorenzAttractorStates.set(node.id, createNodeGraphLorenzAttractorState());
@@ -939,6 +950,11 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
   for (const id of [...runtime.spiralStates.keys()]) {
     if (!nodeIds.has(id)) {
       runtime.spiralStates.delete(id);
+    }
+  }
+  for (const id of [...runtime.fractalSpiralStates.keys()]) {
+    if (!nodeIds.has(id)) {
+      runtime.fractalSpiralStates.delete(id);
     }
   }
   for (const id of [...runtime.lorenzAttractorStates.keys()]) {
