@@ -117,10 +117,53 @@ recompute never gets to skip.
 `scripts/build_native_modules.ps1` (added `-msimd128` to Sabrina's build
 stanza only — no other module was touched).
 
-**Where this leaves SIMD as a strategy for this codebase**: vectorizing
-per-sample-independent recomputation (like delay geometry) is provably
-correct and provably faster in isolation, but won't move overall CPU numbers
-much where a cheaper fix (skip the work entirely when unmodulated) already
-applies. The more promising SIMD target, if this continues, is likely the
-memory-bound delay-line read/write path itself — a different, larger kernel
-than this example, not yet attempted.
+## Second SIMD kernel: stereo-paired delay/diffusion path (this one's a real win)
+
+The geometry kernel above pointed at the actual bottleneck: the memory-bound
+per-sample work in `delaySample`/`diffuseSample`, which runs on every sample
+regardless of modulation state (unlike geometry, which the convergence-skip
+optimization can skip entirely). This kernel targets that path directly.
+
+**The parallelism**: not across the 14 delay lines (the 6-stage diffusion
+cascade is a serial dependency chain — each stage's output feeds the next,
+so lanes can't be independent there). Instead, **left and right stereo
+channels** are independent of each other within a single `process()` call
+(the only cross-feed is via `ch0`/`ch1` persisted from the *previous* call),
+so `delaySamplePairSimd`/`diffuseSamplePairSimd` process both channels
+together, one SIMD lane each, through the same 6 cascade stages —
+sequential across stages, parallel across channels. This is the standard
+stereo-channel-parallel SIMD pattern.
+
+Vectorized: `parabol()` (now `parabolPairSimd`, using `f64x2.floor`/`f64x2.abs`
+— both confirmed available), the modulation-increment update, the read-position
+calc, and (for diffusion) the feedback combine and clamp. Left as scalar: the
+delay-buffer read/write itself — `delayL.buffer` and `delayR.buffer` are two
+separate arrays with independently-computed indices, and WASM SIMD128 has no
+gather/scatter instruction, so there's no single vector load that could span
+both.
+
+**Correctness**: froze the geometry-SIMD build as the new baseline, ran 7
+presets (120,000+ samples), including one with deliberately **asymmetric
+L/R input** specifically to catch a left/right lane-swap bug. Max deviation:
+1e-9 to 1e-12 relative to signal amplitude — consistent with floating-point
+reordering, no lane-swap, no behavioral difference.
+
+**Benchmark**: end-to-end pipeline, ordinary (non-modulated) processing,
+median of 6 runs each: **~1.09x faster (about 8.3% less time)**, with clean
+separation between the two distributions across every run (no overlap).
+Unlike the geometry kernel, this shows up in *ordinary* use, not just under
+continuous modulation — because this path runs every sample regardless.
+
+**Files**: same two files as the geometry kernel — no new build stanza
+needed, `-msimd128` was already enabled for this module.
+
+**Where this leaves SIMD as a strategy for this codebase**: the lesson from
+both kernels together is that the parallelism has to be found in what
+*actually* runs every sample, not just in what's easy to batch. Geometry
+recompute was easy to vectorize (12 independent lanes) but often skipped
+entirely; the stereo channel pairing was less obvious (only 2 lanes, and the
+per-line cascade itself stays serial) but touches work that always runs.
+A further win, not yet attempted, would be interpolating `readDelay`'s
+fractional read itself in SIMD (the `before`/`after` sample blend), though
+the gather-free buffer indexing limits how much of that can actually
+vectorize.
