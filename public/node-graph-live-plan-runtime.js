@@ -253,6 +253,7 @@ function createNodeGraphLiveRuntime(plan) {
   const wirdoSpiralStates = new Map();
   const blubbStates = new Map();
   const mushroomStates = new Map();
+  const boingStates = new Map();
   const chordMemoryStates = new Map();
   const turingMachineStates = new Map();
   const pitchQuantizerStates = new Map();
@@ -312,6 +313,9 @@ function createNodeGraphLiveRuntime(plan) {
     }
     if (node.type === "mushroom") {
       mushroomStates.set(node.id, createNodeGraphMushroomState());
+    }
+    if (node.type === "boing") {
+      boingStates.set(node.id, createNodeGraphBoingState());
     }
     if (node.type === "chordMemory") {
       chordMemoryStates.set(node.id, createNodeGraphChordMemoryState());
@@ -447,6 +451,7 @@ function createNodeGraphLiveRuntime(plan) {
     wirdoSpiralStates,
     blubbStates,
     mushroomStates,
+    boingStates,
     chordMemoryStates,
     turingMachineStates,
     pitchQuantizerStates,
@@ -594,6 +599,9 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
   if (!runtime.mushroomStates) {
     runtime.mushroomStates = new Map();
   }
+  if (!runtime.boingStates) {
+    runtime.boingStates = new Map();
+  }
   if (!runtime.chordMemoryStates) {
     runtime.chordMemoryStates = new Map();
   }
@@ -718,6 +726,9 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
     }
     if (node.type === "mushroom" && !runtime.mushroomStates.has(node.id)) {
       runtime.mushroomStates.set(node.id, createNodeGraphMushroomState());
+    }
+    if (node.type === "boing" && !runtime.boingStates.has(node.id)) {
+      runtime.boingStates.set(node.id, createNodeGraphBoingState());
     }
     if (node.type === "chordMemory" && !runtime.chordMemoryStates.has(node.id)) {
       runtime.chordMemoryStates.set(node.id, createNodeGraphChordMemoryState());
@@ -919,6 +930,11 @@ function updateNodeGraphLiveRuntimePlan(runtime, plan) {
   for (const id of [...runtime.mushroomStates.keys()]) {
     if (!nodeIds.has(id)) {
       runtime.mushroomStates.delete(id);
+    }
+  }
+  for (const id of [...runtime.boingStates.keys()]) {
+    if (!nodeIds.has(id)) {
+      runtime.boingStates.delete(id);
     }
   }
   for (const id of [...runtime.chordMemoryStates.keys()]) {

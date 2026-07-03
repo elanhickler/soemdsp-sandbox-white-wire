@@ -757,6 +757,38 @@ const nodeGraphModuleDefinitions = Object.freeze({
       { key: "level", label: "Level", defaultValue: "1", min: "0", mid: "0.5", max: "1", step: "0.01" },
     ],
   },
+  boing: {
+    displayType: "scope2d",
+    displaySignals: [
+      { key: "X", kind: "scalar" },
+      { key: "Y", kind: "scalar" },
+      { key: "X/Y", kind: "xy" },
+    ],
+    displayModes: [
+      { key: "xyBurn", label: "X/Y Burn", renderer: "scope2d", settingsSchema: "scope2d", source: { x: "X", y: "Y" } },
+      { key: "xyTrace", label: "X/Y Trace", renderer: "scope2dTrace", settingsSchema: "scope2dTrace", source: { x: "X", y: "Y" } },
+    ],
+    defaultDisplayMode: "xyBurn",
+    inputs: ["Reset"],
+    outputs: ["X", "Y"],
+    parameters: [
+      { key: "frequency", label: "Frequency", kind: "frequency", defaultValue: "8", min: "0", mid: "20", max: "2000", maxDigits: 5, step: "any" },
+      { key: "density", label: "Density", defaultValue: "1", min: "0", mid: "4", max: "16", step: "0.01" },
+      { key: "sharpness", label: "Sharpness", defaultValue: "0", min: "-1", mid: "0", max: "1", step: "0.01" },
+      { key: "rotX", label: "Rot X", defaultValue: "0", min: "-180", mid: "0", max: "180", step: "0.1" },
+      { key: "rotY", label: "Rot Y", defaultValue: "0", min: "-180", mid: "0", max: "180", step: "0.1" },
+      { key: "zDepth", label: "Z Depth", defaultValue: "0", min: "0", mid: "0.5", max: "1", step: "0.01" },
+      { key: "zAmount", label: "Z Amount", defaultValue: "0", min: "0", mid: "0.5", max: "1", step: "0.01" },
+      { key: "ends", label: "Ends", defaultValue: "0", min: "-1", mid: "0", max: "1", step: "0.01" },
+      { key: "boing", label: "Boing", defaultValue: "0", min: "0", mid: "0.5", max: "1", step: "0.01" },
+      { key: "boingStrength", label: "Boing Strength", defaultValue: "0", min: "0", mid: "0.5", max: "1", step: "0.01" },
+      { key: "dir", label: "Direction", defaultValue: "0", min: "0", mid: "0.5", max: "1", step: "0.01" },
+      { key: "shape", label: "Shape", defaultValue: "0", min: "0", mid: "0.5", max: "1", step: "0.01" },
+      { key: "volume", label: "Volume", defaultValue: "1", min: "0", mid: "1", max: "2", step: "0.01" },
+      { key: "volumePreJump", label: "Volume Pre-Jump", defaultValue: "0", min: "0", mid: "0.5", max: "1", step: "1" },
+      { key: "level", label: "Level", defaultValue: "1", min: "0", mid: "0.5", max: "1", step: "0.01" },
+    ],
+  },
   chuaAttractor: {
     displayType: "scope2d",
     displaySignals: [

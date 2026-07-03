@@ -362,3 +362,21 @@ if (!(Test-Path -LiteralPath $clang)) {
   "-Wl,--export-memory" `
   -o "$root\native_modules\jerobeam_mushroom\jerobeam_mushroom.wasm" `
   "$root\native_modules\jerobeam_mushroom\jerobeam_mushroom.cpp"
+
+& $clang `
+  --target=wasm32 `
+  -O3 `
+  -nostdlib `
+  -fno-exceptions `
+  -fno-rtti `
+  "-Wl,--no-entry" `
+  "-Wl,--export=soemdsp_jbboing_create" `
+  "-Wl,--export=soemdsp_jbboing_destroy" `
+  "-Wl,--export=soemdsp_jbboing_reset" `
+  "-Wl,--export=soemdsp_jbboing_sample" `
+  "-Wl,--export=soemdsp_jbboing_x" `
+  "-Wl,--export=soemdsp_jbboing_y" `
+  "-Wl,--export=soemdsp_jbboing_version" `
+  "-Wl,--export-memory" `
+  -o "$root\native_modules\jerobeam_boing\jerobeam_boing.wasm" `
+  "$root\native_modules\jerobeam_boing\jerobeam_boing.cpp"

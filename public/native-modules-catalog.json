@@ -68,6 +68,17 @@
       "wasmAvailable": true
     },
     {
+      "name": "jerobeam_boing",
+      "label": "Jerobeam Boing",
+      "targetType": "boing",
+      "kind": "jerobeam",
+      "source": "native_modules/jerobeam_boing/jerobeam_boing.cpp",
+      "sourceUrl": "https://github.com/soundemote/soemdsp-sandbox/blob/master/native_modules/jerobeam_boing/jerobeam_boing.cpp",
+      "wasm": "native_modules/jerobeam_boing/jerobeam_boing.wasm",
+      "wasmUrl": "native_modules/jerobeam_boing/jerobeam_boing.wasm",
+      "wasmAvailable": true
+    },
+    {
       "name": "jerobeam_mushroom",
       "label": "Jerobeam Mushroom",
       "targetType": "mushroom",
