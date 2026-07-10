@@ -256,8 +256,7 @@ function createNodeGraphButtonWidgetBody(node, type) {
   });
   body.append(button);
 
-  const parameter = definition?.parameters?.[0];
-  if (parameter) {
+  for (const parameter of definition?.parameters || []) {
     const row = createNodeGraphParameter(node, type, parameter);
     row.classList.add("node-button-widget-row");
     body.append(row);
